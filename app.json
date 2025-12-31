@@ -21,6 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
+      "package": "com.boaz606.storyteller",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -28,7 +29,8 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-build-properties", 
+      [
+        "expo-build-properties",
         {
           "android": {
             "usesCleartextTraffic": true
@@ -36,7 +38,13 @@
         }
       ],
       "expo-font",
-      "expo-sqlite"
-    ]
+      "expo-sqlite",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "firebaseAPIKey": "${FIREBASE_API_KEY}",
+      "firebaseProjectId": "${FIREBASE_PROJECT_ID}",
+      "claudeAPIKey": "${CLAUDE_API_KEY}"
+    }
   }
 }
