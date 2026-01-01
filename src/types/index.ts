@@ -62,8 +62,7 @@ export interface Scene extends BaseEntity {
 
 export interface Chapter extends BaseEntity {
   title: string;
-  summary: string;
-  description: string; 
+  description: string;
   order: number; // Chapter number
 }
 
@@ -84,44 +83,52 @@ export interface GeneratedStory {
 }
 
 /**
- * API Response Types
+ * Re-export API types
  */
-export interface ApiResponse<T = any> {
-  data: T;
-  message?: string;
-  success: boolean;
-}
-
-export interface ApiError {
-  message: string;
-  code?: string;
-  statusCode?: number;
-  errors?: Record<string, string[]>;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  hasMore: boolean;
-}
+export type {
+  ApiResponse,
+  ApiError,
+  PaginatedResponse,
+  ApiRequestConfig,
+  ApiState,
+  MutationResponse,
+  QueryParams,
+} from './api';
 
 /**
- * Form State Types
+ * Re-export Form types
  */
-export interface FormState<T = Record<string, any>> {
-  values: T;
-  errors: Record<string, string>;
-  touched: Record<string, boolean>;
-  isSubmitting: boolean;
-  isValid: boolean;
-}
+export type {
+  FormState,
+  FormFieldState,
+  FormFieldError,
+  ValidationResult,
+  ValidationRule,
+  ValidationSchema,
+  FormSubmitHandler,
+  FormChangeHandler,
+  FormBlurHandler,
+  FormResetHandler,
+  StoryFormValues,
+  CharacterFormValues,
+  BlurbFormValues,
+  SceneFormValues,
+  ChapterFormValues,
+  LoginFormValues,
+  SignupFormValues,
+  ForgotPasswordFormValues,
+  StoryGenerationFormValues,
+} from './forms';
 
-export interface FormFieldError {
-  field: string;
-  message: string;
-}
+/**
+ * Re-export Navigation types
+ */
+export type {
+  RootStackParamList,
+  AuthStackParamList,
+  AppStackParamList,
+  StoryTabParamList,
+} from './navigation';
 
 /**
  * Story Creation/Update Types
@@ -238,32 +245,6 @@ export interface StoryStatistics {
   completionPercentage: number;
 }
 
-/**
- * Navigation Param Types (basic - detailed types will be in navigation.ts)
- */
-export type RootStackParamList = {
-  Auth: undefined;
-  App: undefined;
-};
-
-export type AuthStackParamList = {
-  Login: undefined;
-  Signup: undefined;
-};
-
-export type AppStackParamList = {
-  StoriesList: undefined;
-  StoryDetail: { storyId: string };
-};
-
-export type StoryTabParamList = {
-  Overview: { storyId: string };
-  Characters: { storyId: string };
-  Blurbs: { storyId: string };
-  Scenes: { storyId: string };
-  Chapters: { storyId: string };
-  Generate: { storyId: string };
-};
 
 /**
  * Utility Types
