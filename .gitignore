@@ -44,3 +44,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Development plan documents
+DETAILED_TASKS.md
+DEVELOPMENT_PLAN.md
