@@ -14,6 +14,7 @@ interface UIState {
   snackbar: {
     message: string | null;
     type: 'success' | 'error' | 'info' | 'warning' | null;
+    onUndo?: () => void;
   };
 }
 
@@ -24,6 +25,7 @@ const initialState: UIState = {
   snackbar: {
     message: null,
     type: null,
+    onUndo: undefined,
   },
 };
 
@@ -57,17 +59,20 @@ const uiSlice = createSlice({
       action: PayloadAction<{
         message: string;
         type: 'success' | 'error' | 'info' | 'warning';
+        onUndo?: () => void;
       }>
     ) => {
       state.snackbar = {
         message: action.payload.message,
         type: action.payload.type,
+        onUndo: action.payload.onUndo,
       };
     },
     hideSnackbar: (state) => {
       state.snackbar = {
         message: null,
         type: null,
+        onUndo: undefined,
       };
     },
   },
