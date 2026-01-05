@@ -48,3 +48,5 @@ yarn-error.*
 # Development plan documents
 DETAILED_TASKS.md
 DEVELOPMENT_PLAN.md
+DATABASE_SCHEMA.md
+MIGRATION_STRATEGY.md

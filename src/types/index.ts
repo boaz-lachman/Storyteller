@@ -28,7 +28,7 @@ export interface Story {
   setting?: string;
   timePeriod?: string;
   // Status
-  status: 'draft' | 'in-progress' | 'completed';
+  status: 'draft' | 'completed';
   generatedContent?: string;
   generatedAt?: number;
   wordCount?: number;
@@ -41,7 +41,7 @@ export interface Character extends BaseEntity {
   name: string;
   description: string;
   role: 'protagonist' | 'antagonist' | 'supporting' | 'minor';
-  traits: string;
+  traits: string[];
   backstory?: string;
 }
 
@@ -135,7 +135,7 @@ export type {
  */
 export type StoryCreateInput = Omit<
   Story,
-  'id' | 'userId' | 'createdAt' | 'updatedAt' | 'synced' | 'generatedContent' | 'generatedAt' | 'wordCount'
+  'id' | 'userId' | 'createdAt' | 'updatedAt' | 'synced' 
 >;
 
 export type StoryUpdateInput = Partial<StoryCreateInput>;
