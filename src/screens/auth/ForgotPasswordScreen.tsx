@@ -14,6 +14,7 @@ import {
 import { Text } from 'react-native-paper';
 import { Input } from '../../components/forms/Input';
 import { PaperButton } from '../../components/forms/PaperButton';
+import Logo from '../../components/common/Logo';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -46,6 +47,9 @@ export default function ForgotPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
+          {/* Logo */}
+          <Logo fontSize="display" style={styles.logo} />
+
           {/* Title */}
           <Text style={[styles.title, isRTL && styles.titleRTL]}>
             Forgot Password?
@@ -124,6 +128,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
+  },
+  logo: {
+    marginBottom: spacing.xl,
+    textAlign: 'center',
   },
   title: {
     fontFamily: typography.fontFamily.bold,
