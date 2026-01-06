@@ -1,14 +1,15 @@
 import { NavigationContainer } from '@react-navigation/native';
-  import { createNativeStackNavigator } from '@react-navigation/native-stack';
-  import { useAppSelector } from '../store/hooks';
-  import AuthNavigator from './AuthNavigator';
-  import StoriesListScreen from '../screens/stories/StoriesListScreen';
-  import StoryNavigator from './StoryNavigator';
-  
-  const Stack = createNativeStackNavigator();
-  
-  export default function AppNavigator() {
-    const { user } = useAppSelector(state => state.auth);
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useAppSelector } from '../hooks/redux';
+import { selectUser } from '../store/slices/authSlice';
+import AuthNavigator from './AuthNavigator';
+import StoriesListScreen from '../screens/stories/StoriesListScreen';
+import StoryNavigator from './StoryNavigator';
+
+const Stack = createNativeStackNavigator();
+
+export default function AppNavigator() {
+  const user = useAppSelector(selectUser);
     
     return (
       <NavigationContainer>

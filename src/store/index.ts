@@ -16,7 +16,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
 // RTK Query APIs
-import { firebaseApi } from './api/firebaseApi';
 import { firestoreApi } from './api/firestoreApi';
 import { claudeApi } from './api/claudeApi';
 
@@ -32,7 +31,6 @@ import exportReducer from './slices/exportSlice';
  */
 const rootReducer = combineReducers({
   // RTK Query APIs (not persisted)
-  [firebaseApi.reducerPath]: firebaseApi.reducer,
   [firestoreApi.reducerPath]: firestoreApi.reducer,
   [claudeApi.reducerPath]: claudeApi.reducer,
   // Redux slices
@@ -52,7 +50,6 @@ const persistConfig = {
   storage: AsyncStorage,
   whitelist: ['auth', 'ui'], // Only persist auth and ui state
   blacklist: [
-    firebaseApi.reducerPath,
     firestoreApi.reducerPath,
     claudeApi.reducerPath,
     'stories',

@@ -1,6 +1,6 @@
 /**
- * Signup Screen
- * Email, password, and confirm password signup with validation
+ * Forgot Password Screen
+ * Allows users to request a password reset email
  */
 import React from 'react';
 import {
@@ -17,27 +17,23 @@ import { PaperButton } from '../../components/forms/PaperButton';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-import { useSignup } from '../../hooks/useSignup';
+import { theme } from '../../constants/theme';
+import { useForgotPassword } from '../../hooks/useForgotPassword';
 
 /**
- * Signup Screen Component
+ * Forgot Password Screen Component
  */
-export default function SignupScreen() {
+export default function ForgotPasswordScreen() {
   const isRTL = I18nManager.isRTL;
   const {
     email,
-    password,
-    confirmPassword,
     emailError,
-    passwordError,
-    confirmPasswordError,
     isLoading,
+    isSuccess,
     updateEmail,
-    updatePassword,
-    updateConfirmPassword,
-    handleSignup,
+    handleResetPassword,
     handleNavigateToLogin,
-  } = useSignup();
+  } = useForgotPassword();
 
   return (
     <KeyboardAvoidingView
@@ -52,70 +48,54 @@ export default function SignupScreen() {
         <View style={styles.content}>
           {/* Title */}
           <Text style={[styles.title, isRTL && styles.titleRTL]}>
-            Create Account
+            Forgot Password?
           </Text>
           <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
-            Sign up to get started
+            {isSuccess
+              ? 'Password reset email sent! Check your inbox and follow the instructions to reset your password.'
+              : 'Enter your email address and we\'ll send you a link to reset your password.'}
           </Text>
 
-          {/* Email Input */}
-          <Input
-            label="Email"
-            value={email}
-            onChangeText={updateEmail}
-            placeholder="Enter your email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            error={emailError}
-            required
-            style={styles.input}
-          />
+          {!isSuccess ? (
+            <>
+              {/* Email Input */}
+              <Input
+                label="Email"
+                value={email}
+                onChangeText={updateEmail}
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                error={emailError}
+                required
+                style={styles.input}
+                editable={!isLoading}
+              />
 
-          {/* Password Input */}
-          <Input
-            label="Password"
-            value={password}
-            onChangeText={updatePassword}
-            placeholder="Enter your password"
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password-new"
-            error={passwordError}
-            helperText="Must be at least 6 characters"
-            required
-            style={styles.input}
-          />
+              {/* Reset Password Button */}
+              <PaperButton
+                variant="primary"
+                onPress={handleResetPassword}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.resetButton}
+              >
+                Send Reset Link
+              </PaperButton>
+            </>
+          ) : (
+            <View style={styles.successContainer}>
+              <Text style={[styles.successText, isRTL && styles.successTextRTL]}>
+                You will be redirected to the login screen shortly...
+              </Text>
+            </View>
+          )}
 
-          {/* Confirm Password Input */}
-          <Input
-            label="Confirm Password"
-            value={confirmPassword}
-            onChangeText={updateConfirmPassword}
-            placeholder="Confirm your password"
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password-new"
-            error={confirmPasswordError}
-            required
-            style={styles.input}
-          />
-
-          {/* Signup Button */}
-          <PaperButton
-            variant="primary"
-            onPress={handleSignup}
-            loading={isLoading}
-            disabled={isLoading}
-            style={styles.signupButton}
-          >
-            Sign Up
-          </PaperButton>
-
-          {/* Login Link */}
+          {/* Back to Login Link */}
           <View style={[styles.loginContainer, isRTL && styles.loginContainerRTL]}>
             <Text style={[styles.loginText, isRTL && styles.loginTextRTL]}>
-              Already have an account?{' '}
+              Remember your password?{' '}
             </Text>
             <PaperButton
               onPress={handleNavigateToLogin}
@@ -163,6 +143,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.xl,
     textAlign: 'left',
+    lineHeight: typography.lineHeight.relaxed * typography.fontSize.md,
   },
   subtitleRTL: {
     textAlign: 'right',
@@ -170,9 +151,26 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: spacing.md,
   },
-  signupButton: {
+  resetButton: {
     marginTop: spacing.md,
     marginBottom: spacing.lg,
+  },
+  successContainer: {
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    backgroundColor: colors.successLight,
+    borderRadius: theme.borderRadius.md,
+  },
+  successText: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.success,
+    textAlign: 'left',
+  },
+  successTextRTL: {
+    textAlign: 'right',
   },
   loginContainer: {
     flexDirection: 'row',

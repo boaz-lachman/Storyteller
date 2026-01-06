@@ -210,3 +210,88 @@ export const clamp = (value: number, min: number, max: number): number => {
 export const has = (obj: any, key: string): boolean => {
   return Object.prototype.hasOwnProperty.call(obj, key);
 };
+
+
+export const toFirestoreValue = (value: any): any => {
+  if (value === null || value === undefined) {
+    return { nullValue: null };
+  }
+  if (typeof value === 'string') {
+    return { stringValue: value };
+  }
+  if (typeof value === 'number') {
+    return Number.isInteger(value) 
+      ? { integerValue: value.toString() }
+      : { doubleValue: value };
+  }
+  if (typeof value === 'boolean') {
+    return { booleanValue: value };
+  }
+  if (Array.isArray(value)) {
+    return {
+      arrayValue: {
+        values: value.map(toFirestoreValue)
+      }
+    };
+  }
+  if (typeof value === 'object') {
+    const fields: Record<string, any> = {};
+    for (const [key, val] of Object.entries(value)) {
+      fields[key] = toFirestoreValue(val);
+    }
+    return { mapValue: { fields } };
+  }
+  return { stringValue: String(value) };
+}
+
+/**
+ * Convert Firestore document to JavaScript object
+ */
+export const fromFirestoreDocument = (doc: any): any => {
+  if (!doc.fields) return {};
+  
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(doc.fields)) {
+    result[key] = fromFirestoreValue(value);
+  }
+  
+  // Add document ID
+  const pathParts = doc.name.split('/');
+  result.id = pathParts[pathParts.length - 1];
+  
+  return result;
+}
+
+export const fromFirestoreValue = (value: any): any => {
+  if ('nullValue' in value) return null;
+  if ('booleanValue' in value) return value.booleanValue;
+  if ('integerValue' in value) return parseInt(value.integerValue, 10);
+  if ('doubleValue' in value) return value.doubleValue;
+  if ('timestampValue' in value) return new Date(value.timestampValue).getTime();
+  if ('stringValue' in value) return value.stringValue;
+  if ('arrayValue' in value) {
+    return value.arrayValue.values?.map(fromFirestoreValue) || [];
+  }
+  if ('mapValue' in value) {
+    const result: Record<string, any> = {};
+    for (const [key, val] of Object.entries(value.mapValue.fields || {})) {
+      result[key] = fromFirestoreValue(val);
+    }
+    return result;
+  }
+  return null;
+}
+
+/**
+ * Convert object to Firestore fields format
+ */
+export const toFirestoreFields = (data: any): any => {
+  const fields: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key !== 'id') { // Skip id field as it's part of the document path
+      fields[key] = toFirestoreValue(value);
+    }
+  }
+  return fields;
+}
+
