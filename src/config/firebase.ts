@@ -2,17 +2,18 @@
  * Firebase configuration and initialization
  */
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import * as firebaseAuth from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Firebase configuration from environment variables
  */
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  appId: process.env.FIREBASE_APP_ID,
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 /**
@@ -26,11 +27,15 @@ if (getApps().length === 0) {
   app = getApps()[0];
 }
 
+const reactNativePersistence = (firebaseAuth as any).getReactNativePersistence;
 /**
  * Initialize Firebase Auth
- * For React Native, getAuth automatically uses AsyncStorage for persistence
+ * Firebase Auth automatically persists to AsyncStorage in React Native
+ * Credentials will persist across app restarts until logout
  */
-const auth: Auth = getAuth(app);
+const auth: firebaseAuth.Auth = firebaseAuth.initializeAuth(app, {
+  persistence: reactNativePersistence(ReactNativeAsyncStorage)
+});
 
 /**
  * Initialize Firestore

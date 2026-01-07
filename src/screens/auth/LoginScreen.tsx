@@ -90,6 +90,7 @@ export default function LoginScreen() {
 
           {/* Forgot Password Link */}
           <PaperButton
+          variant="text"
             onPress={handleForgotPassword}
             style={styles.forgotPasswordButton}
             labelStyle={styles.forgotPasswordText}
@@ -114,6 +115,7 @@ export default function LoginScreen() {
               Don't have an account?{' '}
             </Text>
             <PaperButton
+            variant="text"
               onPress={handleNavigateToSignup}
               labelStyle={styles.signupLink}
             >

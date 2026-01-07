@@ -1,12 +1,15 @@
 /**
  * StoryTeller Logo Component
  * Displays the app logo with adjustable font size using typography
+ * Includes a book-open icon from Feather icons
  */
 import React from 'react';
-import { StyleSheet, I18nManager, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, I18nManager, ViewStyle, TextStyle, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { Feather } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { typography, type FontSizeKey } from '../../constants/typography';
+import { spacing } from '../../constants/spacing';
 
 export interface LogoProps {
   /**
@@ -53,35 +56,73 @@ export default function Logo({
       ? fontSize
       : typography.fontSize[fontSize];
 
+  // Icon size should be proportional to font size (slightly larger)
+  const iconSize = resolvedFontSize * 1.1;
+
   return (
-    <Text
+    <View
       style={[
-        styles.logo,
-        {
-          fontSize: resolvedFontSize,
-          color,
-          fontFamily: bold
-            ? typography.fontFamily.bold
-            : typography.fontFamily.semibold,
-          fontWeight: bold
-            ? typography.fontWeight.bold
-            : typography.fontWeight.semibold,
-        },
-        isRTL && styles.logoRTL,
-        textStyle,
+        styles.container,
+        isRTL && styles.containerRTL,
+        style,
       ]}
     >
-      StoryTeller
-    </Text>
+      <Text
+        style={[
+          styles.logo,
+          {
+            fontSize: resolvedFontSize,
+            color,
+            fontFamily: bold
+              ? typography.fontFamily.bold
+              : typography.fontFamily.semibold,
+            fontWeight: bold
+              ? typography.fontWeight.bold
+              : typography.fontWeight.semibold,
+          },
+          isRTL && styles.logoRTL,
+          textStyle,
+        ]}
+      >
+        StoryTeller
+      </Text>
+      <Feather
+        name="book-open"
+        size={iconSize}
+        color={color}
+        style={[
+          styles.icon,
+          isRTL && styles.iconRTL,
+        ]}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  containerRTL: {
+    flexDirection: 'row-reverse',
+  },
   logo: {
     textAlign: 'left',
     letterSpacing: typography.letterSpacing.normal,
+    marginRight: spacing.xs,
   },
   logoRTL: {
     textAlign: 'right',
+    marginRight: 0,
+    marginLeft: spacing.xs,
+  },
+  icon: {
+    marginLeft: 0,
+  },
+  iconRTL: {
+    marginLeft: 0,
+    marginRight: 0,
   },
 });

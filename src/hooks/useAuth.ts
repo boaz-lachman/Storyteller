@@ -33,6 +33,7 @@ const mapFirebaseUser = (firebaseUser: FirebaseUser | null): User | null => {
 /**
  * Hook to access auth state and Firebase auth integration
  * Automatically syncs Firebase auth state with Redux
+ * Respects persisted state and only updates when Firebase auth state changes
  */
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -43,15 +44,26 @@ export const useAuth = () => {
 
   // Sync Firebase auth state with Redux
   useEffect(() => {
-    // Set loading to true initially
-    dispatch(setLoading(true));
+    // Only set loading to true if we don't have a persisted user
+    // This prevents overwriting persisted state during rehydration
+    if (!user) {
+      dispatch(setLoading(true));
+    }
 
     // Subscribe to Firebase auth state changes
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
         const appUser = mapFirebaseUser(firebaseUser);
-        dispatch(setUser(appUser));
+        // Only update if the user state has actually changed
+        // This prevents overwriting persisted state unnecessarily
+        if (
+          (appUser && (!user || appUser.uid !== user.uid)) ||
+          (!appUser && user)
+        ) {
+          dispatch(setUser(appUser));
+          console.log('appUser', appUser);
+        }
         dispatch(setLoading(false));
       },
       (error) => {
@@ -64,7 +76,7 @@ export const useAuth = () => {
     return () => {
       unsubscribe();
     };
-  }, [dispatch]);
+  }, [dispatch, user]); // Include user in dependencies to check for changes
 
   return {
     user,

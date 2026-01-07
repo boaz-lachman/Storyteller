@@ -102,6 +102,7 @@ export default function ForgotPasswordScreen() {
               Remember your password?{' '}
             </Text>
             <PaperButton
+            variant="text"
               onPress={handleNavigateToLogin}
               labelStyle={styles.loginLink}
             >

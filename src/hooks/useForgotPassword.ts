@@ -64,7 +64,7 @@ export const useForgotPassword = () => {
       
       // Navigate back to login after a short delay
       setTimeout(() => {
-        navigation.navigate('Login');
+        navigation.goBack();
       }, 2000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send password reset email. Please try again.';
@@ -80,7 +80,7 @@ export const useForgotPassword = () => {
    * Navigate back to login screen
    */
   const handleNavigateToLogin = () => {
-    navigation.navigate('Login');
+    navigation.goBack();
   };
 
   /**

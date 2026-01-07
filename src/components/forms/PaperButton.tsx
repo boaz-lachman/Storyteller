@@ -11,7 +11,7 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { theme } from '../../constants/theme';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'text';
 
 export interface PaperButtonProps extends Omit<RNButtonProps, 'theme' | 'mode' | 'buttonColor' | 'textColor'> {
   variant?: ButtonVariant;
@@ -56,6 +56,12 @@ export const PaperButton: React.FC<PaperButtonProps> = ({
           textColor: colors.primary,
           mode: 'outlined' as const,
         };
+    case 'text':
+      return {
+        buttonColor: 'transparent',
+        textColor: colors.primary,
+        mode: 'text' as const,
+      };
       default:
         return {
           buttonColor: colors.primary,
@@ -88,8 +94,8 @@ export const PaperButton: React.FC<PaperButtonProps> = ({
         labelStyle,
       ]}
       contentStyle={[
-        styles.content,
-        isRTL && styles.contentRTL,
+        variant !== 'text' && styles.content,
+        variant !== 'text' &&isRTL && styles.contentRTL,
       ]}
       theme={{
         colors: {

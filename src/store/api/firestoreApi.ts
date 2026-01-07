@@ -11,8 +11,8 @@ import { auth } from '../../config/firebase';
 import { Chapter, Character, GeneratedStory, IdeaBlurb, Scene, Story } from '../../types';
 
 const FIREBASE_CONFIG = {
-  apiKey: process.env.FIREBASE_API_KEY || '',
-  projectId: process.env.FIREBASE_PROJECT_ID || '',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
 };
 
 const FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents`;

@@ -68,7 +68,7 @@ const claudeBaseQuery: BaseQueryFn<
 > = async ({ url = '', method = 'POST', data, params }) => {
   try {
     // Get API key from environment
-    const apiKey = process.env.CLAUDE_API_KEY;
+    const apiKey = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 
     if (!apiKey) {
       return {

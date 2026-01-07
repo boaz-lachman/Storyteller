@@ -24,16 +24,22 @@ export type AppStackParamList = {
  * Story Tab Navigation Types
  */
 export type StoryTabParamList = {
+  Overview: { storyId: string };
   Characters: { storyId: string };
   Blurbs: { storyId: string };
   Scenes: { storyId: string };
   Chapters: { storyId: string };
+  Generate: { storyId: string };
 };
 
 /**
  * Root Stack Navigation Types
+ * Root navigator that switches between Auth and App flows
  */
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   App: NavigatorScreenParams<AppStackParamList>;
+  // Direct screens for when authenticated
+  StoriesList: undefined;
+  StoryDetail: { storyId: string };
 };

@@ -52,7 +52,7 @@ export const useSync = () => {
     }
 
     if (isSyncing) {
-      console.log('Sync already in progress');
+
       return;
     }
 

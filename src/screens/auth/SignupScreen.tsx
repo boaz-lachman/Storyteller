@@ -122,6 +122,7 @@ export default function SignupScreen() {
               Already have an account?{' '}
             </Text>
             <PaperButton
+            variant='text'
               onPress={handleNavigateToLogin}
               labelStyle={styles.loginLink}
             >

@@ -110,7 +110,7 @@ export const useSignup = () => {
    * Navigate to login screen
    */
   const handleNavigateToLogin = () => {
-    navigation.navigate('Login');
+    navigation.goBack();
   };
 
   /**

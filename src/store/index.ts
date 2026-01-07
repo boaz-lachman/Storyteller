@@ -48,7 +48,6 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth', 'ui'], // Only persist auth and ui state
   blacklist: [
     firestoreApi.reducerPath,
     claudeApi.reducerPath,
@@ -81,7 +80,6 @@ export const store = configureStore({
         ],
       },
     }).concat(
-      firebaseApi.middleware,
       firestoreApi.middleware,
       claudeApi.middleware
     ),
