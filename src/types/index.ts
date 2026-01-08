@@ -175,8 +175,10 @@ export type SceneUpdateInput = Partial<SceneCreateInput>;
  */
 export type ChapterCreateInput = Omit<
   Chapter,
-  'id' | 'userId' | 'storyId' | 'createdAt' | 'updatedAt' | 'synced' | 'deleted'
->;
+  'id' | 'userId' | 'storyId' | 'createdAt' | 'updatedAt' | 'synced' | 'deleted' | 'order'
+> & {
+  order?: number; // Optional - will be auto-assigned if not provided
+};
 
 export type ChapterUpdateInput = Partial<ChapterCreateInput>;
 

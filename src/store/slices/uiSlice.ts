@@ -8,7 +8,7 @@ interface ModalState {
 }
 
 interface UndoAction {
-  type: 'undo-story-delete' | 'undo-character-delete' | 'undo-blurb-delete';
+  type: 'undo-story-delete' | 'undo-character-delete' | 'undo-blurb-delete' | 'undo-scene-delete';
   data?: any; // Serializable data for undo action
 }
 

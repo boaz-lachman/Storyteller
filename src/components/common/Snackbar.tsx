@@ -12,8 +12,10 @@ import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 import { selectSnackbar, hideSnackbar, executeUndo, showSnackbar } from '../../store/slices/uiSlice';
 import { selectDeletedCharacter, clearDeletedCharacter } from '../../store/slices/charactersSlice';
 import { selectDeletedBlurb, clearDeletedBlurb } from '../../store/slices/blurbsSlice';
+import { selectDeletedScene, clearDeletedScene } from '../../store/slices/scenesSlice';
 import { useCreateCharacterMutation } from '../../store/api/charactersApi';
 import { useCreateBlurbMutation } from '../../store/api/blurbsApi';
+import { useCreateSceneMutation } from '../../store/api/scenesApi';
 import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
@@ -58,9 +60,11 @@ export const Snackbar: React.FC = () => {
   const snackbar = useAppSelector(selectSnackbar);
   const deletedCharacter = useAppSelector(selectDeletedCharacter);
   const deletedBlurb = useAppSelector(selectDeletedBlurb);
+  const deletedScene = useAppSelector(selectDeletedScene);
   const { user } = useAuth();
   const [createCharacter] = useCreateCharacterMutation();
   const [createBlurb] = useCreateBlurbMutation();
+  const [createScene] = useCreateSceneMutation();
   const insets = useSafeAreaInsets();
 
   const visible = !!snackbar.message;
@@ -74,6 +78,9 @@ export const Snackbar: React.FC = () => {
     }
     if (deletedBlurb && undoAction?.type === 'undo-blurb-delete') {
       dispatch(clearDeletedBlurb());
+    }
+    if (deletedScene && undoAction?.type === 'undo-scene-delete') {
+      dispatch(clearDeletedScene());
     }
     dispatch(hideSnackbar());
   };
@@ -143,6 +150,42 @@ export const Snackbar: React.FC = () => {
         dispatch(
           showSnackbar({
             message: 'Failed to restore blurb',
+            type: 'error',
+          })
+        );
+      }
+    } else if (undoAction && undoAction.type === 'undo-scene-delete' && deletedScene && user) {
+      try {
+        await createScene({
+          userId: user.uid,
+          storyId: deletedScene.storyId,
+          data: {
+            title: deletedScene.title,
+            description: deletedScene.description,
+            setting: deletedScene.setting,
+            characters: deletedScene.characters,
+            importance: deletedScene.importance,
+            mood: deletedScene.mood,
+            conflictLevel: deletedScene.conflictLevel,
+          },
+        }).unwrap();
+        dispatch(clearDeletedScene());
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        dispatch(
+          showSnackbar({
+            message: 'Scene restored',
+            type: 'success',
+          })
+        );
+      } catch (err: any) {
+        console.error('Error restoring scene:', err);
+        dispatch(clearDeletedScene());
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        dispatch(
+          showSnackbar({
+            message: 'Failed to restore scene',
             type: 'error',
           })
         );

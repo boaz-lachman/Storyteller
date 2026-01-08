@@ -99,8 +99,7 @@ CREATE TABLE IF NOT EXISTS Chapters (
   updatedAt INTEGER NOT NULL,
   synced INTEGER NOT NULL DEFAULT 0,
   deleted INTEGER NOT NULL DEFAULT 0,
-  FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE,
-  UNIQUE(storyId, "order")
+  FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE
 );
 
 -- GeneratedStories Table
@@ -160,6 +159,9 @@ CREATE INDEX IF NOT EXISTS idx_chapters_updatedAt ON Chapters(updatedAt);
 CREATE INDEX IF NOT EXISTS idx_chapters_synced ON Chapters(synced);
 CREATE INDEX IF NOT EXISTS idx_chapters_storyId_order ON Chapters(storyId, "order");
 CREATE INDEX IF NOT EXISTS idx_chapters_storyId_importance ON Chapters(storyId, importance);
+-- Partial unique index: only applies to non-deleted chapters
+-- This allows multiple deleted chapters to have order = -1
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chapters_storyId_order_unique ON Chapters(storyId, "order") WHERE deleted = 0;
 
 -- Indexes for GeneratedStories
 CREATE INDEX IF NOT EXISTS idx_generatedStories_storyId ON GeneratedStories(storyId);

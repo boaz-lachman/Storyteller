@@ -21,12 +21,16 @@ import { claudeApi } from './api/claudeApi';
 import { storiesApi } from './api/storiesApi';
 import { charactersApi } from './api/charactersApi';
 import { blurbsApi } from './api/blurbsApi';
+import { scenesApi } from './api/scenesApi';
+import { chaptersApi } from './api/chaptersApi';
 
 // Redux slices
 import authReducer from './slices/authSlice';
 import storiesReducer from './slices/storiesSlice';
 import charactersReducer from './slices/charactersSlice';
 import blurbsReducer from './slices/blurbsSlice';
+import scenesReducer from './slices/scenesSlice';
+import chaptersReducer from './slices/chaptersSlice';
 import syncReducer from './slices/syncSlice';
 import uiReducer from './slices/uiSlice';
 import exportReducer from './slices/exportSlice';
@@ -41,11 +45,15 @@ const rootReducer = combineReducers({
   [storiesApi.reducerPath]: storiesApi.reducer,
   [charactersApi.reducerPath]: charactersApi.reducer,
   [blurbsApi.reducerPath]: blurbsApi.reducer,
+  [scenesApi.reducerPath]: scenesApi.reducer,
+  [chaptersApi.reducerPath]: chaptersApi.reducer,
   // Redux slices
   auth: authReducer,
   stories: storiesReducer,
   characters: charactersReducer,
   blurbs: blurbsReducer,
+  scenes: scenesReducer,
+  chapters: chaptersReducer,
   sync: syncReducer,
   ui: uiReducer,
   export: exportReducer,
@@ -64,9 +72,13 @@ const persistConfig = {
     storiesApi.reducerPath,
     charactersApi.reducerPath,
     blurbsApi.reducerPath,
+    scenesApi.reducerPath,
+    chaptersApi.reducerPath,
     'stories',
     'characters',
     'blurbs',
+    'scenes',
+    'chapters',
     'sync',
     'export',
   ],
@@ -99,7 +111,9 @@ export const store = configureStore({
       claudeApi.middleware,
       storiesApi.middleware,
       charactersApi.middleware,
-      blurbsApi.middleware
+      blurbsApi.middleware,
+      scenesApi.middleware,
+      chaptersApi.middleware
     ),
 });
 

@@ -4,10 +4,11 @@
  * Shows story metadata, statistics cards, and description
  * Includes edit mode for updating story details
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Card } from 'react-native-paper';
 import Animated, { FadeInDown, FadeIn, SlideInDown } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { StoryTabParamList } from '../../navigation/types';
 import { useGetStoryQuery, useUpdateStoryMutation } from '../../store/api/storiesApi';
@@ -91,6 +92,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
   const [statistics, setStatistics] = useState<StoryStatistics | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const hasAnimated = useRef(false);
 
   const { user } = useAuth();
   const dispatch = useAppDispatch();
@@ -106,11 +108,11 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
   // Update story mutation with optimistic updates
   const [updateStory, { isLoading: isUpdating }] = useUpdateStoryMutation();
 
-  // Calculate statistics when story is loaded
-  useEffect(() => {
-    if (story) {
+  // Function to calculate statistics
+  const loadStatistics = useCallback(() => {
+    if (storyId) {
       setIsLoadingStats(true);
-      calculateStoryStatistics(storyId, story)
+      calculateStoryStatistics(storyId)
         .then((stats) => {
           setStatistics(stats);
           setIsLoadingStats(false);
@@ -120,7 +122,28 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
           setIsLoadingStats(false);
         });
     }
-  }, [storyId, story]);
+  }, [storyId]);
+
+  // Calculate statistics when story is loaded
+  useEffect(() => {
+    if (story) {
+      loadStatistics();
+    }
+  }, [story, loadStatistics]);
+
+  // Mark animations as shown after first successful render
+  useEffect(() => {
+    if (story && statistics && !isLoadingStats) {
+      hasAnimated.current = true;
+    }
+  }, [story, statistics, isLoadingStats]);
+
+  // Recalculate statistics when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadStatistics();
+    }, [loadStatistics])
+  );
 
   // Handle edit form submission
   const handleEditSubmit = async (formData: EditStoryFormData) => {
@@ -175,16 +198,16 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
     setIsEditModalVisible(true);
   };
 
-  // Show loading state with animation
+  // Show loading state with animation (only on first load)
   if (isLoadingStory || isLoadingStats) {
     return (
       <Animated.View 
-        entering={FadeIn.duration(300)}
+        entering={!hasAnimated.current ? FadeIn.duration(300) : undefined}
         style={styles.loadingContainer}
       >
         <MainBookActivityIndicator size={80} />
         <Animated.Text 
-          entering={FadeInDown.delay(200).duration(400)}
+          entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
           style={styles.loadingText}
         >
           Loading story overview...
@@ -193,21 +216,21 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
     );
   }
 
-  // Show error state with animation
+  // Show error state with animation (only on first load)
   if (isError || !story) {
     return (
       <Animated.View 
-        entering={FadeIn.duration(300)}
+        entering={!hasAnimated.current ? FadeIn.duration(300) : undefined}
         style={styles.container}
       >
         <Animated.Text 
-          entering={FadeInDown.delay(100).duration(400)}
+          entering={!hasAnimated.current ? FadeInDown.delay(100).duration(400) : undefined}
           style={styles.errorTitle}
         >
           Error Loading Story
         </Animated.Text>
         <Animated.Text 
-          entering={FadeInDown.delay(200).duration(400)}
+          entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
           style={styles.errorText}
         >
           {error && 'error' in error ? error.error : 'Story not found'}
@@ -225,7 +248,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
       >
         {/* Story Title and Status */}
         <Animated.View 
-          entering={FadeInDown.delay(100).duration(500)}
+          entering={!hasAnimated.current ? FadeInDown.delay(100).duration(500) : undefined}
           style={styles.header}
         >
           <Text style={styles.title}>{story.title}</Text>
@@ -257,10 +280,10 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
       {/* Statistics Cards */}
       {statistics && (
         <Animated.View 
-          entering={FadeInDown.delay(200).duration(500)}
+          entering={!hasAnimated.current ? FadeInDown.delay(200).duration(500) : undefined}
           style={styles.statsContainer}
         >
-          <Animated.View entering={SlideInDown.delay(250).duration(400)} style={styles.statCardWrapper}>
+          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(250).duration(400) : undefined} style={styles.statCardWrapper}>
             <StatCard
               icon="people"
               iconLibrary="Ionicons"
@@ -269,7 +292,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
               color={colors.primary}
             />
           </Animated.View>
-          <Animated.View entering={SlideInDown.delay(300).duration(400)} style={styles.statCardWrapper}>
+          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(300).duration(400) : undefined} style={styles.statCardWrapper}>
             <StatCard
               icon="paragraph"
               iconLibrary="FontAwesome6"
@@ -278,7 +301,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
               color={colors.info}
             />
           </Animated.View>
-          <Animated.View entering={SlideInDown.delay(350).duration(400)} style={styles.statCardWrapper}>
+          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(350).duration(400) : undefined} style={styles.statCardWrapper}>
             <StatCard
               icon="reader"
               iconLibrary="Ionicons"
@@ -287,7 +310,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
               color={colors.warning}
             />
           </Animated.View>
-          <Animated.View entering={SlideInDown.delay(400).duration(400)} style={styles.statCardWrapper}>
+          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(400).duration(400) : undefined} style={styles.statCardWrapper}>
             <StatCard
               icon="pen-fancy"
               iconLibrary="FontAwesome5"
@@ -300,7 +323,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
       )}
 
       {/* Story Metadata */}
-      <Animated.View entering={FadeInDown.delay(450).duration(500)}>
+      <Animated.View entering={!hasAnimated.current ? FadeInDown.delay(450).duration(500) : undefined}>
         <Card style={styles.metadataCard}>
           <Card.Content>
             <Text style={styles.sectionTitle}>Story Details</Text>
@@ -320,7 +343,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
 
       {/* Story Description */}
       {story.description && (
-        <Animated.View entering={FadeInDown.delay(500).duration(500)}>
+        <Animated.View entering={!hasAnimated.current ? FadeInDown.delay(500).duration(500) : undefined}>
           <Card style={styles.descriptionCard}>
             <Card.Content>
               <Text style={styles.sectionTitle}>Description</Text>
