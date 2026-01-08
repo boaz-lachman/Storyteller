@@ -142,19 +142,18 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
           onPress={handleMainPress}
           activeOpacity={0.8}
         >
-          <View style={styles.iconContainer}>
-            <Text
-              style={[
-                styles.plusIcon,
-                {
-                  color: mainButtonIconColor,
-                  fontSize: size * 0.4, // Dynamic size based on button size
-                },
-              ]}
-            >
-              +
-            </Text>
-          </View>
+          <Text
+            style={[
+              styles.plusIcon,
+              {
+                color: mainButtonIconColor,
+                fontSize: size * 0.5, // Dynamic size based on button size
+                lineHeight: size * 0.5, // Match font size for perfect centering
+              },
+            ]}
+          >
+            +
+          </Text>
         </AnimatedTouchable>
       </Animated.View>
     </>
@@ -182,15 +181,11 @@ const styles = StyleSheet.create({
     ...theme.shadows.lg,
     elevation: 8,
   },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   plusIcon: {
     fontFamily: typography.fontFamily.regular,
-    fontSize: typography.fontSize.xxxl,
     fontWeight: typography.fontWeight.regular,
-    lineHeight: typography.lineHeight.tight,
+    textAlign: 'center',
+    textAlignVertical: 'center',
   },
   optionsContainer: {
     position: 'absolute',

@@ -86,7 +86,7 @@ export const getChapter = async (id: string): Promise<Chapter | null> => {
  */
 export const getChaptersByStory = async (
   storyId: string,
-  sortBy: 'order' | 'importance' | 'createdAt' = 'order',
+  sortBy: 'importance' | 'createdAt' = 'createdAt',
   order: 'ASC' | 'DESC' = 'ASC'
 ): Promise<Chapter[]> => {
   const db = await getDb();

@@ -7,6 +7,11 @@ interface ModalState {
   data: any;
 }
 
+interface UndoAction {
+  type: 'undo-story-delete' | 'undo-character-delete' | 'undo-blurb-delete';
+  data?: any; // Serializable data for undo action
+}
+
 interface UIState {
   modals: Record<string, ModalState>;
   globalLoading: boolean;
@@ -14,7 +19,7 @@ interface UIState {
   snackbar: {
     message: string | null;
     type: 'success' | 'error' | 'info' | 'warning' | null;
-    onUndo?: () => void;
+    undoAction?: UndoAction;
   };
 }
 
@@ -25,7 +30,7 @@ const initialState: UIState = {
   snackbar: {
     message: null,
     type: null,
-    onUndo: undefined,
+    undoAction: undefined,
   },
 };
 
@@ -59,21 +64,27 @@ const uiSlice = createSlice({
       action: PayloadAction<{
         message: string;
         type: 'success' | 'error' | 'info' | 'warning';
-        onUndo?: () => void;
+        undoAction?: UndoAction;
       }>
     ) => {
       state.snackbar = {
         message: action.payload.message,
         type: action.payload.type,
-        onUndo: action.payload.onUndo,
+        undoAction: action.payload.undoAction,
       };
     },
     hideSnackbar: (state) => {
       state.snackbar = {
         message: null,
         type: null,
-        onUndo: undefined,
+        undoAction: undefined,
       };
+    },
+    executeUndo: (state) => {
+      // Clear undo action after execution
+      if (state.snackbar.undoAction) {
+        state.snackbar.undoAction = undefined;
+      }
     },
   },
 });
@@ -85,6 +96,7 @@ export const {
   setGlobalError,
   showSnackbar,
   hideSnackbar,
+  executeUndo,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

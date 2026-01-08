@@ -109,6 +109,22 @@ export const formatCharacterRole = (
 };
 
 /**
+ * Format blurb category label
+ */
+export const formatBlurbCategory = (
+  category: 'plot-point' | 'conflict' | 'theme' | 'setting' | 'other'
+): string => {
+  const labels: Record<string, string> = {
+    'plot-point': 'Plot Point',
+    conflict: 'Conflict',
+    theme: 'Theme',
+    setting: 'Setting',
+    other: 'Other',
+  };
+  return labels[category] || category;
+};
+
+/**
  * Format word count
  * Example: "1,234 words"
  */

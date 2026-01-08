@@ -18,10 +18,15 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 // RTK Query APIs
 import { firestoreApi } from './api/firestoreApi';
 import { claudeApi } from './api/claudeApi';
+import { storiesApi } from './api/storiesApi';
+import { charactersApi } from './api/charactersApi';
+import { blurbsApi } from './api/blurbsApi';
 
 // Redux slices
 import authReducer from './slices/authSlice';
 import storiesReducer from './slices/storiesSlice';
+import charactersReducer from './slices/charactersSlice';
+import blurbsReducer from './slices/blurbsSlice';
 import syncReducer from './slices/syncSlice';
 import uiReducer from './slices/uiSlice';
 import exportReducer from './slices/exportSlice';
@@ -33,9 +38,14 @@ const rootReducer = combineReducers({
   // RTK Query APIs (not persisted)
   [firestoreApi.reducerPath]: firestoreApi.reducer,
   [claudeApi.reducerPath]: claudeApi.reducer,
+  [storiesApi.reducerPath]: storiesApi.reducer,
+  [charactersApi.reducerPath]: charactersApi.reducer,
+  [blurbsApi.reducerPath]: blurbsApi.reducer,
   // Redux slices
   auth: authReducer,
   stories: storiesReducer,
+  characters: charactersReducer,
+  blurbs: blurbsReducer,
   sync: syncReducer,
   ui: uiReducer,
   export: exportReducer,
@@ -51,7 +61,12 @@ const persistConfig = {
   blacklist: [
     firestoreApi.reducerPath,
     claudeApi.reducerPath,
+    storiesApi.reducerPath,
+    charactersApi.reducerPath,
+    blurbsApi.reducerPath,
     'stories',
+    'characters',
+    'blurbs',
     'sync',
     'export',
   ],
@@ -81,7 +96,10 @@ export const store = configureStore({
       },
     }).concat(
       firestoreApi.middleware,
-      claudeApi.middleware
+      claudeApi.middleware,
+      storiesApi.middleware,
+      charactersApi.middleware,
+      blurbsApi.middleware
     ),
 });
 

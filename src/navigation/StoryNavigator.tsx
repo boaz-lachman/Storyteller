@@ -16,6 +16,12 @@ const Tab = createMaterialTopTabNavigator<StoryTabParamList>();
 /**
  * Story Navigator Component
  * Tab navigator for story detail screens (Overview, Characters, Blurbs, Scenes, Chapters, Generate)
+ * 
+ * Features:
+ * - Tab navigator integration with Material Top Tabs
+ * - Tab icons for each screen
+ * - Tab labels for each screen
+ * - Properly passes storyId to all tab screens
  */
 const StoryNavigator = ({ 
   route 
@@ -24,72 +30,102 @@ const StoryNavigator = ({
 }) => {
   const { storyId } = route.params;
     
-    return (
-      <Tab.Navigator
-        screenOptions={materialTopTabOptions}
-      >
-        <Tab.Screen 
-          name="Overview" 
-          component={OverviewScreen}
-          initialParams={{ storyId }}
-          options={{
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'document-text' : 'document-text-outline'} size={20} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen 
-          name="Characters" 
-          component={CharactersScreen}
-          initialParams={{ storyId }}
-          options={{
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'people' : 'people-outline'} size={20} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen 
-          name="Blurbs" 
-          component={BlurbsScreen}
-          initialParams={{ storyId }}
-          options={{
-            tabBarIcon: ({ color, focused }) => (
-              <FontAwesome5 name={focused ? 'pen-fancy' : 'pen-fancy'} size={20} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen 
-          name="Scenes" 
-          component={ScenesScreen}
-          initialParams={{ storyId }}
-          options={{
-            tabBarIcon: ({ color, focused }) => (
-              <FontAwesome6 name={focused ? 'paragraph' : 'paragraph'} size={20} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen 
-          name="Chapters" 
-          component={ChaptersScreen}
-          initialParams={{ storyId }}
-          options={{
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'reader' : 'reader-outline'} size={20} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen 
-          name="Generate" 
-          component={GenerateStoryScreen}
-          initialParams={{ storyId }}
-          options={{
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'sparkles' : 'sparkles-outline'} size={20} color={color} />
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    );
-  }
+  return (
+    <Tab.Navigator
+      screenOptions={materialTopTabOptions}
+    >
+      <Tab.Screen 
+        name="Overview" 
+        component={OverviewScreen}
+        initialParams={{ storyId }}
+        options={{
+          tabBarLabel: 'Overview',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'document-text' : 'document-text-outline'} 
+              size={20} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Characters" 
+        component={CharactersScreen}
+        initialParams={{ storyId }}
+        options={{
+          tabBarLabel: 'Characters',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'people' : 'people-outline'} 
+              size={20} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Blurbs" 
+        component={BlurbsScreen}
+        initialParams={{ storyId }}
+        options={{
+          tabBarLabel: 'Blurbs',
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome5 
+              name="pen-fancy" 
+              size={20} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Scenes" 
+        component={ScenesScreen}
+        initialParams={{ storyId }}
+        options={{
+          tabBarLabel: 'Scenes',
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome6 
+              name="paragraph" 
+              size={20} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Chapters" 
+        component={ChaptersScreen}
+        initialParams={{ storyId }}
+        options={{
+          tabBarLabel: 'Chapters',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'reader' : 'reader-outline'} 
+              size={20} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Generate" 
+        component={GenerateStoryScreen}
+        initialParams={{ storyId }}
+        options={{
+          tabBarLabel: 'Generate',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'sparkles' : 'sparkles-outline'} 
+              size={20} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
-  export default StoryNavigator;
+export default StoryNavigator;

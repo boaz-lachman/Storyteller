@@ -9,7 +9,12 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Snackbar as PaperSnackbar } from 'react-native-paper';
 import { useAppSelector, useAppDispatch } from '../../hooks/redux';
-import { selectSnackbar, hideSnackbar } from '../../store/slices/uiSlice';
+import { selectSnackbar, hideSnackbar, executeUndo, showSnackbar } from '../../store/slices/uiSlice';
+import { selectDeletedCharacter, clearDeletedCharacter } from '../../store/slices/charactersSlice';
+import { selectDeletedBlurb, clearDeletedBlurb } from '../../store/slices/blurbsSlice';
+import { useCreateCharacterMutation } from '../../store/api/charactersApi';
+import { useCreateBlurbMutation } from '../../store/api/blurbsApi';
+import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 
@@ -51,30 +56,109 @@ const getSnackbarStyle = (type: 'success' | 'error' | 'info' | 'warning' | null)
 export const Snackbar: React.FC = () => {
   const dispatch = useAppDispatch();
   const snackbar = useAppSelector(selectSnackbar);
+  const deletedCharacter = useAppSelector(selectDeletedCharacter);
+  const deletedBlurb = useAppSelector(selectDeletedBlurb);
+  const { user } = useAuth();
+  const [createCharacter] = useCreateCharacterMutation();
+  const [createBlurb] = useCreateBlurbMutation();
   const insets = useSafeAreaInsets();
 
   const visible = !!snackbar.message;
   const message = snackbar.message || '';
   const type = snackbar.type;
-  const onUndo = snackbar.onUndo;
+  const undoAction = snackbar.undoAction;
 
   const handleDismiss = () => {
+    if (deletedCharacter && undoAction?.type === 'undo-character-delete') {
+      dispatch(clearDeletedCharacter());
+    }
+    if (deletedBlurb && undoAction?.type === 'undo-blurb-delete') {
+      dispatch(clearDeletedBlurb());
+    }
     dispatch(hideSnackbar());
   };
 
-  const handleUndo = () => {
-    if (onUndo) {
-      onUndo();
+  const handleUndo = async () => {
+    if (undoAction && undoAction.type === 'undo-character-delete' && deletedCharacter && user) {
+      try {
+        await createCharacter({
+          userId: user.uid,
+          storyId: deletedCharacter.storyId,
+          data: {
+            name: deletedCharacter.name,
+            description: deletedCharacter.description,
+            importance: deletedCharacter.importance,
+            role: deletedCharacter.role,
+            traits: deletedCharacter.traits,
+            backstory: deletedCharacter.backstory,
+          },
+        }).unwrap();
+        dispatch(clearDeletedCharacter());
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        dispatch(
+          showSnackbar({
+            message: 'Character restored',
+            type: 'success',
+          })
+        );
+      } catch (err: any) {
+        console.error('Error restoring character:', err);
+        dispatch(clearDeletedCharacter());
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        dispatch(
+          showSnackbar({
+            message: 'Failed to restore character',
+            type: 'error',
+          })
+        );
+      }
+    } else if (undoAction && undoAction.type === 'undo-blurb-delete' && deletedBlurb && user) {
+      try {
+        await createBlurb({
+          userId: user.uid,
+          storyId: deletedBlurb.storyId,
+          data: {
+            title: deletedBlurb.title,
+            description: deletedBlurb.description,
+            importance: deletedBlurb.importance,
+            category: deletedBlurb.category,
+          },
+        }).unwrap();
+        dispatch(clearDeletedBlurb());
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        dispatch(
+          showSnackbar({
+            message: 'Blurb restored',
+            type: 'success',
+          })
+        );
+      } catch (err: any) {
+        console.error('Error restoring blurb:', err);
+        dispatch(clearDeletedBlurb());
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        dispatch(
+          showSnackbar({
+            message: 'Failed to restore blurb',
+            type: 'error',
+          })
+        );
+      }
+    } else {
+      dispatch(executeUndo());
+      dispatch(hideSnackbar());
     }
-    dispatch(hideSnackbar());
   };
 
   if (!visible) {
     return null;
   }
 
-  // Determine action button: show "Undo" if onUndo is provided, otherwise "Dismiss"
-  const action = onUndo
+  // Determine action button: show "Undo" if undoAction is provided, otherwise "Dismiss"
+  const action = undoAction
     ? {
         label: 'Undo',
         onPress: handleUndo,
@@ -92,7 +176,7 @@ export const Snackbar: React.FC = () => {
       <PaperSnackbar
         visible={visible}
         onDismiss={handleDismiss}
-        duration={onUndo ? 5000 : 3000} // Longer duration when undo is available
+        duration={undoAction ? 5000 : 3000} // Longer duration when undo is available
         style={[
           getSnackbarStyle(type), 
           styles.snackbar,

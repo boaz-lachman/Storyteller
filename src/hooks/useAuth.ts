@@ -62,7 +62,6 @@ export const useAuth = () => {
           (!appUser && user)
         ) {
           dispatch(setUser(appUser));
-          console.log('appUser', appUser);
         }
         dispatch(setLoading(false));
       },

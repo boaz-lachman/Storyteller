@@ -43,6 +43,13 @@ export const isValidImportance = (value: number): boolean => {
 };
 
 /**
+ * Validates if a number is within a range
+ */
+export const isValidRange = (value: number, min: number, max: number): boolean => {
+  return value >= min && value <= max;
+};
+
+/**
  * Validates string length
  */
 export const isValidLength = (

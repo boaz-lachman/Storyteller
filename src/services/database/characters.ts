@@ -82,15 +82,22 @@ export const getCharacter = async (id: string): Promise<Character | null> => {
 export const getCharactersByStory = async (
   storyId: string,
   sortBy: 'importance' | 'createdAt' | 'name' = 'importance',
-  order: 'ASC' | 'DESC' = 'DESC'
+  order: 'ASC' | 'DESC' = 'DESC',
+  roleFilter?: 'protagonist' | 'antagonist' | 'supporting' | 'minor'
 ): Promise<Character[]> => {
   const db = await getDb();
-  const results = await db.getAllAsync<any>(
-    `SELECT * FROM Characters 
-     WHERE storyId = ? AND deleted = 0 
-     ORDER BY ${sortBy} ${order}`,
-    [storyId]
-  );
+  let query = `SELECT * FROM Characters 
+     WHERE storyId = ? AND deleted = 0`;
+  const params: any[] = [storyId];
+
+  if (roleFilter) {
+    query += ` AND role = ?`;
+    params.push(roleFilter);
+  }
+
+  query += ` ORDER BY ${sortBy} ${order}`;
+
+  const results = await db.getAllAsync<any>(query, params);
 
   return results.map((char) => ({
     ...char,
