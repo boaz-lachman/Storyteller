@@ -269,8 +269,8 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 140,
-      offset: 140 * index,
+      length: 160,
+      offset: 160 * index,
       index,
     }),
     []

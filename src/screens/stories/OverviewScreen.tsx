@@ -20,10 +20,10 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatStoryLength, formatStoryTheme } from '../../utils/formatting';
 import { Ionicons } from '@expo/vector-icons';
-import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import SyncIndicator from '../../components/common/SyncIndicator';
 import EditStoryModal from '../../components/modals/EditStoryModal';
 import { PaperIconButton } from '../../components/forms/PaperIconButton';
+import { StatisticsCards } from '../../components/common/StatisticsCards';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
@@ -35,38 +35,6 @@ type OverviewScreenRouteProp = RouteProp<StoryTabParamList, 'Overview'>;
 interface OverviewScreenProps {
   route: OverviewScreenRouteProp;
 }
-
-/**
- * Statistics Card Component
- */
-const StatCard: React.FC<{
-  icon: string;
-  iconLibrary?: 'Ionicons' | 'FontAwesome5' | 'FontAwesome6';
-  label: string;
-  value: number | string;
-  color?: string;
-}> = ({ icon, iconLibrary = 'Ionicons', label, value, color = colors.primary }) => {
-  const renderIcon = () => {
-    switch (iconLibrary) {
-      case 'FontAwesome5':
-        return <FontAwesome5 name={icon as any} size={32} color={color} />;
-      case 'FontAwesome6':
-        return <FontAwesome6 name={icon as any} size={32} color={color} />;
-      default:
-        return <Ionicons name={icon as any} size={32} color={color} />;
-    }
-  };
-
-  return (
-    <Card style={styles.statCard}>
-      <Card.Content style={styles.statCardContent}>
-        {renderIcon()}
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </Card.Content>
-    </Card>
-  );
-};
 
 /**
  * Metadata Item Component
@@ -281,44 +249,11 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
       {statistics && (
         <Animated.View 
           entering={!hasAnimated.current ? FadeInDown.delay(200).duration(500) : undefined}
-          style={styles.statsContainer}
         >
-          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(250).duration(400) : undefined} style={styles.statCardWrapper}>
-            <StatCard
-              icon="people"
-              iconLibrary="Ionicons"
-              label="Characters"
-              value={statistics.characterCount}
-              color={colors.primary}
-            />
-          </Animated.View>
-          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(300).duration(400) : undefined} style={styles.statCardWrapper}>
-            <StatCard
-              icon="paragraph"
-              iconLibrary="FontAwesome6"
-              label="Scenes"
-              value={statistics.sceneCount}
-              color={colors.info}
-            />
-          </Animated.View>
-          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(350).duration(400) : undefined} style={styles.statCardWrapper}>
-            <StatCard
-              icon="reader"
-              iconLibrary="Ionicons"
-              label="Chapters"
-              value={statistics.chapterCount}
-              color={colors.warning}
-            />
-          </Animated.View>
-          <Animated.View entering={!hasAnimated.current ? SlideInDown.delay(400).duration(400) : undefined} style={styles.statCardWrapper}>
-            <StatCard
-              icon="pen-fancy"
-              iconLibrary="FontAwesome5"
-              label="Blurbs"
-              value={statistics.blurbCount}
-              color={colors.secondary}
-            />
-          </Animated.View>
+          <StatisticsCards 
+            statistics={statistics} 
+            animated={!hasAnimated.current}
+          />
         </Animated.View>
       )}
 
@@ -440,38 +375,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.textInverse,
     textTransform: 'capitalize',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  statCardWrapper: {
-    width: '48%',
-    marginBottom: spacing.md,
-  },
-  statCard: {
-    width: '100%',
-    backgroundColor: colors.surface,
-  },
-  statCardContent: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-  statValue: {
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.fontSize.xxl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text,
-    marginTop: spacing.xs,
-  },
-  statLabel: {
-    fontFamily: typography.fontFamily.regular,
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.regular,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   metadataCard: {
     marginBottom: spacing.lg,

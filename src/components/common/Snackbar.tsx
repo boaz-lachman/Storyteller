@@ -16,6 +16,7 @@ import { selectDeletedScene, clearDeletedScene } from '../../store/slices/scenes
 import { useCreateCharacterMutation } from '../../store/api/charactersApi';
 import { useCreateBlurbMutation } from '../../store/api/blurbsApi';
 import { useCreateSceneMutation } from '../../store/api/scenesApi';
+import { useCreateStoryMutation } from '../../store/api/storiesApi';
 import { useAuth } from '../../hooks/useAuth';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
@@ -65,6 +66,7 @@ export const Snackbar: React.FC = () => {
   const [createCharacter] = useCreateCharacterMutation();
   const [createBlurb] = useCreateBlurbMutation();
   const [createScene] = useCreateSceneMutation();
+  const [createStory] = useCreateStoryMutation();
   const insets = useSafeAreaInsets();
 
   const visible = !!snackbar.message;
@@ -189,6 +191,52 @@ export const Snackbar: React.FC = () => {
             type: 'error',
           })
         );
+      }
+    } else if (undoAction && undoAction.type === 'undo-story-delete' && undoAction.data && user) {
+      // Handle story undo
+      const storyData = undoAction.data as any;
+      if (storyData.story) {
+        try {
+          await createStory({
+            userId: user.uid,
+            data: {
+              title: storyData.story.title,
+              description: storyData.story.description,
+              length: storyData.story.length,
+              theme: storyData.story.theme,
+              tone: storyData.story.tone,
+              pov: storyData.story.pov,
+              targetAudience: storyData.story.targetAudience,
+              setting: storyData.story.setting,
+              timePeriod: storyData.story.timePeriod,
+              status: storyData.story.status,
+              generatedContent: storyData.story.generatedContent,
+              generatedAt: storyData.story.generatedAt,
+              wordCount: storyData.story.wordCount,
+            },
+          }).unwrap();
+          dispatch(executeUndo());
+          dispatch(hideSnackbar());
+          dispatch(
+            showSnackbar({
+              message: 'Story restored',
+              type: 'success',
+            })
+          );
+        } catch (err: any) {
+          console.error('Error restoring story:', err);
+          dispatch(executeUndo());
+          dispatch(hideSnackbar());
+          dispatch(
+            showSnackbar({
+              message: 'Failed to restore story',
+              type: 'error',
+            })
+          );
+        }
+      } else {
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
       }
     } else {
       dispatch(executeUndo());

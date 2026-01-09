@@ -18,7 +18,7 @@ import { CreateStoryModal } from '../../components/modals/CreateStoryModal';
 import { FloatingActionButton, type FABOption } from '../../components/common/FloatingActionButton';
 import { Input } from '../../components/forms/Input';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { showSnackbar, executeUndo, selectSnackbar } from '../../store/slices/uiSlice';
+import { showSnackbar } from '../../store/slices/uiSlice';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -92,9 +92,6 @@ export default function StoriesListScreen() {
 
   const [createStoryMutation, { isLoading: isCreating }] = useCreateStoryMutation();
   const [deleteStoryMutation, { isLoading: isDeleting }] = useDeleteStoryMutation();
-  const deletedStoryRef = useRef<Story | null>(null);
-  const undoHandledRef = useRef<string | null>(null);
-  const snackbar = useAppSelector(selectSnackbar);
 
   // Handle pull-to-refresh
   const handleRefresh = useCallback(() => {
@@ -109,70 +106,6 @@ export default function StoriesListScreen() {
     [navigation]
   );
 
-  // Handle undo action - restore story when undo is executed
-  const prevUndoActionRef = useRef<typeof snackbar.undoAction>(undefined);
-  
-  useEffect(() => {
-    const currentUndoAction = snackbar.undoAction;
-    const prevUndoAction = prevUndoActionRef.current;
-    
-    // Check if undo was just executed: undoAction was present before but is now cleared
-    const hadUndoAction = prevUndoAction?.type === 'undo-story-delete';
-    const undoWasExecuted = hadUndoAction && !currentUndoAction && deletedStoryRef.current;
-    
-    // Check if we've already handled undo for this story
-    const storyId = deletedStoryRef.current?.id;
-    const alreadyHandled = undoHandledRef.current === storyId;
-    
-    if (undoWasExecuted && !alreadyHandled && storyId) {
-      const storyToRestore = deletedStoryRef.current;
-      if (storyToRestore && user?.uid) {
-        // Mark as handled to prevent duplicate handling
-        undoHandledRef.current = storyId;
-        
-        createStoryMutation({
-          userId: user.uid,
-          data: {
-            title: storyToRestore.title,
-            description: storyToRestore.description,
-            length: storyToRestore.length,
-            theme: storyToRestore.theme,
-            tone: storyToRestore.tone,
-            pov: storyToRestore.pov,
-            targetAudience: storyToRestore.targetAudience,
-            setting: storyToRestore.setting,
-            timePeriod: storyToRestore.timePeriod,
-            status: storyToRestore.status,
-            generatedContent: storyToRestore.generatedContent,
-            generatedAt: storyToRestore.generatedAt,
-            wordCount: storyToRestore.wordCount,
-          },
-        }).unwrap().then(() => {
-          dispatch(
-            showSnackbar({
-              message: 'Story restored',
-              type: 'success',
-            })
-          );
-          deletedStoryRef.current = null;
-          undoHandledRef.current = null;
-        }).catch((error) => {
-          console.error('Error restoring story:', error);
-          dispatch(
-            showSnackbar({
-              message: 'Failed to restore story',
-              type: 'error',
-            })
-          );
-          // Reset on error so user can try again
-          undoHandledRef.current = null;
-        });
-      }
-    }
-    
-    // Update ref for next comparison
-    prevUndoActionRef.current = currentUndoAction;
-  }, [snackbar.undoAction, createStoryMutation, dispatch, user?.uid]);
 
   // Handle story delete
   const handleStoryDelete = useCallback(
@@ -182,10 +115,6 @@ export default function StoriesListScreen() {
       if (!storyToDelete) return;
 
       try {
-        // Store the story data for potential undo
-        deletedStoryRef.current = storyToDelete;
-        undoHandledRef.current = null; // Reset undo handled flag
-        
         // Delete the story
         await deleteStoryMutation(storyId).unwrap();
         
@@ -196,13 +125,12 @@ export default function StoriesListScreen() {
             type: 'success',
             undoAction: {
               type: 'undo-story-delete',
-              data: { storyId: storyToDelete.id },
+              data: { story: storyToDelete },
             },
           })
         );
       } catch (error) {
         console.error('Error deleting story:', error);
-        deletedStoryRef.current = null;
         dispatch(
           showSnackbar({
             message: 'Failed to delete story',

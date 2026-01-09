@@ -3,20 +3,32 @@
  * Handles authentication state and routes to appropriate navigators
  * Includes loading state handling while checking auth
  * Implements navigation guards for protected routes
+ * Includes auto-save functionality for navigation state and activity context
  */
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { View, StyleSheet, AppState, AppStateStatus } from 'react-native';
+import { NavigationContainer, NavigationContainerRef, NavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAppSelector } from '../hooks/redux';
+import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { selectUser, selectAuthLoading } from '../store/slices/authSlice';
+import { 
+  selectActivityContext, 
+  setRestoring, 
+  restoreActivityContext,
+  setLastSavedAt,
+} from '../store/slices/autosaveSlice';
 import { useAuth } from '../hooks/useAuth';
 import AuthNavigator from './AuthNavigator';
 import DrawerNavigator from './DrawerNavigator';
 import type { RootStackParamList } from './types';
-import { navigationTheme, appStackHeaderOptions } from './theme';
+import { navigationTheme } from './theme';
 import { colors } from '../constants/colors';
 import MainBookActivityIndicator from '../components/common/MainBookActivityIndicator';
+import {
+  saveAppState,
+  loadAppState,
+  clearAppState,
+} from '../services/autosave/autosaveService';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -33,13 +45,90 @@ export default function AppNavigator() {
   const { isLoading: authLoading } = useAuth();
   const user = useAppSelector(selectUser);
   const isLoading = useAppSelector(selectAuthLoading);
+  const activityContext = useAppSelector(selectActivityContext);
+  const dispatch = useAppDispatch();
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const [isRestoringState, setIsRestoringState] = useState(true);
+  const [initialNavigationState, setInitialNavigationState] = useState<NavigationState<RootStackParamList> | undefined>(undefined);
 
+  // Restore app state on mount (only if authenticated)
+  useEffect(() => {
+    const restoreState = async () => {
+      if (!isLoading && !authLoading && user) {
+        try {
+          dispatch(setRestoring(true));
+          const savedState = await loadAppState();
+          
+          if (savedState) {
+            // Restore activity context
+            if (savedState.activityContext) {
+              dispatch(restoreActivityContext(savedState.activityContext));
+            }
+            
+            // Restore navigation state if available
+            if (savedState.navigationState) {
+              setInitialNavigationState(savedState.navigationState);
+            }
+            
+            dispatch(setLastSavedAt(savedState.savedAt));
+          }
+        } catch (error) {
+          console.error('Error restoring app state:', error);
+          // Clear corrupted state
+          await clearAppState();
+        } finally {
+          dispatch(setRestoring(false));
+          setIsRestoringState(false);
+        }
+      } else if (!isLoading && !authLoading && !user) {
+        // Not authenticated, clear any saved state
+        await clearAppState();
+        setIsRestoringState(false);
+      }
+    };
+
+    restoreState();
+  }, [isLoading, authLoading, user, dispatch]);
+
+  // Save navigation state on navigation changes
+  const handleNavigationStateChange = useCallback(
+    async (state: NavigationState<RootStackParamList> | undefined) => {
+      if (user && state && navigationRef.current?.isReady()) {
+        try {
+          await saveAppState(state, activityContext);
+          dispatch(setLastSavedAt(Date.now()));
+        } catch (error) {
+          console.error('Error saving navigation state:', error);
+        }
+      }
+    },
+    [user, activityContext, dispatch]
+  );
+
+  // Save state when app goes to background
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' && user && navigationRef.current?.isReady()) {
+        const currentState = navigationRef.current.getRootState();
+        try {
+          await saveAppState(currentState, activityContext);
+          dispatch(setLastSavedAt(Date.now()));
+        } catch (error) {
+          console.error('Error saving state on background:', error);
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user, activityContext, dispatch]);
 
   // Navigation guard: Redirect to Auth if user logs out while on protected route
   useEffect(() => {
     if (!isLoading && !authLoading && !user && navigationRef.current?.isReady()) {
-      // User logged out, ensure we're on a non-protected screen
+      // User logged out, clear saved state and ensure we're on a non-protected screen
+      clearAppState();
       const currentRoute = navigationRef.current.getCurrentRoute();
       if (
         currentRoute?.name !== 'Login' &&
@@ -54,8 +143,8 @@ export default function AppNavigator() {
     }
   }, [user, isLoading, authLoading]);
 
-  // Show loading indicator while checking auth state
-  if (isLoading || authLoading) {
+  // Show loading indicator while checking auth state or restoring state
+  if (isLoading || authLoading || isRestoringState) {
     return (
       <View style={styles.loadingContainer}>
         <MainBookActivityIndicator size={80} />
@@ -64,7 +153,12 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navigationTheme}
+      initialState={initialNavigationState}
+      onStateChange={handleNavigationStateChange}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           // Auth flow - only accessible when not authenticated

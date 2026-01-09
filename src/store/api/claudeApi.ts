@@ -51,7 +51,48 @@ export interface GenerateStoryRequest {
   messages: ClaudeMessage[];
   maxTokens?: number;
   model?: string;
+  systemPrompt?: string;
 }
+
+/**
+ * Story generation response (transformed from Claude API)
+ */
+export interface GenerateStoryResponse {
+  content: string;
+  wordCount: number;
+  prompt: string;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
+/**
+ * Helper function to parse Claude response and count words
+ */
+const parseClaudeResponse = (response: ClaudeResponse): string => {
+  if (!response.content || response.content.length === 0) {
+    throw new Error('Empty response from Claude API');
+  }
+
+  const textContent = response.content
+    .filter((item) => item.type === 'text')
+    .map((item) => item.text)
+    .join('');
+
+  if (!textContent) {
+    throw new Error('No text content in Claude API response');
+  }
+
+  return textContent;
+};
+
+const countWords = (text: string): number => {
+  if (!text || text.trim().length === 0) {
+    return 0;
+  }
+  return text.trim().split(/\s+/).filter((word) => word.length > 0).length;
+};
 
 /**
  * Custom base query using axiosInstance
@@ -90,6 +131,7 @@ const claudeBaseQuery: BaseQueryFn<
       },
       data,
       params,
+      timeout: 300000, // 5 minutes timeout for story generation
     };
 
     const result = await axiosInstance.request(config);
@@ -116,23 +158,51 @@ export const claudeApi = createApi({
   endpoints: (builder) => ({
     /**
      * Generate a story using Claude AI
+     * Transforms the Claude API response into a more usable format
      */
-    generateStory: builder.mutation<ClaudeResponse, GenerateStoryRequest>({
+    generateStory: builder.mutation<GenerateStoryResponse, GenerateStoryRequest>({
       query: ({
         messages,
         maxTokens = CLAUDE_API.DEFAULT_MAX_TOKENS,
         model = CLAUDE_API.DEFAULT_MODEL,
+        systemPrompt,
       }) => {
-        const requestBody: ClaudeRequest = {
+        const requestBody: ClaudeRequest & { system?: string } = {
           model,
           max_tokens: maxTokens,
           messages,
         };
 
+        if (systemPrompt) {
+          requestBody.system = systemPrompt;
+        }
+
         return {
           url: '',
           method: 'POST',
           data: requestBody,
+        };
+      },
+      transformResponse: (response: ClaudeResponse, meta, arg: GenerateStoryRequest): GenerateStoryResponse => {
+        // Parse response
+        const content = parseClaudeResponse(response);
+
+        // Build prompt string from messages
+        const prompt = arg.messages
+          .map((msg) => `${msg.role}: ${msg.content}`)
+          .join('\n\n');
+
+        // Count words
+        const wordCount = countWords(content);
+
+        return {
+          content,
+          wordCount,
+          prompt,
+          usage: {
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+          },
         };
       },
       invalidatesTags: ['GeneratedStory'],

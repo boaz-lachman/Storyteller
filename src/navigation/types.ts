@@ -24,6 +24,7 @@ export type AppStackParamList = {
  * Story Tab Navigation Types
  */
 export type StoryTabParamList = {
+  CompletedStory: { storyId: string };
   Overview: { storyId: string };
   Characters: { storyId: string };
   Blurbs: { storyId: string };

@@ -34,6 +34,7 @@ import chaptersReducer from './slices/chaptersSlice';
 import syncReducer from './slices/syncSlice';
 import uiReducer from './slices/uiSlice';
 import exportReducer from './slices/exportSlice';
+import autosaveReducer from './slices/autosaveSlice';
 
 /**
  * Root reducer combining all reducers
@@ -57,6 +58,7 @@ const rootReducer = combineReducers({
   sync: syncReducer,
   ui: uiReducer,
   export: exportReducer,
+  autosave: autosaveReducer,
 });
 
 /**
@@ -81,6 +83,7 @@ const persistConfig = {
     'chapters',
     'sync',
     'export',
+    'autosave', // Auto-save state is managed separately via AsyncStorage
   ],
 };
 

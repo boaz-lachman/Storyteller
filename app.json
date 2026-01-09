@@ -39,7 +39,8 @@
       ],
       "expo-font",
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-notifications"
     ],
     "extra": {
       "firebaseAPIKey": "${FIREBASE_API_KEY}",

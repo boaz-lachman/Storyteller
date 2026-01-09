@@ -1,8 +1,9 @@
 import React from 'react';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { Ionicons, FontAwesome6, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome6, FontAwesome5, Feather } from '@expo/vector-icons';
 import type { RouteProp } from '@react-navigation/native';
 import type { AppStackParamList, StoryTabParamList } from './types';
+import CompletedStoryScreen from '../screens/stories/CompletedStoryScreen';
 import OverviewScreen from '../screens/stories/OverviewScreen';
 import CharactersScreen from '../screens/entities/CharactersScreen';
 import BlurbsScreen from '../screens/entities/BlurbsScreen';
@@ -34,6 +35,21 @@ const StoryNavigator = ({
     <Tab.Navigator
       screenOptions={materialTopTabOptions}
     >
+      <Tab.Screen 
+        name="CompletedStory" 
+        component={CompletedStoryScreen}
+        initialParams={{ storyId }}
+        options={{
+          tabBarLabel: 'Story',
+          tabBarIcon: ({ color }) => (
+            <Feather 
+              name="book-open" 
+              size={20} 
+              color={color} 
+            />
+          ),
+        }}
+      />
       <Tab.Screen 
         name="Overview" 
         component={OverviewScreen}

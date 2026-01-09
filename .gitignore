@@ -41,6 +41,10 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Firestore design documentation (temporary planning files)
+src/services/firestore/COLLECTIONS_DESIGN.md
+src/services/firestore/CONVERSION_PLAN.md
+
 # generated native folders
 /ios
 /android

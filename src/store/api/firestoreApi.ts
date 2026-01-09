@@ -1,41 +1,46 @@
 /**
  * RTK Query API for Firestore sync operations
- * Placeholder - will be implemented later
+ * Provides upload mutations, download queries, and sync mutations
+ * Uses the Firestore service functions for actual operations
  */
 import { createApi } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
-import axiosInstance from '../../services/api/axiosInstance';
-import { fromFirestoreDocument, toFirestoreFields, toFirestoreValue } from '../../utils/helpers';
-import { isOnline } from '../../utils/networkHelpers';
-import { auth } from '../../config/firebase';
-import { Chapter, Character, GeneratedStory, IdeaBlurb, Scene, Story } from '../../types';
+import {
+  uploadStory,
+  uploadCharacter,
+  uploadBlurb,
+  uploadScene,
+  uploadChapter,
+  downloadStories,
+  downloadEntitiesForStory,
+  isFirebaseConfigured,
+} from '../../services/firestore/firestoreService';
+import type {
+  Story,
+  Character,
+  IdeaBlurb,
+  Scene,
+  Chapter,
+} from '../../types';
 
-const FIREBASE_CONFIG = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
-};
-
-const FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents`;
+// ============================================================================
+// Base Query
+// ============================================================================
 
 interface FirestoreQueryArgs {
-  collection: string;
-  userId: string;
-  storyId?: string;
-  id?: string;
-  method: 'get' | 'list' | 'create' | 'update' | 'delete' | 'query';
+  type: 'upload' | 'download';
+  entityType?: 'story' | 'character' | 'blurb' | 'scene' | 'chapter';
+  operation?: string;
   data?: any;
-  where?: Array<{
-    field: string;
-    op: '==' | '!=' | '<' | '<=' | '>' | '>=';
-    value: any;
-  }>;
-  orderBy?: Array<{
-    field: string;
-    direction: 'ASCENDING' | 'DESCENDING';
-  }>;
-  limit?: number;
+  userId?: string;
+  storyId?: string;
+  localEntities?: {
+    characters?: Character[];
+    blurbs?: IdeaBlurb[];
+    scenes?: Scene[];
+    chapters?: Chapter[];
+  };
 }
-
 
 const firestoreBaseQuery = (): BaseQueryFn<
   FirestoreQueryArgs,
@@ -44,462 +49,389 @@ const firestoreBaseQuery = (): BaseQueryFn<
 > => {
   return async (args) => {
     try {
-      // Check connectivity
-      const online = await isOnline();
-      if (!online) {
-        return { 
-          error: { 
-            error: 'No network connection', 
-            status: 0 
-          } 
+      // Check Firebase configuration
+      if (!isFirebaseConfigured()) {
+        return {
+          error: {
+            error: 'Firebase is not configured',
+            status: 500,
+          },
         };
       }
 
-      const { collection: collectionName, userId, storyId, id, method, data, where, orderBy, limit } = args;
+      const { type, entityType, operation, data, userId, storyId, localEntities } = args;
 
-      // Build collection path
-      let collectionPath: string;
-      if (collectionName === 'stories') {
-        collectionPath = `users/${userId}/stories`;
-      } else {
-        if (!storyId) throw new Error('storyId required for subcollections');
-        collectionPath = `users/${userId}/stories/${storyId}/${collectionName}`;
-      }
-
-      // Get auth token
-      const token = auth.currentUser?.getIdToken();
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      };
-
-      switch (method) {
-        case 'get': {
-          if (!id) throw new Error('Document ID required for get operation');
-          
-          const url = `${FIRESTORE_BASE_URL}/${collectionPath}/${id}`;
-          const response = await axiosInstance.get(url, { headers });
-          
-          return { data: fromFirestoreDocument(response.data) };
-        }
-
-        case 'list': {
-          const url = `${FIRESTORE_BASE_URL}/${collectionPath}`;
-          const response = await axiosInstance.get(url, { 
-            headers,
-            params: {
-              pageSize: limit || 1000,
+      // Handle upload operations
+      if (type === 'upload') {
+        switch (entityType) {
+          case 'story':
+            if (!data) {
+              return {
+                error: {
+                  error: 'Story data is required',
+                  status: 400,
+                },
+              };
             }
-          });
-          
-          const documents = response.data.documents?.map(fromFirestoreDocument) || [];
-          return { data: documents };
-        }
+            const uploadedStory = await uploadStory(data as Story);
+            return { data: uploadedStory };
 
-        case 'query': {
-          // Build structured query
-          const structuredQuery: any = {
-            from: [{ collectionId: collectionName }],
-          };
+          case 'character':
+            if (!data) {
+              return {
+                error: {
+                  error: 'Character data is required',
+                  status: 400,
+                },
+              };
+            }
+            const uploadedCharacter = await uploadCharacter(data as Character);
+            return { data: uploadedCharacter };
 
-          // Add where clauses
-          if (where && where.length > 0) {
-            structuredQuery.where = {
-              compositeFilter: {
-                op: 'AND',
-                filters: where.map(w => ({
-                  fieldFilter: {
-                    field: { fieldPath: w.field },
-                    op: w.op === '==' ? 'EQUAL' : 
-                        w.op === '!=' ? 'NOT_EQUAL' :
-                        w.op === '<' ? 'LESS_THAN' :
-                        w.op === '<=' ? 'LESS_THAN_OR_EQUAL' :
-                        w.op === '>' ? 'GREATER_THAN' :
-                        'GREATER_THAN_OR_EQUAL',
-                    value: toFirestoreValue(w.value)
-                  }
-                }))
-              }
+          case 'blurb':
+            if (!data) {
+              return {
+                error: {
+                  error: 'Blurb data is required',
+                  status: 400,
+                },
+              };
+            }
+            const uploadedBlurb = await uploadBlurb(data as IdeaBlurb);
+            return { data: uploadedBlurb };
+
+          case 'scene':
+            if (!data) {
+              return {
+                error: {
+                  error: 'Scene data is required',
+                  status: 400,
+                },
+              };
+            }
+            const uploadedScene = await uploadScene(data as Scene);
+            return { data: uploadedScene };
+
+          case 'chapter':
+            if (!data) {
+              return {
+                error: {
+                  error: 'Chapter data is required',
+                  status: 400,
+                },
+              };
+            }
+            const uploadedChapter = await uploadChapter(data as Chapter);
+            return { data: uploadedChapter };
+
+          default:
+            return {
+              error: {
+                error: `Unknown entity type: ${entityType}`,
+                status: 400,
+              },
             };
-          }
-
-          // Add orderBy
-          if (orderBy && orderBy.length > 0) {
-            structuredQuery.orderBy = orderBy.map(o => ({
-              field: { fieldPath: o.field },
-              direction: o.direction
-            }));
-          }
-
-          // Add limit
-          if (limit) {
-            structuredQuery.limit = limit;
-          }
-
-          const parentPath = collectionPath.split('/').slice(0, -1).join('/');
-          const url = `${FIRESTORE_BASE_URL}/${parentPath}:runQuery`;
-          
-          const response = await axiosInstance.post(
-            url,
-            { structuredQuery },
-            { headers }
-          );
-
-          const documents = response.data
-            .filter((item: any) => item.document)
-            .map((item: any) => fromFirestoreDocument(item.document));
-          
-          return { data: documents };
         }
-
-        case 'create': {
-          if (!id || !data) throw new Error('ID and data required for create');
-          
-          const url = `${FIRESTORE_BASE_URL}/${collectionPath}?documentId=${id}`;
-          const timestamp = Date.now();
-          
-          const docData = {
-            ...data,
-            id,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            synced: true
-          };
-
-          const firestoreDoc = {
-            fields: toFirestoreFields(docData)
-          };
-
-          await axiosInstance.post(url, firestoreDoc, { headers });
-          return { data: docData };
-        }
-
-        case 'update': {
-          if (!id || !data) throw new Error('ID and data required for update');
-          
-          const url = `${FIRESTORE_BASE_URL}/${collectionPath}/${id}`;
-          
-          const updateData = {
-            ...data,
-            updatedAt: Date.now(),
-            synced: true
-          };
-
-          const firestoreDoc = {
-            fields: toFirestoreFields(updateData)
-          };
-
-          // Build update mask for only the fields being updated
-          const updateMask = Object.keys(data)
-            .filter(key => key !== 'id')
-            .map(key => `fields.${key}`)
-            .join(',');
-
-          await axiosInstance.patch(
-            url,
-            firestoreDoc,
-            { 
-              headers,
-              params: {
-                updateMask: `${updateMask},fields.updatedAt,fields.synced`
-              }
-            }
-          );
-
-          return { data: { id, ...updateData } };
-        }
-
-        case 'delete': {
-          if (!id) throw new Error('Document ID required for delete');
-          
-          const url = `${FIRESTORE_BASE_URL}/${collectionPath}/${id}`;
-          
-          // Soft delete by updating the deleted flag
-          const firestoreDoc = {
-            fields: {
-              deleted: { booleanValue: true },
-              updatedAt: { integerValue: Date.now().toString() }
-            }
-          };
-
-          await axiosInstance.patch(
-            url,
-            firestoreDoc,
-            { 
-              headers,
-              params: {
-                updateMask: 'fields.deleted,fields.updatedAt'
-              }
-            }
-          );
-
-          return { data: { id, deleted: true } };
-        }
-
-        default:
-          throw new Error(`Unknown method: ${method}`);
       }
+
+      // Handle download operations
+      if (type === 'download') {
+        switch (operation) {
+          case 'downloadStories':
+            if (!userId) {
+              return {
+                error: {
+                  error: 'User ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const stories = await downloadStories(userId);
+            return { data: stories };
+
+          case 'downloadEntitiesForStory':
+            if (!storyId) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const entities = await downloadEntitiesForStory(storyId, localEntities);
+            return { data: entities };
+
+          default:
+            return {
+              error: {
+                error: `Unknown download operation: ${operation}`,
+                status: 400,
+              },
+            };
+        }
+      }
+
+      return {
+        error: {
+          error: 'Invalid query type',
+          status: 400,
+        },
+      };
     } catch (error: any) {
-      console.error('Firestore API error:', error.response?.data || error.message);
-      return { 
-        error: { 
-          error: error.response?.data?.error?.message || error.message || 'Unknown error occurred',
-          status: error.response?.status
-        } 
+      console.error('Firestore API error:', error);
+      return {
+        error: {
+          error: error.message || 'Unknown error occurred',
+          status: error.status || 500,
+        },
       };
     }
   };
 };
 
+// ============================================================================
+// RTK Query API
+// ============================================================================
 
 export const firestoreApi = createApi({
   reducerPath: 'firestoreApi',
   baseQuery: firestoreBaseQuery(),
-  tagTypes: ['Story', 'Character', 'Blurb', 'Scene', 'Chapter', 'GeneratedStory'],
+  tagTypes: ['Story', 'Character', 'Blurb', 'Scene', 'Chapter', 'Sync'],
   endpoints: (builder) => ({
-    // ========== STORIES ==========
-    getStory: builder.query<Story, { userId: string; id: string }>({
-      query: ({ userId, id }) => ({
-        collection: 'stories',
-        userId,
-        id,
-        method: 'get'
-      }),
-      providesTags: (result, error, { id }) => [{ type: 'Story', id }],
-    }),
+    // ============================================================================
+    // Upload Mutations
+    // ============================================================================
 
-    listStories: builder.query<Story[], { userId: string; status?: string }>({
-      query: ({ userId, status }) => ({
-        collection: 'stories',
-        userId,
-        method: status ? 'query' : 'list',
-        ...(status && {
-          where: [{ field: 'status', op: '==', value: status }]
-        })
-      }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: 'Story' as const, id })),
-              { type: 'Story', id: 'LIST' },
-            ]
-          : [{ type: 'Story', id: 'LIST' }],
-    }),
-
-    createStory: builder.mutation<Story, Omit<Story, 'createdAt' | 'updatedAt' | 'synced'>>({
+    /**
+     * Upload a story to Firestore
+     */
+    uploadStory: builder.mutation<Story, Story>({
       query: (story) => ({
-        collection: 'stories',
-        userId: story.userId,
-        id: story.id,
-        method: 'create',
-        data: story
+        type: 'upload',
+        entityType: 'story',
+        data: story,
       }),
-      invalidatesTags: [{ type: 'Story', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Story', id: 'LIST' }, { type: 'Sync' }],
     }),
 
-    updateStory: builder.mutation<Story, { userId: string; id: string; data: Partial<Story> }>({
-      query: ({ userId, id, data }) => ({
-        collection: 'stories',
-        userId,
-        id,
-        method: 'update',
-        data
-      }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Story', id }],
-    }),
-
-    // ========== CHARACTERS ==========
-    listCharacters: builder.query<Character[], { userId: string; storyId: string }>({
-      query: ({ userId, storyId }) => ({
-        collection: 'characters',
-        userId,
-        storyId,
-        method: 'query',
-        where: [{ field: 'deleted', op: '==', value: false }],
-        orderBy: [{ field: 'importance', direction: 'DESCENDING' }]
-      }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: 'Character' as const, id })),
-              { type: 'Character', id: 'LIST' },
-            ]
-          : [{ type: 'Character', id: 'LIST' }],
-    }),
-
-    createCharacter: builder.mutation<Character, Omit<Character, 'createdAt' | 'updatedAt' | 'synced'>>({
+    /**
+     * Upload a character to Firestore
+     */
+    uploadCharacter: builder.mutation<Character, Character>({
       query: (character) => ({
-        collection: 'characters',
-        userId: character.userId,
-        storyId: character.storyId,
-        id: character.id,
-        method: 'create',
-        data: character
+        type: 'upload',
+        entityType: 'character',
+        data: character,
       }),
-      invalidatesTags: [{ type: 'Character', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Character', id: 'LIST' }, { type: 'Sync' }],
     }),
 
-    updateCharacter: builder.mutation<Character, { userId: string; storyId: string; id: string; data: Partial<Character> }>({
-      query: ({ userId, storyId, id, data }) => ({
-        collection: 'characters',
-        userId,
-        storyId,
-        id,
-        method: 'update',
-        data
-      }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Character', id }],
-    }),
-
-    deleteCharacter: builder.mutation<{ id: string; deleted: boolean }, { userId: string; storyId: string; id: string }>({
-      query: ({ userId, storyId, id }) => ({
-        collection: 'characters',
-        userId,
-        storyId,
-        id,
-        method: 'delete'
-      }),
-      invalidatesTags: [{ type: 'Character', id: 'LIST' }],
-    }),
-
-    // ========== BLURBS ==========
-    listBlurbs: builder.query<IdeaBlurb[], { userId: string; storyId: string }>({
-      query: ({ userId, storyId }) => ({
-        collection: 'blurbs',
-        userId,
-        storyId,
-        method: 'query',
-        where: [{ field: 'deleted', op: '==', value: false }]
-      }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: 'Blurb' as const, id })),
-              { type: 'Blurb', id: 'LIST' },
-            ]
-          : [{ type: 'Blurb', id: 'LIST' }],
-    }),
-
-    createBlurb: builder.mutation<IdeaBlurb, Omit<IdeaBlurb, 'createdAt' | 'updatedAt' | 'synced'>>({
+    /**
+     * Upload a blurb to Firestore
+     */
+    uploadBlurb: builder.mutation<IdeaBlurb, IdeaBlurb>({
       query: (blurb) => ({
-        collection: 'blurbs',
-        userId: blurb.userId,
-        storyId: blurb.storyId,
-        id: blurb.id,
-        method: 'create',
-        data: blurb
+        type: 'upload',
+        entityType: 'blurb',
+        data: blurb,
       }),
-      invalidatesTags: [{ type: 'Blurb', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Blurb', id: 'LIST' }, { type: 'Sync' }],
     }),
 
-    // ========== SCENES ==========
-    listScenes: builder.query<Scene[], { userId: string; storyId: string }>({
-      query: ({ userId, storyId }) => ({
-        collection: 'scenes',
-        userId,
-        storyId,
-        method: 'query',
-        where: [{ field: 'deleted', op: '==', value: false }]
-      }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: 'Scene' as const, id })),
-              { type: 'Scene', id: 'LIST' },
-            ]
-          : [{ type: 'Scene', id: 'LIST' }],
-    }),
-
-    createScene: builder.mutation<Scene, Omit<Scene, 'createdAt' | 'updatedAt' | 'synced'>>({
+    /**
+     * Upload a scene to Firestore
+     */
+    uploadScene: builder.mutation<Scene, Scene>({
       query: (scene) => ({
-        collection: 'scenes',
-        userId: scene.userId,
-        storyId: scene.storyId,
-        id: scene.id,
-        method: 'create',
-        data: scene
+        type: 'upload',
+        entityType: 'scene',
+        data: scene,
       }),
-      invalidatesTags: [{ type: 'Scene', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Scene', id: 'LIST' }, { type: 'Sync' }],
     }),
 
-    // ========== CHAPTERS ==========
-    listChapters: builder.query<Chapter[], { userId: string; storyId: string }>({
-      query: ({ userId, storyId }) => ({
-        collection: 'chapters',
-        userId,
-        storyId,
-        method: 'query',
-        where: [{ field: 'deleted', op: '==', value: false }],
-        orderBy: [{ field: 'order', direction: 'ASCENDING' }]
-      }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: 'Chapter' as const, id })),
-              { type: 'Chapter', id: 'LIST' },
-            ]
-          : [{ type: 'Chapter', id: 'LIST' }],
-    }),
-
-    createChapter: builder.mutation<Chapter, Omit<Chapter, 'createdAt' | 'updatedAt' | 'synced'>>({
+    /**
+     * Upload a chapter to Firestore
+     */
+    uploadChapter: builder.mutation<Chapter, Chapter>({
       query: (chapter) => ({
-        collection: 'chapters',
-        userId: chapter.userId,
-        storyId: chapter.storyId,
-        id: chapter.id,
-        method: 'create',
-        data: chapter
+        type: 'upload',
+        entityType: 'chapter',
+        data: chapter,
       }),
-      invalidatesTags: [{ type: 'Chapter', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Chapter', id: 'LIST' }, { type: 'Sync' }],
     }),
 
-    // ========== GENERATED STORIES ==========
-    listGeneratedStories: builder.query<GeneratedStory[], { userId: string; storyId: string }>({
-      query: ({ userId, storyId }) => ({
-        collection: 'generatedStories',
+    // ============================================================================
+    // Download Queries
+    // ============================================================================
+
+    /**
+     * Download all stories for a user from Firestore
+     */
+    downloadStories: builder.query<Story[], string>({
+      query: (userId) => ({
+        type: 'download',
+        operation: 'downloadStories',
         userId,
-        storyId,
-        method: 'query',
-        orderBy: [{ field: 'createdAt', direction: 'DESCENDING' }]
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ id }) => ({ type: 'GeneratedStory' as const, id })),
-              { type: 'GeneratedStory', id: 'LIST' },
-            ]
-          : [{ type: 'GeneratedStory', id: 'LIST' }],
+      providesTags: [{ type: 'Story', id: 'LIST' }],
     }),
 
-    createGeneratedStory: builder.mutation<GeneratedStory, Omit<GeneratedStory, 'createdAt' | 'updatedAt' | 'synced'>>({
-      query: (generatedStory) => ({
-        collection: 'generatedStories',
-        userId: generatedStory.userId,
-        storyId: generatedStory.storyId,
-        id: generatedStory.id,
-        method: 'create',
-        data: generatedStory
+    /**
+     * Download all entities (characters, blurbs, scenes, chapters) for a story
+     */
+    downloadEntitiesForStory: builder.query<
+      {
+        characters: Character[];
+        blurbs: IdeaBlurb[];
+        scenes: Scene[];
+        chapters: Chapter[];
+      },
+      {
+        storyId: string;
+        localEntities?: {
+          characters?: Character[];
+          blurbs?: IdeaBlurb[];
+          scenes?: Scene[];
+          chapters?: Chapter[];
+        };
+      }
+    >({
+      query: ({ storyId, localEntities }) => ({
+        type: 'download',
+        operation: 'downloadEntitiesForStory',
+        storyId,
+        localEntities,
       }),
-      invalidatesTags: [{ type: 'GeneratedStory', id: 'LIST' }],
+      providesTags: [
+        { type: 'Character', id: 'LIST' },
+        { type: 'Blurb', id: 'LIST' },
+        { type: 'Scene', id: 'LIST' },
+        { type: 'Chapter', id: 'LIST' },
+      ],
+    }),
+
+    // ============================================================================
+    // Sync Mutations
+    // ============================================================================
+
+    /**
+     * Sync a story and all its entities
+     * Uploads the story and all entities, then downloads any remote changes
+     */
+    syncStory: builder.mutation<
+      {
+        story: Story;
+        entities: {
+          characters: Character[];
+          blurbs: IdeaBlurb[];
+          scenes: Scene[];
+          chapters: Chapter[];
+        };
+      },
+      {
+        story: Story;
+        characters?: Character[];
+        blurbs?: IdeaBlurb[];
+        scenes?: Scene[];
+        chapters?: Chapter[];
+        localEntities?: {
+          characters?: Character[];
+          blurbs?: IdeaBlurb[];
+          scenes?: Scene[];
+          chapters?: Chapter[];
+        };
+      }
+    >({
+      async queryFn({ story, characters, blurbs, scenes, chapters, localEntities }) {
+        try {
+          // Upload story
+          const uploadedStory = await uploadStory(story);
+
+          // Upload all entities
+          const uploadPromises: Promise<any>[] = [];
+
+          if (characters) {
+            uploadPromises.push(...characters.map((c) => uploadCharacter(c)));
+          }
+          if (blurbs) {
+            uploadPromises.push(...blurbs.map((b) => uploadBlurb(b)));
+          }
+          if (scenes) {
+            uploadPromises.push(...scenes.map((s) => uploadScene(s)));
+          }
+          if (chapters) {
+            uploadPromises.push(...chapters.map((c) => uploadChapter(c)));
+          }
+
+          await Promise.all(uploadPromises);
+
+          // Download remote entities (with conflict resolution)
+          const entities = await downloadEntitiesForStory(story.id, localEntities);
+
+          return {
+            data: {
+              story: uploadedStory,
+              entities,
+            },
+          };
+        } catch (error: any) {
+          return {
+            error: {
+              error: error.message || 'Sync failed',
+              status: 500,
+            },
+          };
+        }
+      },
+      invalidatesTags: [
+        { type: 'Story', id: 'LIST' },
+        { type: 'Character', id: 'LIST' },
+        { type: 'Blurb', id: 'LIST' },
+        { type: 'Scene', id: 'LIST' },
+        { type: 'Chapter', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Sync all stories for a user
+     * Downloads all stories from Firestore
+     */
+    syncAllStories: builder.mutation<Story[], string>({
+      async queryFn(userId) {
+        try {
+          const stories = await downloadStories(userId);
+          return { data: stories };
+        } catch (error: any) {
+          return {
+            error: {
+              error: error.message || 'Sync failed',
+              status: 500,
+            },
+          };
+        }
+      },
+      invalidatesTags: [{ type: 'Story', id: 'LIST' }, { type: 'Sync' }],
     }),
   }),
 });
 
+// Export hooks
 export const {
-  useGetStoryQuery,
-  useListStoriesQuery,
-  useCreateStoryMutation,
-  useUpdateStoryMutation,
-  useListCharactersQuery,
-  useCreateCharacterMutation,
-  useUpdateCharacterMutation,
-  useDeleteCharacterMutation,
-  useListBlurbsQuery,
-  useCreateBlurbMutation,
-  useListScenesQuery,
-  useCreateSceneMutation,
-  useListChaptersQuery,
-  useCreateChapterMutation,
-  useListGeneratedStoriesQuery,
-  useCreateGeneratedStoryMutation,
+  // Upload mutations
+  useUploadStoryMutation,
+  useUploadCharacterMutation,
+  useUploadBlurbMutation,
+  useUploadSceneMutation,
+  useUploadChapterMutation,
+  // Download queries
+  useDownloadStoriesQuery,
+  useLazyDownloadStoriesQuery,
+  useDownloadEntitiesForStoryQuery,
+  useLazyDownloadEntitiesForStoryQuery,
+  // Sync mutations
+  useSyncStoryMutation,
+  useSyncAllStoriesMutation,
 } = firestoreApi;
