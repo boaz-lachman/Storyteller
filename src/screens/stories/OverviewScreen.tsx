@@ -77,18 +77,28 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
   const [updateStory, { isLoading: isUpdating }] = useUpdateStoryMutation();
 
   // Function to calculate statistics
-  const loadStatistics = useCallback(() => {
-    if (storyId) {
-      setIsLoadingStats(true);
-      calculateStoryStatistics(storyId)
-        .then((stats) => {
-          setStatistics(stats);
-          setIsLoadingStats(false);
-        })
-        .catch((err) => {
-          console.error('Error calculating statistics:', err);
-          setIsLoadingStats(false);
-        });
+  const loadStatistics = useCallback(async () => {
+    if (!storyId) return;
+
+    setIsLoadingStats(true);
+    try {
+      // Ensure database is initialized before querying
+      const { getDb } = await import('../../services/database/sqlite');
+      await getDb(); // Initialize database if not already initialized
+      
+      const stats = await calculateStoryStatistics(storyId);
+      setStatistics(stats);
+      setIsLoadingStats(false);
+    } catch (err) {
+      console.error('Error calculating statistics:', err);
+      // Set default stats on error
+      setStatistics({
+        characterCount: 0,
+        blurbCount: 0,
+        sceneCount: 0,
+        chapterCount: 0,
+      });
+      setIsLoadingStats(false);
     }
   }, [storyId]);
 

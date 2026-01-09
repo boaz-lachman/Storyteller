@@ -29,6 +29,7 @@ import {
   loadAppState,
   clearAppState,
 } from '../services/autosave/autosaveService';
+import { getDb } from '../services/database/sqlite';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -51,12 +52,32 @@ export default function AppNavigator() {
   const [isRestoringState, setIsRestoringState] = useState(true);
   const [initialNavigationState, setInitialNavigationState] = useState<NavigationState<RootStackParamList> | undefined>(undefined);
 
+  // Initialize database early in app lifecycle
+  useEffect(() => {
+    const initDatabase = async () => {
+      if (user) {
+        try {
+          // Initialize database when user is authenticated
+          await getDb();
+        } catch (error) {
+          console.error('Error initializing database:', error);
+        }
+      }
+    };
+
+    initDatabase();
+  }, [user]);
+
   // Restore app state on mount (only if authenticated)
   useEffect(() => {
     const restoreState = async () => {
       if (!isLoading && !authLoading && user) {
         try {
           dispatch(setRestoring(true));
+          
+          // Ensure database is initialized before restoring state
+          await getDb();
+          
           const savedState = await loadAppState();
           
           if (savedState) {

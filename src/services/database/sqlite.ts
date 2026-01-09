@@ -9,18 +9,53 @@ const DB_NAME = 'storyteller.db';
 const CURRENT_VERSION = 1;
 
 let db: SQLite.SQLiteDatabase | null = null;
+let isInitializing = false;
+let initializationPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /**
  * Get or create database connection
+ * Prevents concurrent initialization attempts
  */
 export const getDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
+  // If database is already initialized, return it
   if (db) {
-    return db;
+    try {
+      // Verify the database is still valid by trying a simple query
+      await db.getFirstAsync('SELECT 1');
+      return db;
+    } catch (error) {
+      // Database connection is stale or invalid, reset and reinitialize
+      console.warn('Database connection is stale, reinitializing...');
+      db = null;
+      isInitializing = false;
+      initializationPromise = null;
+    }
   }
 
-  db = await SQLite.openDatabaseAsync(DB_NAME);
-  await initializeDatabase(db);
-  return db;
+  // If initialization is in progress, wait for it to complete
+  if (isInitializing && initializationPromise) {
+    return initializationPromise;
+  }
+
+  // Start initialization
+  isInitializing = true;
+  initializationPromise = (async () => {
+    try {
+      db = await SQLite.openDatabaseAsync(DB_NAME);
+      await initializeDatabase(db);
+      isInitializing = false;
+      initializationPromise = null;
+      return db;
+    } catch (error) {
+      console.error('Error initializing database:', error);
+      db = null; // Reset on error
+      isInitializing = false;
+      initializationPromise = null;
+      throw error;
+    }
+  })();
+
+  return initializationPromise;
 };
 
 /**
@@ -66,7 +101,7 @@ async function getCurrentVersion(
 
     return version?.version || 0;
   } catch (error) {
-    console.error('Error getting current version:', error);
+    console.error('Error getting database version:', error);
     return 0;
   }
 }
@@ -80,19 +115,14 @@ async function runMigrations(
   toVersion: number
 ): Promise<void> {
   for (let version = fromVersion + 1; version <= toVersion; version++) {
-    try {
-      await executeMigration(database, version);
-    } catch (error) {
-      console.error(`Migration ${version} failed:`, error);
-      throw error;
-    }
+    await applyMigration(database, version);
   }
 }
 
 /**
- * Execute a single migration
+ * Apply a single migration
  */
-async function executeMigration(
+async function applyMigration(
   database: SQLite.SQLiteDatabase,
   version: number
 ): Promise<void> {
@@ -218,7 +248,7 @@ function getInitialSchemaSQL(): string {
       setting TEXT NOT NULL,
       characters TEXT NOT NULL,
       mood TEXT,
-      conflictLevel INTEGER CHECK(conflictLevel IS NULL OR (conflictLevel >= 1 AND conflictLevel <= 10)),
+      conflictLevel INTEGER CHECK(conflictLevel >= 1 AND conflictLevel <= 10),
       importance INTEGER NOT NULL CHECK(importance >= 1 AND importance <= 10),
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
@@ -264,35 +294,35 @@ function getInitialSchemaSQL(): string {
     CREATE INDEX IF NOT EXISTS idx_stories_synced ON Stories(synced);
     
     CREATE INDEX IF NOT EXISTS idx_characters_storyId ON Characters(storyId);
-    CREATE INDEX IF NOT EXISTS idx_characters_importance ON Characters(importance);
-    CREATE INDEX IF NOT EXISTS idx_characters_role ON Characters(role);
+    CREATE INDEX IF NOT EXISTS idx_characters_userId ON Characters(userId);
     CREATE INDEX IF NOT EXISTS idx_characters_createdAt ON Characters(createdAt);
     CREATE INDEX IF NOT EXISTS idx_characters_updatedAt ON Characters(updatedAt);
     CREATE INDEX IF NOT EXISTS idx_characters_synced ON Characters(synced);
+    CREATE INDEX IF NOT EXISTS idx_characters_deleted ON Characters(deleted);
     CREATE INDEX IF NOT EXISTS idx_characters_storyId_importance ON Characters(storyId, importance);
     
     CREATE INDEX IF NOT EXISTS idx_blurbs_storyId ON Blurbs(storyId);
-    CREATE INDEX IF NOT EXISTS idx_blurbs_importance ON Blurbs(importance);
-    CREATE INDEX IF NOT EXISTS idx_blurbs_category ON Blurbs(category);
+    CREATE INDEX IF NOT EXISTS idx_blurbs_userId ON Blurbs(userId);
     CREATE INDEX IF NOT EXISTS idx_blurbs_createdAt ON Blurbs(createdAt);
     CREATE INDEX IF NOT EXISTS idx_blurbs_updatedAt ON Blurbs(updatedAt);
     CREATE INDEX IF NOT EXISTS idx_blurbs_synced ON Blurbs(synced);
-    CREATE INDEX IF NOT EXISTS idx_blurbs_storyId_category ON Blurbs(storyId, category);
+    CREATE INDEX IF NOT EXISTS idx_blurbs_deleted ON Blurbs(deleted);
     CREATE INDEX IF NOT EXISTS idx_blurbs_storyId_importance ON Blurbs(storyId, importance);
     
     CREATE INDEX IF NOT EXISTS idx_scenes_storyId ON Scenes(storyId);
-    CREATE INDEX IF NOT EXISTS idx_scenes_importance ON Scenes(importance);
+    CREATE INDEX IF NOT EXISTS idx_scenes_userId ON Scenes(userId);
     CREATE INDEX IF NOT EXISTS idx_scenes_createdAt ON Scenes(createdAt);
     CREATE INDEX IF NOT EXISTS idx_scenes_updatedAt ON Scenes(updatedAt);
     CREATE INDEX IF NOT EXISTS idx_scenes_synced ON Scenes(synced);
+    CREATE INDEX IF NOT EXISTS idx_scenes_deleted ON Scenes(deleted);
     CREATE INDEX IF NOT EXISTS idx_scenes_storyId_importance ON Scenes(storyId, importance);
     
     CREATE INDEX IF NOT EXISTS idx_chapters_storyId ON Chapters(storyId);
-    CREATE INDEX IF NOT EXISTS idx_chapters_importance ON Chapters(importance);
+    CREATE INDEX IF NOT EXISTS idx_chapters_userId ON Chapters(userId);
     CREATE INDEX IF NOT EXISTS idx_chapters_createdAt ON Chapters(createdAt);
     CREATE INDEX IF NOT EXISTS idx_chapters_updatedAt ON Chapters(updatedAt);
     CREATE INDEX IF NOT EXISTS idx_chapters_synced ON Chapters(synced);
-    CREATE INDEX IF NOT EXISTS idx_chapters_storyId_order ON Chapters(storyId, "order");
+    CREATE INDEX IF NOT EXISTS idx_chapters_deleted ON Chapters(deleted);
     CREATE INDEX IF NOT EXISTS idx_chapters_storyId_importance ON Chapters(storyId, importance);
     -- Partial unique index: only applies to non-deleted chapters
     -- This allows multiple deleted chapters to have order = -1
@@ -312,6 +342,32 @@ export const closeDatabase = async (): Promise<void> => {
   if (db) {
     await db.closeAsync();
     db = null;
+  }
+};
+
+/**
+ * Clear all data from the database
+ * Deletes all data from all tables
+ */
+export const clearDatabase = async (): Promise<void> => {
+  if (!db) {
+    db = await getDatabase();
+  }
+
+  try {
+    // Delete all data from all tables
+    await db.execAsync(`
+      DELETE FROM Stories;
+      DELETE FROM Characters;
+      DELETE FROM Blurbs;
+      DELETE FROM Scenes;
+      DELETE FROM Chapters;
+      DELETE FROM GeneratedStories;
+    `);
+    console.log('Database cleared successfully');
+  } catch (error) {
+    console.error('Error clearing database:', error);
+    throw error;
   }
 };
 
