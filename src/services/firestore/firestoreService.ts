@@ -8,7 +8,9 @@ import {
   doc,
   writeBatch,
   setDoc,
+  getDoc,
   getDocs,
+  deleteDoc,
   query,
   where,
   serverTimestamp,
@@ -233,13 +235,16 @@ export function getBatch() {
 /**
  * Upload a story to Firestore
  * Converts SQLite format to Firestore format and uploads
+ * Uses firestoreId if available, otherwise uses local id
  */
 export async function uploadStory(story: Story): Promise<Story> {
   if (!isFirebaseConfigured()) {
     throw new Error('Firebase is not configured');
   }
 
-  const docRef = getStoryDoc(story.id);
+  // Use firestoreId if available, otherwise use local id
+  const firestoreDocId = story.firestoreId || story.id;
+  const docRef = getStoryDoc(firestoreDocId);
   const firestoreData = toFirestoreStory(story);
 
   // Use setDoc with merge to handle both create and update
@@ -248,7 +253,8 @@ export async function uploadStory(story: Story): Promise<Story> {
     updatedAt: serverTimestamp(),
   }, { merge: true });
 
-  return { ...story, synced: true };
+  // Return story with firestoreId set
+  return { ...story, firestoreId: firestoreDocId, synced: true };
 }
 
 /**
@@ -361,11 +367,11 @@ export async function downloadStories(userId: string): Promise<Story[]> {
   const q = query(storiesCollection, where('userId', '==', userId));
   const querySnapshot = await getDocs(q);
 
-  const stories: Story[] = [];
-  querySnapshot.forEach((docSnap) => {
-    try {
-      const data = docSnap.data() as FirestoreStoryData;
-      const story = fromFirestoreStory(docSnap.id, data);
+    const stories: Story[] = [];
+    querySnapshot.forEach((docSnap) => {
+      try {
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+        const story = fromFirestoreStory(docSnap.id, data);
       stories.push(story);
     } catch (error) {
       console.error(`Error converting story ${docSnap.id}:`, error);
@@ -420,7 +426,7 @@ export async function downloadEntitiesForStory(
 
     charactersSnapshot.forEach((docSnap) => {
       try {
-        const data = docSnap.data() as FirestoreCharacterData;
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
         const remoteCharacter = fromFirestoreCharacter(docSnap.id, data);
 
         // Resolve conflict if local entity exists
@@ -456,7 +462,7 @@ export async function downloadEntitiesForStory(
 
     blurbsSnapshot.forEach((docSnap) => {
       try {
-        const data = docSnap.data() as FirestoreBlurbData;
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
         const remoteBlurb = fromFirestoreBlurb(docSnap.id, data);
 
         // Resolve conflict if local entity exists
@@ -492,7 +498,7 @@ export async function downloadEntitiesForStory(
 
     scenesSnapshot.forEach((docSnap) => {
       try {
-        const data = docSnap.data() as FirestoreSceneData;
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
         const remoteScene = fromFirestoreScene(docSnap.id, data);
 
         // Resolve conflict if local entity exists
@@ -528,7 +534,7 @@ export async function downloadEntitiesForStory(
 
     chaptersSnapshot.forEach((docSnap) => {
       try {
-        const data = docSnap.data() as FirestoreChapterData;
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
         const remoteChapter = fromFirestoreChapter(docSnap.id, data);
 
         // Resolve conflict if local entity exists
@@ -553,4 +559,323 @@ export async function downloadEntitiesForStory(
   }
 
   return results;
+}
+
+// ============================================================================
+// Get Single Entity Functions
+// ============================================================================
+
+/**
+ * Get a single story from Firestore by ID
+ */
+export async function getStory(storyId: string): Promise<Story | null> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getStoryDoc(storyId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    try {
+      const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+      return fromFirestoreStory(docSnap.id, data);
+    } catch (error) {
+      console.error(`Error converting story ${storyId}:`, error);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get a single character from Firestore by ID
+ */
+export async function getCharacter(characterId: string): Promise<Character | null> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getCharacterDoc(characterId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    try {
+      const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+      return fromFirestoreCharacter(docSnap.id, data);
+    } catch (error) {
+      console.error(`Error converting character ${characterId}:`, error);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get a single blurb from Firestore by ID
+ */
+export async function getBlurb(blurbId: string): Promise<IdeaBlurb | null> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getBlurbDoc(blurbId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    try {
+      const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+      return fromFirestoreBlurb(docSnap.id, data);
+    } catch (error) {
+      console.error(`Error converting blurb ${blurbId}:`, error);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get a single scene from Firestore by ID
+ */
+export async function getScene(sceneId: string): Promise<Scene | null> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getSceneDoc(sceneId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    try {
+      const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+      return fromFirestoreScene(docSnap.id, data);
+    } catch (error) {
+      console.error(`Error converting scene ${sceneId}:`, error);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get a single chapter from Firestore by ID
+ */
+export async function getChapter(chapterId: string): Promise<Chapter | null> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getChapterDoc(chapterId);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    try {
+      const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+      return fromFirestoreChapter(docSnap.id, data);
+    } catch (error) {
+      console.error(`Error converting chapter ${chapterId}:`, error);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// List Functions (for syncService compatibility)
+// ============================================================================
+
+/**
+ * List all stories for a user (alias for downloadStories for consistency)
+ */
+export async function listStories(userId: string): Promise<Story[]> {
+  return downloadStories(userId);
+}
+
+/**
+ * List all characters for a story
+ */
+export async function listCharacters(storyId: string): Promise<Character[]> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const charactersCollection = getCharactersCollection();
+  const q = query(
+    charactersCollection,
+    where('storyId', '==', storyId),
+    where('deleted', '==', false)
+  );
+  const querySnapshot = await getDocs(q);
+
+  const characters: Character[] = [];
+  querySnapshot.forEach((docSnap) => {
+    try {
+      const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+      const character = fromFirestoreCharacter(docSnap.id, data);
+      characters.push(character);
+    } catch (error) {
+      console.error(`Error converting character ${docSnap.id}:`, error);
+    }
+  });
+
+  return characters;
+}
+
+/**
+ * List all blurbs for a story
+ */
+export async function listBlurbs(storyId: string): Promise<IdeaBlurb[]> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const blurbsCollection = getBlurbsCollection();
+  const q = query(
+    blurbsCollection,
+    where('storyId', '==', storyId),
+    where('deleted', '==', false)
+  );
+  const querySnapshot = await getDocs(q);
+
+  const blurbs: IdeaBlurb[] = [];
+    querySnapshot.forEach((docSnap) => {
+      try {
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+        const blurb = fromFirestoreBlurb(docSnap.id, data);
+      blurbs.push(blurb);
+    } catch (error) {
+      console.error(`Error converting blurb ${docSnap.id}:`, error);
+    }
+  });
+
+  return blurbs;
+}
+
+/**
+ * List all scenes for a story
+ */
+export async function listScenes(storyId: string): Promise<Scene[]> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const scenesCollection = getScenesCollection();
+  const q = query(
+    scenesCollection,
+    where('storyId', '==', storyId),
+    where('deleted', '==', false)
+  );
+  const querySnapshot = await getDocs(q);
+
+  const scenes: Scene[] = [];
+    querySnapshot.forEach((docSnap) => {
+      try {
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+        const scene = fromFirestoreScene(docSnap.id, data);
+      scenes.push(scene);
+    } catch (error) {
+      console.error(`Error converting scene ${docSnap.id}:`, error);
+    }
+  });
+
+  return scenes;
+}
+
+/**
+ * List all chapters for a story
+ */
+export async function listChapters(storyId: string): Promise<Chapter[]> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const chaptersCollection = getChaptersCollection();
+  const q = query(
+    chaptersCollection,
+    where('storyId', '==', storyId),
+    where('deleted', '==', false)
+  );
+  const querySnapshot = await getDocs(q);
+
+  const chapters: Chapter[] = [];
+    querySnapshot.forEach((docSnap) => {
+      try {
+        const data = docSnap.data(); // Get raw Firestore data (may contain Timestamps)
+        const chapter = fromFirestoreChapter(docSnap.id, data);
+      chapters.push(chapter);
+    } catch (error) {
+      console.error(`Error converting chapter ${docSnap.id}:`, error);
+    }
+  });
+
+  return chapters;
+}
+
+// ============================================================================
+// Delete Functions
+// ============================================================================
+
+/**
+ * Delete a character from Firestore
+ */
+export async function deleteCharacter(characterId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getCharacterDoc(characterId);
+  await deleteDoc(docRef);
+}
+
+/**
+ * Delete a blurb from Firestore
+ */
+export async function deleteBlurb(blurbId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getBlurbDoc(blurbId);
+  await deleteDoc(docRef);
+}
+
+/**
+ * Delete a scene from Firestore
+ */
+export async function deleteScene(sceneId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getSceneDoc(sceneId);
+  await deleteDoc(docRef);
+}
+
+/**
+ * Delete a chapter from Firestore
+ */
+export async function deleteChapter(chapterId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getChapterDoc(chapterId);
+  await deleteDoc(docRef);
+}
+
+/**
+ * Delete a story from Firestore
+ */
+export async function deleteStory(storyId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getStoryDoc(storyId);
+  await deleteDoc(docRef);
 }

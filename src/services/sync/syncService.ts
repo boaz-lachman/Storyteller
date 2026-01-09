@@ -5,6 +5,7 @@
 import { isOnline } from '../../utils/networkHelpers';
 import { getCurrentTimestamp, retryWithBackoff } from '../../utils/helpers';
 import { syncQueueManager } from './queueManager';
+import { setSyncing, setLastSyncTime, setSyncError } from '../../store/slices/syncSlice';
 
 // SQLite imports
 import {
@@ -14,6 +15,7 @@ import {
   createStory,
   updateStory,
   getStory,
+  getStoryByFirestoreId,
 } from '../database/stories';
 import {
   getUnsyncedCharacters,
@@ -45,8 +47,14 @@ import {
 } from '../database/chapters';
 
 // Firestore API imports
-import { store } from '../../store';
 import { firestoreApi } from '../../store/api/firestoreApi';
+import { store } from '../../store';
+// RTK Query API imports for cache invalidation
+import { storiesApi } from '../../store/api/storiesApi';
+import { charactersApi } from '../../store/api/charactersApi';
+import { blurbsApi } from '../../store/api/blurbsApi';
+import { scenesApi } from '../../store/api/scenesApi';
+import { chaptersApi } from '../../store/api/chaptersApi';
 
 export interface SyncResult {
   success: boolean;
@@ -60,25 +68,51 @@ type EntityType = 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'gener
 
 /**
  * Main sync function - orchestrates push and pull phases
+ * @param userId - User ID
+ * @param incremental - If true, only sync entities changed since last sync (default: true)
  */
-export const syncAll = async (userId: string): Promise<SyncResult> => {
+export const syncAll = async (
+  userId: string,
+  incremental: boolean = true
+): Promise<SyncResult> => {
   const startTime = getCurrentTimestamp();
   const errors: string[] = [];
 
   try {
+    // Set syncing state
+    store.dispatch(setSyncing(true));
+    store.dispatch(setSyncError(null));
+
     // Check if online
     const online = await isOnline();
     if (!online) {
       throw new Error('No network connection');
     }
 
+    // Get last sync time for incremental sync
+    const state = store.getState();
+    const lastSyncTime = incremental ? state.sync.lastSyncTime : null;
+
     // Phase 1: Push local changes to Firestore
-    const pushed = await pushUnsyncedChanges(userId);
+    const pushed = await pushUnsyncedChanges(userId, lastSyncTime);
 
     // Phase 2: Pull remote changes from Firestore
-    const pulled = await pullRemoteChanges(userId);
+    const pulled = await pullRemoteChanges(userId, lastSyncTime);
 
     const duration = getCurrentTimestamp() - startTime;
+    const endTime = getCurrentTimestamp();
+
+    // Update last sync time
+    store.dispatch(setLastSyncTime(endTime));
+    store.dispatch(setSyncing(false));
+
+    // Invalidate all RTK Query caches to refresh pages after sync
+    // This ensures all queries refetch with the latest synced data
+    store.dispatch(storiesApi.util.invalidateTags(['Story']));
+    store.dispatch(charactersApi.util.invalidateTags(['Character']));
+    store.dispatch(blurbsApi.util.invalidateTags(['Blurb']));
+    store.dispatch(scenesApi.util.invalidateTags(['Scene']));
+    store.dispatch(chaptersApi.util.invalidateTags(['Chapter']));
 
     return {
       success: true,
@@ -90,6 +124,10 @@ export const syncAll = async (userId: string): Promise<SyncResult> => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     errors.push(errorMessage);
+
+    // Update error state
+    store.dispatch(setSyncError(errorMessage));
+    store.dispatch(setSyncing(false));
 
     return {
       success: false,
@@ -103,8 +141,13 @@ export const syncAll = async (userId: string): Promise<SyncResult> => {
 
 /**
  * Phase 1: Push unsynced local changes to Firestore
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp to only sync entities changed since this time (incremental sync)
  */
-export const pushUnsyncedChanges = async (userId: string): Promise<number> => {
+export const pushUnsyncedChanges = async (
+  userId: string,
+  lastSyncTime?: number | null
+): Promise<number> => {
   let pushedCount = 0;
 
   // Sync in dependency order
@@ -119,7 +162,7 @@ export const pushUnsyncedChanges = async (userId: string): Promise<number> => {
 
   for (const entityType of syncOrder) {
     try {
-      const count = await syncEntityType(entityType, userId);
+      const count = await syncEntityType(entityType, userId, lastSyncTime);
       pushedCount += count;
     } catch (error) {
       console.error(`Error syncing ${entityType}:`, error);
@@ -132,28 +175,32 @@ export const pushUnsyncedChanges = async (userId: string): Promise<number> => {
 
 /**
  * Sync a specific entity type
+ * @param type - Entity type to sync
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp for incremental sync
  */
 const syncEntityType = async (
   type: EntityType,
-  userId: string
+  userId: string,
+  lastSyncTime?: number | null
 ): Promise<number> => {
   let syncedCount = 0;
 
   switch (type) {
     case 'story':
-      syncedCount = await syncStories(userId);
+      syncedCount = await syncStories(userId, lastSyncTime);
       break;
     case 'character':
-      syncedCount = await syncCharacters(userId);
+      syncedCount = await syncCharacters(userId, lastSyncTime);
       break;
     case 'blurb':
-      syncedCount = await syncBlurbs(userId);
+      syncedCount = await syncBlurbs(userId, lastSyncTime);
       break;
     case 'scene':
-      syncedCount = await syncScenes(userId);
+      syncedCount = await syncScenes(userId, lastSyncTime);
       break;
     case 'chapter':
-      syncedCount = await syncChapters(userId);
+      syncedCount = await syncChapters(userId, lastSyncTime);
       break;
     case 'generatedStory':
       // Generated stories sync handled separately if needed
@@ -165,12 +212,20 @@ const syncEntityType = async (
 
 /**
  * Sync Stories
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp for incremental sync
  */
-const syncStories = async (userId: string): Promise<number> => {
+const syncStories = async (userId: string, lastSyncTime?: number | null): Promise<number> => {
   const unsynced = await getUnsyncedStories(userId);
+  
+  // Filter by lastSyncTime for incremental sync
+  const toSync = lastSyncTime
+    ? unsynced.filter((story) => !story.synced || story.updatedAt > lastSyncTime)
+    : unsynced;
+  
   let syncedCount = 0;
 
-  for (const story of unsynced) {
+  for (const story of toSync) {
     try {
       await retryWithBackoff(async () => {
         // Try to get story from Firestore first
@@ -187,18 +242,22 @@ const syncStories = async (userId: string): Promise<number> => {
           storyExists = false;
         }
 
+        let firestoreId: string | undefined;
+        
         if (storyExists) {
-          // Update existing story
+          // Update existing story - use firestoreId if available, otherwise use local id
+          const firestoreDocId = story.firestoreId || story.id;
           const updateResult = await store.dispatch(
             firestoreApi.endpoints.updateStory.initiate({
               userId: story.userId,
-              id: story.id,
+              id: firestoreDocId,
               data: story,
             })
           );
           if (!!updateResult.error) {
             throw new Error('Failed to update story in Firestore');
           }
+          firestoreId = firestoreDocId;
         } else {
           // Create new story
           const createResult = await store.dispatch(
@@ -207,6 +266,13 @@ const syncStories = async (userId: string): Promise<number> => {
           if (!!createResult.error) {
             throw new Error('Failed to create story in Firestore');
           }
+          // Get the firestoreId from the result (it should be the document ID)
+          firestoreId = createResult.data?.id || story.id;
+        }
+
+        // Update local story with firestoreId if it was set
+        if (firestoreId && firestoreId !== story.firestoreId) {
+          await updateStory(story.id, { firestoreId });
         }
 
         await markStorySynced(story.id);
@@ -214,7 +280,7 @@ const syncStories = async (userId: string): Promise<number> => {
       });
     } catch (error) {
       console.error(`Failed to sync story ${story.id}:`, error);
-      syncQueueManager.add('story', story.id, 'update');
+      await syncQueueManager.add('story', story.id, 'update');
     }
   }
 
@@ -223,12 +289,20 @@ const syncStories = async (userId: string): Promise<number> => {
 
 /**
  * Sync Characters
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp for incremental sync
  */
-const syncCharacters = async (userId: string): Promise<number> => {
+const syncCharacters = async (userId: string, lastSyncTime?: number | null): Promise<number> => {
   const unsynced = await getUnsyncedCharacters(userId);
+  
+  // Filter by lastSyncTime for incremental sync
+  const toSync = lastSyncTime
+    ? unsynced.filter((character) => !character.synced || character.updatedAt > lastSyncTime)
+    : unsynced;
+  
   let syncedCount = 0;
 
-  for (const character of unsynced) {
+  for (const character of toSync) {
     try {
       await retryWithBackoff(async () => {
         if (character.deleted) {
@@ -270,7 +344,7 @@ const syncCharacters = async (userId: string): Promise<number> => {
       });
     } catch (error) {
       console.error(`Failed to sync character ${character.id}:`, error);
-      syncQueueManager.add('character', character.id, character.deleted ? 'delete' : 'update');
+      await syncQueueManager.add('character', character.id, character.deleted ? 'delete' : 'update');
     }
   }
 
@@ -279,12 +353,20 @@ const syncCharacters = async (userId: string): Promise<number> => {
 
 /**
  * Sync Blurbs
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp for incremental sync
  */
-const syncBlurbs = async (userId: string): Promise<number> => {
+const syncBlurbs = async (userId: string, lastSyncTime?: number | null): Promise<number> => {
   const unsynced = await getUnsyncedBlurbs(userId);
+  
+  // Filter by lastSyncTime for incremental sync
+  const toSync = lastSyncTime
+    ? unsynced.filter((blurb) => !blurb.synced || blurb.updatedAt > lastSyncTime)
+    : unsynced;
+  
   let syncedCount = 0;
 
-  for (const blurb of unsynced) {
+  for (const blurb of toSync) {
     try {
       await retryWithBackoff(async () => {
         const createResult = await store.dispatch(
@@ -298,7 +380,7 @@ const syncBlurbs = async (userId: string): Promise<number> => {
       });
     } catch (error) {
       console.error(`Failed to sync blurb ${blurb.id}:`, error);
-      syncQueueManager.add('blurb', blurb.id, 'update');
+      await syncQueueManager.add('blurb', blurb.id, 'update');
     }
   }
 
@@ -307,12 +389,20 @@ const syncBlurbs = async (userId: string): Promise<number> => {
 
 /**
  * Sync Scenes
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp for incremental sync
  */
-const syncScenes = async (userId: string): Promise<number> => {
+const syncScenes = async (userId: string, lastSyncTime?: number | null): Promise<number> => {
   const unsynced = await getUnsyncedScenes(userId);
+  
+  // Filter by lastSyncTime for incremental sync
+  const toSync = lastSyncTime
+    ? unsynced.filter((scene) => !scene.synced || scene.updatedAt > lastSyncTime)
+    : unsynced;
+  
   let syncedCount = 0;
 
-  for (const scene of unsynced) {
+  for (const scene of toSync) {
     try {
       await retryWithBackoff(async () => {
         const createResult = await store.dispatch(
@@ -326,7 +416,7 @@ const syncScenes = async (userId: string): Promise<number> => {
       });
     } catch (error) {
       console.error(`Failed to sync scene ${scene.id}:`, error);
-      syncQueueManager.add('scene', scene.id, 'update');
+      await syncQueueManager.add('scene', scene.id, 'update');
     }
   }
 
@@ -335,12 +425,20 @@ const syncScenes = async (userId: string): Promise<number> => {
 
 /**
  * Sync Chapters
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp for incremental sync
  */
-const syncChapters = async (userId: string): Promise<number> => {
+const syncChapters = async (userId: string, lastSyncTime?: number | null): Promise<number> => {
   const unsynced = await getUnsyncedChapters(userId);
+  
+  // Filter by lastSyncTime for incremental sync
+  const toSync = lastSyncTime
+    ? unsynced.filter((chapter) => !chapter.synced || chapter.updatedAt > lastSyncTime)
+    : unsynced;
+  
   let syncedCount = 0;
 
-  for (const chapter of unsynced) {
+  for (const chapter of toSync) {
     try {
       await retryWithBackoff(async () => {
         const createResult = await store.dispatch(
@@ -354,7 +452,7 @@ const syncChapters = async (userId: string): Promise<number> => {
       });
     } catch (error) {
       console.error(`Failed to sync chapter ${chapter.id}:`, error);
-      syncQueueManager.add('chapter', chapter.id, 'update');
+      await syncQueueManager.add('chapter', chapter.id, 'update');
     }
   }
 
@@ -363,8 +461,13 @@ const syncChapters = async (userId: string): Promise<number> => {
 
 /**
  * Phase 2: Pull remote changes from Firestore
+ * @param userId - User ID
+ * @param lastSyncTime - Optional timestamp for incremental sync
  */
-export const pullRemoteChanges = async (userId: string): Promise<number> => {
+export const pullRemoteChanges = async (
+  userId: string,
+  lastSyncTime?: number | null
+): Promise<number> => {
   let pulledCount = 0;
 
   try {
@@ -374,16 +477,23 @@ export const pullRemoteChanges = async (userId: string): Promise<number> => {
     );
     if (storiesResult.data) {
       for (const remoteStory of storiesResult.data) {
-        const localStory = await getStory(remoteStory.id);
+        // Try to find local story by firestoreId first, then by id
+        let localStory = remoteStory.firestoreId 
+          ? await getStoryByFirestoreId(remoteStory.firestoreId)
+          : null;
         
         if (!localStory) {
-          // New story from remote, create locally
-          await createStory(remoteStory);
+          localStory = await getStory(remoteStory.id);
+        }
+        
+        if (!localStory) {
+          // New story from remote, create locally with firestoreId set
+          await createStory({ ...remoteStory, firestoreId: remoteStory.firestoreId || remoteStory.id });
           pulledCount++;
         } else if (remoteStory.updatedAt > localStory.updatedAt) {
-          // Remote is newer, update local
-          await updateStory(remoteStory.id, remoteStory);
-          await markStorySynced(remoteStory.id);
+          // Remote is newer, update local (including firestoreId)
+          await updateStory(localStory.id, { ...remoteStory, firestoreId: remoteStory.firestoreId || remoteStory.id });
+          await markStorySynced(localStory.id);
           pulledCount++;
         }
         // If local is newer, it will be pushed in next sync

@@ -7,3 +7,4 @@ export * from './characters';
 export * from './blurbs';
 export * from './scenes';
 export * from './chapters';
+export * from './syncQueue';

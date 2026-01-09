@@ -41,6 +41,7 @@ import { showSnackbar } from '../../store/slices/uiSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { formatWordCount } from '../../utils/formatting';
 import { showStoryGenerationNotification, cancelNotification } from '../../services/notifications';
+import { useSync } from '../../hooks/useSync';
 
 type GenerateStoryScreenRouteProp = RouteProp<StoryTabParamList, 'Generate'>;
 
@@ -55,6 +56,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
+  const { triggerSync } = useSync();
 
   // Generation state
   const [complexity, setComplexity] = useState<'simple' | 'moderate' | 'complex'>('moderate');
@@ -219,6 +221,9 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                   type: 'success',
                 })
               );
+
+              // Trigger sync to update story in Firestore
+              triggerSync();
             } catch (error: any) {
               console.error('Error saving story:', error);
               const errorMessage = error?.error || error?.data?.error || 'Failed to save story. Please try again.';

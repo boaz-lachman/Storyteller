@@ -12,6 +12,7 @@ import {
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppSelector } from './redux';
 import { selectSnackbar } from '../store/slices/uiSlice';
 import { spacing } from '../constants/spacing';
@@ -67,6 +68,7 @@ export const useFloatingActionButton = ({
   const isRTL = I18nManager.isRTL;
   const snackbar = useAppSelector(selectSnackbar);
   const isSnackbarVisible = !!snackbar.message;
+  const insets = useSafeAreaInsets();
 
   // Snackbar height (typical height for react-native-paper Snackbar)
   const SNACKBAR_HEIGHT = 48;
@@ -95,8 +97,10 @@ export const useFloatingActionButton = ({
     const isBottom = position.includes('bottom');
     if (!isBottom) return {};
 
+    // Add safe area bottom inset to conform with SafeAreaView
+    const safeAreaBottom = insets.bottom;
     return {
-      bottom: spacing.lg + bottomOffset.value,
+      bottom: spacing.lg + safeAreaBottom + bottomOffset.value,
     };
   });
 

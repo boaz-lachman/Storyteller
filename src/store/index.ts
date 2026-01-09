@@ -108,6 +108,11 @@ export const store = configureStore({
           PURGE,
           REGISTER,
         ],
+        // Ignore non-serializable values in RTK Query cache
+        ignoredPaths: [
+          'firestoreApi.queries',
+          'firestoreApi.mutations',
+        ],
       },
     }).concat(
       firestoreApi.middleware,

@@ -292,12 +292,10 @@ export default function StoriesListScreen() {
     );
   }, [isLoading, isFetching, hasActiveFilters, stories.length]);
 
-  // Get item layout for BigList optimization
-  // Item height (150) + spacing (15) = 165
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 165, // StoryCard height (150) + spacing (15)
-      offset: 165 * index,
+      length: 205, 
+      offset: 205 * index,
       index,
     }),
     []
@@ -309,38 +307,40 @@ export default function StoriesListScreen() {
         <Text style={styles.title}>Your Stories</Text>
       </View>
 
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Search stories by title or description..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          mode="outlined"
-          style={styles.searchInput}
-          contentStyle={styles.searchInputContent}
-          outlineColor={colors.border}
-          activeOutlineColor={colors.primary}
-          textColor={colors.text}
-          placeholderTextColor={colors.textTertiary}
-          left={<TextInput.Icon icon="magnify" />}
-          right={
-            searchQuery ? (
-              <TextInput.Icon
-                icon="close-circle"
-                onPress={() => setSearchQuery('')}
-              />
-            ) : undefined
-          }
-          theme={{
-            colors: {
-              primary: colors.primary,
-              text: colors.text,
-              placeholder: colors.textTertiary,
-              background: colors.surface,
-            },
-          }}
-        />
-      </View>
+      {/* Search Input - Only show if there are stories */}
+      {allStories.length > 0 && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search stories by title or description..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            mode="outlined"
+            style={styles.searchInput}
+            contentStyle={styles.searchInputContent}
+            outlineColor={colors.border}
+            activeOutlineColor={colors.primary}
+            textColor={colors.text}
+            placeholderTextColor={colors.textTertiary}
+            left={<TextInput.Icon icon="magnify" />}
+            right={
+              searchQuery ? (
+                <TextInput.Icon
+                  icon="close-circle"
+                  onPress={() => setSearchQuery('')}
+                />
+              ) : undefined
+            }
+            theme={{
+              colors: {
+                primary: colors.primary,
+                text: colors.text,
+                placeholder: colors.textTertiary,
+                background: colors.surface,
+              },
+            }}
+          />
+        </View>
+      )}
 
       {/* Filter Header - Only show if there are stories */}
       {allStories.length > 0 && (

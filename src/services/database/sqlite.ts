@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { getCurrentTimestamp } from '../../utils/helpers';
 
 const DB_NAME = 'storyteller.db';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 3;
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -14,13 +14,27 @@ let db: SQLite.SQLiteDatabase | null = null;
  * Get or create database connection
  */
 export const getDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
-  if (db) {
-    return db;
-  }
+  try {
+    if (db) {
+      // Verify the database is still open by trying a simple query
+      try {
+        await db.getFirstAsync('SELECT 1');
+        return db;
+      } catch (error) {
+        // Database connection is stale, reopen it
+        console.warn('Database connection is stale, reopening...');
+        db = null;
+      }
+    }
 
-  db = await SQLite.openDatabaseAsync(DB_NAME);
-  await initializeDatabase(db);
-  return db;
+    db = await SQLite.openDatabaseAsync(DB_NAME);
+    await initializeDatabase(db);
+    return db;
+  } catch (error) {
+    console.error('Error getting database connection:', error);
+    db = null; // Reset on error
+    throw error;
+  }
 };
 
 /**
@@ -133,6 +147,12 @@ async function getMigrationSQL(version: number): Promise<string | null> {
       // For now, return the SQL as a string constant since dynamic import doesn't work
       return getInitialSchemaSQL();
     }
+    if (version === 2) {
+      return getSyncQueueMigrationSQL();
+    }
+    if (version === 3) {
+      return getFirestoreIdMigrationSQL();
+    }
     return null;
   } catch (error) {
     console.error(`Error loading migration ${version}:`, error);
@@ -158,6 +178,7 @@ function getInitialSchemaSQL(): string {
     
     CREATE TABLE IF NOT EXISTS Stories (
       id TEXT PRIMARY KEY,
+      firestoreId TEXT UNIQUE,
       userId TEXT NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
@@ -306,12 +327,87 @@ function getInitialSchemaSQL(): string {
 }
 
 /**
+ * SyncQueue migration SQL (Migration 002)
+ */
+function getSyncQueueMigrationSQL(): string {
+  return `
+    -- Migration 002: Add SyncQueue Table
+    PRAGMA foreign_keys = ON;
+    
+    -- SyncQueue Table
+    -- Stores pending sync operations that need to be synced to Firestore
+    CREATE TABLE IF NOT EXISTS SyncQueue (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter')),
+      entityId TEXT NOT NULL,
+      operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
+      timestamp INTEGER NOT NULL,
+      retryCount INTEGER NOT NULL DEFAULT 0,
+      lastError TEXT,
+      priority INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    );
+    
+    -- Indexes for SyncQueue
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_type ON SyncQueue(type);
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_entityId ON SyncQueue(entityId);
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_timestamp ON SyncQueue(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_priority_timestamp ON SyncQueue(priority DESC, timestamp ASC);
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_retryCount ON SyncQueue(retryCount);
+  `;
+}
+
+/**
+ * Add firestoreId to Stories migration SQL (Migration 003)
+ */
+function getFirestoreIdMigrationSQL(): string {
+  return `
+    -- Migration 003: Add firestoreId column to Stories table
+    PRAGMA foreign_keys = ON;
+    
+    -- Add firestoreId column to Stories table
+    ALTER TABLE Stories ADD COLUMN firestoreId TEXT;
+    
+    -- Create unique index on firestoreId
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_stories_firestoreId ON Stories(firestoreId) WHERE firestoreId IS NOT NULL;
+  `;
+}
+
+/**
  * Close database connection
  */
 export const closeDatabase = async (): Promise<void> => {
   if (db) {
     await db.closeAsync();
     db = null;
+  }
+};
+
+/**
+ * Clear all data from the database
+ * Deletes all tables and recreates the schema
+ */
+export const clearDatabase = async (): Promise<void> => {
+  if (!db) {
+    db = await getDatabase();
+  }
+
+  try {
+    // Delete all data from all tables
+    await db.execAsync(`
+      DELETE FROM Stories;
+      DELETE FROM Characters;
+      DELETE FROM Blurbs;
+      DELETE FROM Scenes;
+      DELETE FROM Chapters;
+      DELETE FROM GeneratedStories;
+      DELETE FROM SyncQueue;
+    `);
+    console.log('Database cleared successfully');
+  } catch (error) {
+    console.error('Error clearing database:', error);
+    throw error;
   }
 };
 

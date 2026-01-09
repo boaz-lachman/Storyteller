@@ -1,74 +1,84 @@
 /**
  * Sync Indicator Component
- * Reusable component to display sync status with icon
- * Shows green circle with cloud-sync icon when synced, red when not synced
+ * Displays sync status with MainBookActivityIndicator and cloud-sync icon
  */
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { useAppSelector } from '../../hooks/redux';
+import { selectIsSyncing, selectIsOnline, selectLastSyncTime, selectSyncError } from '../../store/slices/syncSlice';
+import { AntDesign } from '@expo/vector-icons';
+import MainBookActivityIndicator from './MainBookActivityIndicator';
 import { colors } from '../../constants/colors';
+import { spacing } from '../../constants/spacing';
 
-export interface SyncIndicatorProps {
-  /**
-   * Whether the item is synced
-   */
-  synced: boolean;
-  /**
-   * Size of the icon (default: 16)
-   */
-  iconSize?: number;
-  /**
-   * Size of the container (default: 24)
-   * If not provided, will be calculated as iconSize * 1.5
-   */
-  containerSize?: number;
-  /**
-   * Custom style for the container
-   */
-  style?: any;
+interface SyncIndicatorProps {
+  onPress?: () => void;
+  size?: number;
 }
 
 /**
  * Sync Indicator Component
- * Displays a circular indicator with cloud-sync icon
- * Green when synced, red when not synced
+ * Shows sync status with icon and loading indicator
  */
-export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
-  synced,
-  iconSize = 16,
-  containerSize,
-  style,
-}) => {
-  const size = containerSize || iconSize * 1.5;
-  const borderRadius = size / 2;
+export default function SyncIndicator({ onPress, size = 24 }: SyncIndicatorProps) {
+  const isSyncing = useAppSelector(selectIsSyncing);
+  const isOnline = useAppSelector(selectIsOnline);
+  const lastSyncTime = useAppSelector(selectLastSyncTime);
+  const syncError = useAppSelector(selectSyncError);
 
-  return (
-    <View
-      style={[
-        styles.container,
-        {
-          width: size,
-          height: size,
-          borderRadius,
-          backgroundColor: synced ? colors.success : colors.error,
-        },
-        style,
-      ]}
-    >
-      <MaterialIcons
-        name="cloud-sync"
-        size={iconSize}
-        color={colors.textInverse}
-      />
+  // Determine icon color based on status
+  const getIconColor = () => {
+    if (syncError) {
+      return colors.error;
+    }
+    if (!isOnline) {
+      return colors.textSecondary;
+    }
+    if (isSyncing) {
+      return colors.primary;
+    }
+    return colors.success;
+  };
+
+  const content = (
+    <View style={styles.container}>
+      {isSyncing ? (
+        <View style={styles.loadingContainer}>
+          <MainBookActivityIndicator size={size} />
+        </View>
+      ) : (
+        <AntDesign
+          name="cloud-sync"
+          size={size}
+          color={getIconColor()}
+        />
+      )}
     </View>
   );
-};
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} style={styles.touchable}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
+}
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  touchable: {
+    padding: spacing.xs,
   },
 });
-
-export default SyncIndicator;

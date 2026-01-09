@@ -2,6 +2,7 @@
  * Conversion utilities for SQLite ↔ Firestore
  * Handles type conversions, null/undefined normalization, and JSON array serialization
  */
+import type { Timestamp } from 'firebase/firestore';
 import type {
   Story,
   Character,
@@ -11,6 +12,28 @@ import type {
   GeneratedStory,
 } from '../../types';
 import { safeJsonParse, safeJsonStringify } from '../../utils/helpers';
+
+/**
+ * Helper: Convert Firestore Timestamp to number (milliseconds)
+ */
+function timestampToNumber(timestamp: Timestamp | number | null | undefined): number | null {
+  if (!timestamp) {
+    return null;
+  }
+  
+  // If it's already a number, return it
+  if (typeof timestamp === 'number') {
+    return timestamp;
+  }
+  
+  // If it's a Firestore Timestamp object, convert to milliseconds
+  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+    const ts = timestamp as Timestamp;
+    return ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1000000);
+  }
+  
+  return null;
+}
 
 /**
  * Firestore document data types (without id, as id is the document ID)
@@ -152,10 +175,11 @@ export function toFirestoreStory(story: Story): FirestoreStoryData {
  */
 export function fromFirestoreStory(
   docId: string,
-  data: FirestoreStoryData
+  data: FirestoreStoryData | any // Allow any to handle Timestamp objects
 ): Story {
   return {
-    id: docId,
+    id: docId, // Use Firestore document ID as local ID (or generate if needed)
+    firestoreId: docId, // Store Firestore document ID
     userId: data.userId,
     title: data.title,
     description: normalizeUndefined(data.description),
@@ -168,10 +192,10 @@ export function fromFirestoreStory(
     timePeriod: normalizeUndefined(data.timePeriod),
     status: data.status as Story['status'],
     generatedContent: normalizeUndefined(data.generatedContent),
-    generatedAt: normalizeUndefined(data.generatedAt),
+    generatedAt: normalizeUndefined(timestampToNumber(data.generatedAt)),
     wordCount: normalizeUndefined(data.wordCount),
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: timestampToNumber(data.createdAt) || 0,
+    updatedAt: timestampToNumber(data.updatedAt) || 0,
     synced: true, // Downloaded from Firestore, so synced
   };
 }
@@ -212,7 +236,7 @@ export function toFirestoreCharacter(character: Character): FirestoreCharacterDa
  */
 export function fromFirestoreCharacter(
   docId: string,
-  data: FirestoreCharacterData
+  data: FirestoreCharacterData | any // Allow any to handle Timestamp objects
 ): Character {
   return {
     id: docId,
@@ -224,8 +248,8 @@ export function fromFirestoreCharacter(
     traits: data.traits, // Already an array
     backstory: normalizeUndefined(data.backstory),
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: timestampToNumber(data.createdAt) || 0,
+    updatedAt: timestampToNumber(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -258,7 +282,7 @@ export function toFirestoreBlurb(blurb: IdeaBlurb): FirestoreBlurbData {
  */
 export function fromFirestoreBlurb(
   docId: string,
-  data: FirestoreBlurbData
+  data: FirestoreBlurbData | any // Allow any to handle Timestamp objects
 ): IdeaBlurb {
   return {
     id: docId,
@@ -268,8 +292,8 @@ export function fromFirestoreBlurb(
     description: data.description,
     category: normalizeUndefined(data.category) as IdeaBlurb['category'] | undefined,
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: timestampToNumber(data.createdAt) || 0,
+    updatedAt: timestampToNumber(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -312,7 +336,7 @@ export function toFirestoreScene(scene: Scene): FirestoreSceneData {
  */
 export function fromFirestoreScene(
   docId: string,
-  data: FirestoreSceneData
+  data: FirestoreSceneData | any // Allow any to handle Timestamp objects
 ): Scene {
   return {
     id: docId,
@@ -325,8 +349,8 @@ export function fromFirestoreScene(
     mood: normalizeUndefined(data.mood),
     conflictLevel: normalizeUndefined(data.conflictLevel),
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: timestampToNumber(data.createdAt) || 0,
+    updatedAt: timestampToNumber(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -359,7 +383,7 @@ export function toFirestoreChapter(chapter: Chapter): FirestoreChapterData {
  */
 export function fromFirestoreChapter(
   docId: string,
-  data: FirestoreChapterData
+  data: FirestoreChapterData | any // Allow any to handle Timestamp objects
 ): Chapter {
   return {
     id: docId,
@@ -369,8 +393,8 @@ export function fromFirestoreChapter(
     description: data.description,
     order: data.order,
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: timestampToNumber(data.createdAt) || 0,
+    updatedAt: timestampToNumber(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -404,7 +428,7 @@ export function toFirestoreGeneratedStory(
  */
 export function fromFirestoreGeneratedStory(
   docId: string,
-  data: FirestoreGeneratedStoryData
+  data: FirestoreGeneratedStoryData | any // Allow any to handle Timestamp objects
 ): GeneratedStory {
   return {
     id: docId,
@@ -414,8 +438,8 @@ export function fromFirestoreGeneratedStory(
     complexity: data.complexity as GeneratedStory['complexity'],
     prompt: data.prompt,
     wordCount: data.wordCount,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: timestampToNumber(data.createdAt) || 0,
+    updatedAt: timestampToNumber(data.updatedAt) || 0,
     synced: true,
   };
 }

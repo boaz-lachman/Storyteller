@@ -9,78 +9,121 @@ import { getCurrentTimestamp, generateId } from '../../utils/helpers';
  * Create a new story
  */
 export const createStory = async (story: StoryCreateInput & { userId: string }): Promise<Story> => {
-  const db = await getDb();
-  const now = getCurrentTimestamp();
-  const id = generateId();
+  try {
+    const db = await getDb();
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+    const now = getCurrentTimestamp();
+    const id = generateId();
 
-  const newStory: Story = {
-    id,
-    userId: story.userId,
-    title: story.title,
-    description: story.description,
-    length: story.length,
-    theme: story.theme,
-    tone: story.tone,
-    pov: story.pov,
-    targetAudience: story.targetAudience,
-    setting: story.setting,
-    timePeriod: story.timePeriod,
-    status: story.status || 'draft',
-    generatedContent: story.generatedContent,
-    generatedAt: story.generatedAt,
-    wordCount: story.wordCount,
-    createdAt: now,
-    updatedAt: now,
-    synced: false,
-  };
+    const newStory: Story = {
+      id,
+      userId: story.userId,
+      title: story.title,
+      description: story.description,
+      length: story.length,
+      theme: story.theme,
+      tone: story.tone,
+      pov: story.pov,
+      targetAudience: story.targetAudience,
+      setting: story.setting,
+      timePeriod: story.timePeriod,
+      status: story.status || 'draft',
+      generatedContent: story.generatedContent,
+      generatedAt: story.generatedAt,
+      wordCount: story.wordCount,
+      createdAt: now,
+      updatedAt: now,
+      synced: false,
+    };
 
-  await db.runAsync(
-    `INSERT INTO Stories (
-      id, userId, title, description, length, theme, tone, pov, targetAudience,
-      setting, timePeriod, status, generatedContent, generatedAt, wordCount,
-      createdAt, updatedAt, synced
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      newStory.id,
-      newStory.userId,
-      newStory.title,
-      newStory.description || null,
-      newStory.length,
-      newStory.theme,
-      newStory.tone,
-      newStory.pov,
-      newStory.targetAudience,
-      newStory.setting || null,
-      newStory.timePeriod || null,
-      newStory.status,
-      newStory.generatedContent || null,
-      newStory.generatedAt || null,
-      newStory.wordCount || null,
-      newStory.createdAt,
-      newStory.updatedAt,
-      newStory.synced ? 1 : 0,
-    ]
-  );
+    await db.runAsync(
+      `INSERT INTO Stories (
+        id, firestoreId, userId, title, description, length, theme, tone, pov, targetAudience,
+        setting, timePeriod, status, generatedContent, generatedAt, wordCount,
+        createdAt, updatedAt, synced
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        newStory.id,
+        newStory.firestoreId || null,
+        newStory.userId,
+        newStory.title,
+        newStory.description || null,
+        newStory.length,
+        newStory.theme,
+        newStory.tone,
+        newStory.pov,
+        newStory.targetAudience,
+        newStory.setting || null,
+        newStory.timePeriod || null,
+        newStory.status,
+        newStory.generatedContent || null,
+        newStory.generatedAt || null,
+        newStory.wordCount || null,
+        newStory.createdAt,
+        newStory.updatedAt,
+        newStory.synced ? 1 : 0,
+      ]
+    );
 
-  return newStory;
+    return newStory;
+  } catch (error) {
+    console.error('Error creating story:', error);
+    throw error;
+  }
 };
 
 /**
  * Get a story by ID
  */
 export const getStory = async (id: string): Promise<Story | null> => {
-  const db = await getDb();
-  const result = await db.getFirstAsync<Story>(
-    'SELECT * FROM Stories WHERE id = ?',
-    [id]
-  );
+  try {
+    const db = await getDb();
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+    const result = await db.getFirstAsync<Story>(
+      'SELECT * FROM Stories WHERE id = ?',
+      [id]
+    );
 
-  if (!result) return null;
+    if (!result) return null;
 
-  return {
-    ...result,
-    synced: result.synced,
-  } as Story;
+    return {
+      ...result,
+      synced: result.synced,
+    } as Story;
+  } catch (error) {
+    console.error('Error getting story:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get a story by Firestore ID
+ */
+export const getStoryByFirestoreId = async (firestoreId: string): Promise<Story | null> => {
+  try {
+    const db = await getDb();
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+    const result = await db.getFirstAsync<Story>(
+      'SELECT * FROM Stories WHERE firestoreId = ?',
+      [firestoreId]
+    );
+
+    if (!result) return null;
+
+    return {
+      ...result,
+      synced: result.synced,
+    } as Story;
+  } catch (error) {
+    console.error('Error getting story by firestoreId:', error);
+    throw error;
+  }
 };
 
 /**
@@ -106,8 +149,12 @@ export const updateStory = async (
   id: string,
   updates: StoryUpdateInput
 ): Promise<Story | null> => {
-  const db = await getDb();
-  const now = getCurrentTimestamp();
+  try {
+    const db = await getDb();
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+    const now = getCurrentTimestamp();
 
   // Build dynamic update query
   const fields: string[] = [];
@@ -164,6 +211,14 @@ export const getUnsyncedStories = async (userId: string): Promise<Story[]> => {
  * Mark story as synced
  */
 export const markStorySynced = async (id: string): Promise<void> => {
-  const db = await getDb();
-  await db.runAsync('UPDATE Stories SET synced = 1 WHERE id = ?', [id]);
+  try {
+    const db = await getDb();
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+    await db.runAsync('UPDATE Stories SET synced = 1 WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('Error marking story as synced:', error);
+    throw error;
+  }
 };

@@ -17,7 +17,10 @@ import {
   restoreActivityContext,
   setLastSavedAt,
 } from '../store/slices/autosaveSlice';
+import { selectIsSyncing, selectLastSyncTime } from '../store/slices/syncSlice';
 import { useAuth } from '../hooks/useAuth';
+import { useSync } from '../hooks/useSync';
+import { registerBackgroundSync } from '../services/sync/backgroundSync';
 import AuthNavigator from './AuthNavigator';
 import DrawerNavigator from './DrawerNavigator';
 import type { RootStackParamList } from './types';
@@ -46,10 +49,27 @@ export default function AppNavigator() {
   const user = useAppSelector(selectUser);
   const isLoading = useAppSelector(selectAuthLoading);
   const activityContext = useAppSelector(selectActivityContext);
+  const isSyncing = useAppSelector(selectIsSyncing);
+  const lastSyncTime = useAppSelector(selectLastSyncTime);
   const dispatch = useAppDispatch();
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [isRestoringState, setIsRestoringState] = useState(true);
   const [initialNavigationState, setInitialNavigationState] = useState<NavigationState<RootStackParamList> | undefined>(undefined);
+  
+  // Check if this is the first sync (no previous sync time and currently syncing)
+  const isFirstSync = lastSyncTime === null && isSyncing && !!user;
+
+  // Initialize sync triggers (handles network monitoring, app state, etc.)
+  useSync();
+
+  // Register background sync when user is authenticated
+  useEffect(() => {
+    if (user?.uid && !isLoading && !authLoading) {
+      registerBackgroundSync().catch((error) => {
+        console.error('Failed to register background sync:', error);
+      });
+    }
+  }, [user, isLoading, authLoading]);
 
   // Restore app state on mount (only if authenticated)
   useEffect(() => {
@@ -153,34 +173,43 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer
-      ref={navigationRef}
-      theme={navigationTheme}
-      initialState={initialNavigationState}
-      onStateChange={handleNavigationStateChange}
-    >
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
-          // Auth flow - only accessible when not authenticated
-          <Stack.Screen 
-            name="Auth" 
-            component={AuthNavigator}
-            options={{ gestureEnabled: false }} // Prevent back gesture on auth screen
-          />
-        ) : (
-          // Protected routes - only accessible when authenticated
-          // Use DrawerNavigator which wraps the app stack
-          <Stack.Screen 
-            name="App" 
-            component={DrawerNavigator}
-            options={{ 
-              headerShown: false,
-              gestureEnabled: false,
-            }}
-          />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={navigationTheme}
+        initialState={initialNavigationState}
+        onStateChange={handleNavigationStateChange}
+      >
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!user ? (
+            // Auth flow - only accessible when not authenticated
+            <Stack.Screen 
+              name="Auth" 
+              component={AuthNavigator}
+              options={{ gestureEnabled: false }} // Prevent back gesture on auth screen
+            />
+          ) : (
+            // Protected routes - only accessible when authenticated
+            // Use DrawerNavigator which wraps the app stack
+            <Stack.Screen 
+              name="App" 
+              component={DrawerNavigator}
+              options={{ 
+                headerShown: false,
+                gestureEnabled: false,
+              }}
+            />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+      
+      {/* Full-screen loading overlay for first sync */}
+      {isFirstSync && (
+        <View style={styles.syncLoadingOverlay}>
+          <MainBookActivityIndicator size={80} />
+        </View>
+      )}
+    </>
   );
 }
 
@@ -190,5 +219,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  syncLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
   },
 });

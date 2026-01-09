@@ -1,135 +1,208 @@
 /**
- * Sync hook for managing data synchronization
- * Provides sync functionality and status
+ * Sync Hook
+ * Handles automatic sync triggers:
+ * - Sync on app start (if online)
+ * - Sync when app enters foreground
+ * - Sync when network improves (offline to online)
+ * - Manual sync trigger
  */
-import { useCallback, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from './redux';
-import {
-  setSyncing,
-  setLastSyncTime,
-  setOnline,
-  setSyncError,
-  selectIsSyncing,
-  selectLastSyncTime,
-  selectIsOnline,
-  selectSyncError,
-  selectSyncQueue,
-} from '../store/slices/syncSlice';
+import { useEffect, useRef, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import { debounce } from 'lodash';
+import { useAppSelector, useAppDispatch } from './redux';
+import { selectUser } from '../store/slices/authSlice';
+import { selectIsOnline, selectIsSyncing } from '../store/slices/syncSlice';
 import { syncAll } from '../services/sync/syncService';
-import { isOnline as checkOnline } from '../utils/networkHelpers';
-import NetInfo from '@react-native-community/netinfo';
-import { useAuth } from './useAuth';
+import { initializeNetworkMonitoring } from '../services/network/networkService';
 import { getCurrentTimestamp } from '../utils/helpers';
 
 /**
  * Hook for managing sync operations
+ * Provides automatic sync triggers and manual sync function
  */
 export const useSync = () => {
   const dispatch = useAppDispatch();
-  const { user } = useAuth();
-  const isSyncing = useAppSelector(selectIsSyncing);
-  const lastSyncTime = useAppSelector(selectLastSyncTime);
+  const user = useAppSelector(selectUser);
   const isOnline = useAppSelector(selectIsOnline);
-  const syncError = useAppSelector(selectSyncError);
-  const syncQueue = useAppSelector(selectSyncQueue);
-
-  /**
-   * Update online status
-   */
-  const updateOnlineStatus = useCallback(async () => {
-    const online = await checkOnline();
-    dispatch(setOnline(online));
-    return online;
-  }, [dispatch]);
+  const isSyncing = useAppSelector(selectIsSyncing);
+  const syncInProgressRef = useRef(false);
+  const lastSyncTimeRef = useRef<number | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const networkUnsubscribeRef = useRef<(() => void) | null>(null);
+  const hasInitialSyncRef = useRef(false);
+  const networkInitializedRef = useRef(false);
 
   /**
    * Perform sync operation
    */
-  const performSync = useCallback(async (): Promise<void> => {
+  const performSync = useCallback(async () => {
     if (!user?.uid) {
-      dispatch(setSyncError('User not authenticated'));
+      console.log('Sync skipped: No user');
       return;
     }
 
-    if (isSyncing) {
-
+    if (syncInProgressRef.current) {
+      console.log('Sync skipped: Already in progress');
       return;
     }
 
-    const online = await updateOnlineStatus();
-    if (!online) {
-      dispatch(setSyncError('No network connection'));
+    if (!isOnline) {
+      console.log('Sync skipped: Offline');
       return;
     }
 
     try {
-      dispatch(setSyncing(true));
-      dispatch(setSyncError(null));
-
+      syncInProgressRef.current = true;
+      console.log('Starting sync...');
+      
       const result = await syncAll(user.uid);
-
+      
       if (result.success) {
-        dispatch(setLastSyncTime(getCurrentTimestamp()));
         console.log(`Sync completed: ${result.pushed} pushed, ${result.pulled} pulled`);
+        lastSyncTimeRef.current = getCurrentTimestamp();
       } else {
-        dispatch(setSyncError(result.errors.join(', ')));
+        console.error('Sync failed:', result.errors);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-      dispatch(setSyncError(errorMessage));
       console.error('Sync error:', error);
     } finally {
-      dispatch(setSyncing(false));
+      syncInProgressRef.current = false;
     }
-  }, [user, isSyncing, dispatch, updateOnlineStatus]);
+  }, [user, isOnline]);
 
   /**
-   * Monitor network status
+   * Debounced sync for entity changes and all automatic triggers
+   * Prevents multiple syncs from happening in quick succession
+   */
+  const debouncedSync = useRef(
+    debounce(() => {
+      performSync();
+    }, 6000) // 6 second debounce to prevent rapid syncs
+  ).current;
+
+  /**
+   * Manual sync trigger
+   */
+  const triggerSync = useCallback(() => {
+    performSync();
+  }, [performSync]);
+
+  /**
+   * Trigger sync on entity change (debounced)
+   */
+  const triggerSyncOnChange = useCallback(() => {
+    debouncedSync();
+  }, [debouncedSync]);
+
+  /**
+   * Initialize network monitoring
    */
   useEffect(() => {
-    // Initial check
-    updateOnlineStatus();
+    if (!user?.uid) {
+      // Reset flags when user logs out
+      networkInitializedRef.current = false;
+      if (networkUnsubscribeRef.current) {
+        networkUnsubscribeRef.current();
+        networkUnsubscribeRef.current = null;
+      }
+      return;
+    }
 
-    // Subscribe to network state changes
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const online = state.isConnected && state.isInternetReachable;
-      dispatch(setOnline(!!online ?? false));
+    // Only initialize network monitoring once
+    if (networkInitializedRef.current) {
+      return;
+    }
 
-      // Auto-sync when connection is restored
-      if (online && user?.uid && !isSyncing) {
-        // Small delay to ensure connection is stable
-        setTimeout(() => {
-          performSync();
-        }, 1000);
+    let unsubscribe: (() => void) | null = null;
+
+    const initNetwork = async () => {
+      unsubscribe = await initializeNetworkMonitoring(
+        (isOnline, networkImproved) => {
+          console.log(`Network status: ${isOnline ? 'online' : 'offline'}, improved: ${networkImproved}`);
+          
+          // Sync when network improves (offline to online)
+          // But skip if this is the initial network status detection (not a real improvement)
+          if (networkImproved && networkInitializedRef.current) {
+            console.log('Network improved, triggering debounced sync...');
+            debouncedSync();
+          }
+        }
+      );
+
+      networkInitializedRef.current = true;
+      networkUnsubscribeRef.current = unsubscribe;
+    };
+
+    initNetwork();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+      networkInitializedRef.current = false;
+    };
+  }, [user?.uid, performSync]);
+
+  /**
+   * Sync on app start (if online)
+   * Only runs once when user is first authenticated and online
+   */
+  useEffect(() => {
+    if (!user?.uid) {
+      // Reset flag when user logs out
+      hasInitialSyncRef.current = false;
+      return;
+    }
+
+    // Only sync once on initial app start
+    if (hasInitialSyncRef.current) {
+      return;
+    }
+
+    // Small delay to ensure app is fully initialized
+    const timer = setTimeout(() => {
+      if (isOnline && !syncInProgressRef.current && !hasInitialSyncRef.current) {
+        console.log('App started, triggering debounced initial sync...');
+        hasInitialSyncRef.current = true;
+        debouncedSync();
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [user?.uid, isOnline, performSync]);
+
+  /**
+   * Sync when app enters foreground
+   */
+  useEffect(() => {
+    if (!user?.uid) {
+      return;
+    }
+
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      const wasInBackground = appStateRef.current.match(/inactive|background/);
+      const isNowActive = nextAppState === 'active';
+
+      appStateRef.current = nextAppState;
+
+      // Sync when app enters foreground
+      if (wasInBackground && isNowActive) {
+        console.log('App entered foreground, triggering debounced sync...');
+        debouncedSync();
       }
     });
 
     return () => {
-      unsubscribe();
+      subscription.remove();
     };
-  }, [dispatch, updateOnlineStatus, user, isSyncing, performSync]);
-
-  /**
-   * Auto-sync on mount if online
-   */
-  useEffect(() => {
-    if (user?.uid && isOnline && !isSyncing && lastSyncTime === null) {
-      // First sync on app start
-      performSync();
-    }
-  }, [user, isOnline, isSyncing, lastSyncTime, performSync]);
+  }, [user, performSync]);
 
   return {
-    // State
+    triggerSync,
+    triggerSyncOnChange,
     isSyncing,
-    lastSyncTime,
     isOnline,
-    syncError,
-    syncQueue,
-    pendingCount: syncQueue.length,
-
-    // Actions
-    sync: performSync,
-    checkOnline: updateOnlineStatus,
   };
 };

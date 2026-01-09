@@ -5,15 +5,17 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import * as firebaseAuth from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 /**
  * Firebase configuration from environment variables
  */
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  appId: Platform.OS === 'ios' ? process.env.EXPO_PUBLIC_FIREBASE_IOS_APP_ID : process.env.EXPO_PUBLIC_FIREBASE_ANDRIOD_APP_ID,
 };
 
 /**

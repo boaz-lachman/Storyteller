@@ -13,6 +13,21 @@ import {
   uploadChapter,
   downloadStories,
   downloadEntitiesForStory,
+  getStory,
+  getCharacter,
+  getBlurb,
+  getScene,
+  getChapter,
+  listStories,
+  listCharacters,
+  listBlurbs,
+  listScenes,
+  listChapters,
+  deleteCharacter,
+  deleteBlurb,
+  deleteScene,
+  deleteChapter,
+  deleteStory,
   isFirebaseConfigured,
 } from '../../services/firestore/firestoreService';
 import type {
@@ -28,7 +43,7 @@ import type {
 // ============================================================================
 
 interface FirestoreQueryArgs {
-  type: 'upload' | 'download';
+  type: 'upload' | 'download' | 'get' | 'list' | 'delete';
   entityType?: 'story' | 'character' | 'blurb' | 'scene' | 'chapter';
   operation?: string;
   data?: any;
@@ -134,6 +149,225 @@ const firestoreBaseQuery = (): BaseQueryFn<
         }
       }
 
+      // Handle get operations
+      if (type === 'get') {
+        switch (entityType) {
+          case 'story':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const story = await getStory(data.id);
+            return { data: story };
+
+          case 'character':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Character ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const character = await getCharacter(data.id);
+            return { data: character };
+
+          case 'blurb':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Blurb ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const blurb = await getBlurb(data.id);
+            return { data: blurb };
+
+          case 'scene':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Scene ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const scene = await getScene(data.id);
+            return { data: scene };
+
+          case 'chapter':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Chapter ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const chapter = await getChapter(data.id);
+            return { data: chapter };
+
+          default:
+            return {
+              error: {
+                error: `Unknown entity type for get: ${entityType}`,
+                status: 400,
+              },
+            };
+        }
+      }
+
+      // Handle list operations
+      if (type === 'list') {
+        switch (entityType) {
+          case 'story':
+            if (!userId) {
+              return {
+                error: {
+                  error: 'User ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const stories = await listStories(userId);
+            return { data: stories };
+
+          case 'character':
+            if (!storyId) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const characters = await listCharacters(storyId);
+            return { data: characters };
+
+          case 'blurb':
+            if (!storyId) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const blurbs = await listBlurbs(storyId);
+            return { data: blurbs };
+
+          case 'scene':
+            if (!storyId) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const scenes = await listScenes(storyId);
+            return { data: scenes };
+
+          case 'chapter':
+            if (!storyId) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const chapters = await listChapters(storyId);
+            return { data: chapters };
+
+          default:
+            return {
+              error: {
+                error: `Unknown entity type for list: ${entityType}`,
+                status: 400,
+              },
+            };
+        }
+      }
+
+      // Handle delete operations
+      if (type === 'delete') {
+        switch (entityType) {
+          case 'story':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            await deleteStory(data.id);
+            return { data: { id: data.id, deleted: true } };
+
+          case 'character':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Character ID is required',
+                  status: 400,
+                },
+              };
+            }
+            await deleteCharacter(data.id);
+            return { data: { id: data.id, deleted: true } };
+
+          case 'blurb':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Blurb ID is required',
+                  status: 400,
+                },
+              };
+            }
+            await deleteBlurb(data.id);
+            return { data: { id: data.id, deleted: true } };
+
+          case 'scene':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Scene ID is required',
+                  status: 400,
+                },
+              };
+            }
+            await deleteScene(data.id);
+            return { data: { id: data.id, deleted: true } };
+
+          case 'chapter':
+            if (!data?.id) {
+              return {
+                error: {
+                  error: 'Chapter ID is required',
+                  status: 400,
+                },
+              };
+            }
+            await deleteChapter(data.id);
+            return { data: { id: data.id, deleted: true } };
+
+          default:
+            return {
+              error: {
+                error: `Unknown entity type for delete: ${entityType}`,
+                status: 400,
+              },
+            };
+        }
+      }
+
       // Handle download operations
       if (type === 'download') {
         switch (operation) {
@@ -146,8 +380,8 @@ const firestoreBaseQuery = (): BaseQueryFn<
                 },
               };
             }
-            const stories = await downloadStories(userId);
-            return { data: stories };
+            const downloadedStories = await downloadStories(userId);
+            return { data: downloadedStories };
 
           case 'downloadEntitiesForStory':
             if (!storyId) {
@@ -199,13 +433,181 @@ export const firestoreApi = createApi({
   tagTypes: ['Story', 'Character', 'Blurb', 'Scene', 'Chapter', 'Sync'],
   endpoints: (builder) => ({
     // ============================================================================
+    // Get Queries
+    // ============================================================================
+
+    /**
+     * Get a single story from Firestore
+     */
+    getStory: builder.query<Story | null, { userId: string; id: string }>({
+      query: ({ id }) => ({
+        type: 'get',
+        entityType: 'story',
+        data: { id },
+      }),
+      providesTags: (result, error, { id }) => [{ type: 'Story', id }],
+    }),
+
+    /**
+     * Get a single character from Firestore
+     */
+    getCharacter: builder.query<Character | null, { id: string }>({
+      query: ({ id }) => ({
+        type: 'get',
+        entityType: 'character',
+        data: { id },
+      }),
+      providesTags: (result, error, { id }) => [{ type: 'Character', id }],
+    }),
+
+    /**
+     * Get a single blurb from Firestore
+     */
+    getBlurb: builder.query<IdeaBlurb | null, { id: string }>({
+      query: ({ id }) => ({
+        type: 'get',
+        entityType: 'blurb',
+        data: { id },
+      }),
+      providesTags: (result, error, { id }) => [{ type: 'Blurb', id }],
+    }),
+
+    /**
+     * Get a single scene from Firestore
+     */
+    getScene: builder.query<Scene | null, { id: string }>({
+      query: ({ id }) => ({
+        type: 'get',
+        entityType: 'scene',
+        data: { id },
+      }),
+      providesTags: (result, error, { id }) => [{ type: 'Scene', id }],
+    }),
+
+    /**
+     * Get a single chapter from Firestore
+     */
+    getChapter: builder.query<Chapter | null, { id: string }>({
+      query: ({ id }) => ({
+        type: 'get',
+        entityType: 'chapter',
+        data: { id },
+      }),
+      providesTags: (result, error, { id }) => [{ type: 'Chapter', id }],
+    }),
+
+    // ============================================================================
+    // List Queries
+    // ============================================================================
+
+    /**
+     * List all stories for a user
+     */
+    listStories: builder.query<Story[], { userId: string }>({
+      query: ({ userId }) => ({
+        type: 'list',
+        entityType: 'story',
+        userId,
+      }),
+      providesTags: [{ type: 'Story', id: 'LIST' }],
+    }),
+
+    /**
+     * List all characters for a story
+     */
+    listCharacters: builder.query<Character[], { userId: string; storyId: string }>({
+      query: ({ storyId }) => ({
+        type: 'list',
+        entityType: 'character',
+        storyId,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Character' as const, id })),
+              { type: 'Character', id: 'LIST' },
+            ]
+          : [{ type: 'Character', id: 'LIST' }],
+    }),
+
+    /**
+     * List all blurbs for a story
+     */
+    listBlurbs: builder.query<IdeaBlurb[], { userId: string; storyId: string }>({
+      query: ({ storyId }) => ({
+        type: 'list',
+        entityType: 'blurb',
+        storyId,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Blurb' as const, id })),
+              { type: 'Blurb', id: 'LIST' },
+            ]
+          : [{ type: 'Blurb', id: 'LIST' }],
+    }),
+
+    /**
+     * List all scenes for a story
+     */
+    listScenes: builder.query<Scene[], { userId: string; storyId: string }>({
+      query: ({ storyId }) => ({
+        type: 'list',
+        entityType: 'scene',
+        storyId,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Scene' as const, id })),
+              { type: 'Scene', id: 'LIST' },
+            ]
+          : [{ type: 'Scene', id: 'LIST' }],
+    }),
+
+    /**
+     * List all chapters for a story
+     */
+    listChapters: builder.query<Chapter[], { userId: string; storyId: string }>({
+      query: ({ storyId }) => ({
+        type: 'list',
+        entityType: 'chapter',
+        storyId,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Chapter' as const, id })),
+              { type: 'Chapter', id: 'LIST' },
+            ]
+          : [{ type: 'Chapter', id: 'LIST' }],
+    }),
+
+    // ============================================================================
     // Upload Mutations
     // ============================================================================
 
     /**
-     * Upload a story to Firestore
+     * Upload a story to Firestore (create or update)
      */
     uploadStory: builder.mutation<Story, Story>({
+      query: (story) => ({
+        type: 'upload',
+        entityType: 'story',
+        data: story,
+      }),
+      invalidatesTags: (result, error, story) => [
+        { type: 'Story', id: story.id },
+        { type: 'Story', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Create a story in Firestore
+     */
+    createStory: builder.mutation<Story, Story>({
       query: (story) => ({
         type: 'upload',
         entityType: 'story',
@@ -215,9 +617,41 @@ export const firestoreApi = createApi({
     }),
 
     /**
-     * Upload a character to Firestore
+     * Update a story in Firestore
+     */
+    updateStory: builder.mutation<Story, { userId: string; id: string; data: Partial<Story> }>({
+      query: ({ id, data }) => ({
+        type: 'upload',
+        entityType: 'story',
+        data: { id, ...data } as Story,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Story', id },
+        { type: 'Story', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Upload a character to Firestore (create or update)
      */
     uploadCharacter: builder.mutation<Character, Character>({
+      query: (character) => ({
+        type: 'upload',
+        entityType: 'character',
+        data: character,
+      }),
+      invalidatesTags: (result, error, character) => [
+        { type: 'Character', id: character.id },
+        { type: 'Character', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Create a character in Firestore
+     */
+    createCharacter: builder.mutation<Character, Character>({
       query: (character) => ({
         type: 'upload',
         entityType: 'character',
@@ -227,9 +661,57 @@ export const firestoreApi = createApi({
     }),
 
     /**
-     * Upload a blurb to Firestore
+     * Update a character in Firestore
+     */
+    updateCharacter: builder.mutation<Character, { userId: string; storyId: string; id: string; data: Partial<Character> }>({
+      query: ({ id, data }) => ({
+        type: 'upload',
+        entityType: 'character',
+        data: { id, ...data } as Character,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Character', id },
+        { type: 'Character', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Delete a character from Firestore
+     */
+    deleteCharacter: builder.mutation<{ id: string; deleted: boolean }, { userId: string; storyId: string; id: string }>({
+      query: ({ id }) => ({
+        type: 'delete',
+        entityType: 'character',
+        data: { id },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Character', id },
+        { type: 'Character', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Upload a blurb to Firestore (create or update)
      */
     uploadBlurb: builder.mutation<IdeaBlurb, IdeaBlurb>({
+      query: (blurb) => ({
+        type: 'upload',
+        entityType: 'blurb',
+        data: blurb,
+      }),
+      invalidatesTags: (result, error, blurb) => [
+        { type: 'Blurb', id: blurb.id },
+        { type: 'Blurb', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Create a blurb in Firestore
+     */
+    createBlurb: builder.mutation<IdeaBlurb, IdeaBlurb>({
       query: (blurb) => ({
         type: 'upload',
         entityType: 'blurb',
@@ -239,9 +721,41 @@ export const firestoreApi = createApi({
     }),
 
     /**
-     * Upload a scene to Firestore
+     * Update a blurb in Firestore
+     */
+    updateBlurb: builder.mutation<IdeaBlurb, { userId: string; storyId: string; id: string; data: Partial<IdeaBlurb> }>({
+      query: ({ id, data }) => ({
+        type: 'upload',
+        entityType: 'blurb',
+        data: { id, ...data } as IdeaBlurb,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Blurb', id },
+        { type: 'Blurb', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Upload a scene to Firestore (create or update)
      */
     uploadScene: builder.mutation<Scene, Scene>({
+      query: (scene) => ({
+        type: 'upload',
+        entityType: 'scene',
+        data: scene,
+      }),
+      invalidatesTags: (result, error, scene) => [
+        { type: 'Scene', id: scene.id },
+        { type: 'Scene', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Create a scene in Firestore
+     */
+    createScene: builder.mutation<Scene, Scene>({
       query: (scene) => ({
         type: 'upload',
         entityType: 'scene',
@@ -251,7 +765,23 @@ export const firestoreApi = createApi({
     }),
 
     /**
-     * Upload a chapter to Firestore
+     * Update a scene in Firestore
+     */
+    updateScene: builder.mutation<Scene, { userId: string; storyId: string; id: string; data: Partial<Scene> }>({
+      query: ({ id, data }) => ({
+        type: 'upload',
+        entityType: 'scene',
+        data: { id, ...data } as Scene,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Scene', id },
+        { type: 'Scene', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Upload a chapter to Firestore (create or update)
      */
     uploadChapter: builder.mutation<Chapter, Chapter>({
       query: (chapter) => ({
@@ -259,7 +789,39 @@ export const firestoreApi = createApi({
         entityType: 'chapter',
         data: chapter,
       }),
+      invalidatesTags: (result, error, chapter) => [
+        { type: 'Chapter', id: chapter.id },
+        { type: 'Chapter', id: 'LIST' },
+        { type: 'Sync' },
+      ],
+    }),
+
+    /**
+     * Create a chapter in Firestore
+     */
+    createChapter: builder.mutation<Chapter, Chapter>({
+      query: (chapter) => ({
+        type: 'upload',
+        entityType: 'chapter',
+        data: chapter,
+      }),
       invalidatesTags: [{ type: 'Chapter', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
+    /**
+     * Update a chapter in Firestore
+     */
+    updateChapter: builder.mutation<Chapter, { userId: string; storyId: string; id: string; data: Partial<Chapter> }>({
+      query: ({ id, data }) => ({
+        type: 'upload',
+        entityType: 'chapter',
+        data: { id, ...data } as Chapter,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Chapter', id },
+        { type: 'Chapter', id: 'LIST' },
+        { type: 'Sync' },
+      ],
     }),
 
     // ============================================================================
@@ -420,12 +982,48 @@ export const firestoreApi = createApi({
 
 // Export hooks
 export const {
+  // Get queries
+  useGetStoryQuery,
+  useLazyGetStoryQuery,
+  useGetCharacterQuery,
+  useLazyGetCharacterQuery,
+  useGetBlurbQuery,
+  useLazyGetBlurbQuery,
+  useGetSceneQuery,
+  useLazyGetSceneQuery,
+  useGetChapterQuery,
+  useLazyGetChapterQuery,
+  // List queries
+  useListStoriesQuery,
+  useLazyListStoriesQuery,
+  useListCharactersQuery,
+  useLazyListCharactersQuery,
+  useListBlurbsQuery,
+  useLazyListBlurbsQuery,
+  useListScenesQuery,
+  useLazyListScenesQuery,
+  useListChaptersQuery,
+  useLazyListChaptersQuery,
   // Upload mutations
   useUploadStoryMutation,
   useUploadCharacterMutation,
   useUploadBlurbMutation,
   useUploadSceneMutation,
   useUploadChapterMutation,
+  // Create mutations
+  useCreateStoryMutation,
+  useCreateCharacterMutation,
+  useCreateBlurbMutation,
+  useCreateSceneMutation,
+  useCreateChapterMutation,
+  // Update mutations
+  useUpdateStoryMutation,
+  useUpdateCharacterMutation,
+  useUpdateBlurbMutation,
+  useUpdateSceneMutation,
+  useUpdateChapterMutation,
+  // Delete mutations
+  useDeleteCharacterMutation,
   // Download queries
   useDownloadStoriesQuery,
   useLazyDownloadStoriesQuery,

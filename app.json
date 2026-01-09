@@ -13,7 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "bundleIdentifier": "com.boaz606.storyteller",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +27,11 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.boaz606.storyteller",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,6 +46,8 @@
           }
         }
       ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
       "expo-font",
       "expo-sqlite",
       "expo-secure-store",

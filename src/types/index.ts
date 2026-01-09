@@ -16,6 +16,7 @@ export interface BaseEntity {
 
 export interface Story {
   id: string;
+  firestoreId?: string; // Unique identifier in Firestore (document ID)
   userId: string;
   title: string;
   description?: string;
