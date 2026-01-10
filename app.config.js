@@ -80,18 +80,18 @@ export default ({ config }) => {
       ],
       extra: {
         // Firebase configuration
-        firebaseAPIKey: process.env.FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
+        firebaseAPIKey: process.env.FIREBASE_API_KEY,
         firebaseAuthDomain: process.env._FIREBASE_AUTH_DOMAIN,
-        firebaseProjectId: process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
+        firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
         firebaseStorageBucket: process.envFIREBASE_STORAGE_BUCKET,
         firebaseIosAppId: process.env.FIREBASE_IOS_APP_ID,
-        firebaseAndroidAppId: process.env.FIREBASE_ANDROID_APP_ID || process.env.FIREBASE_ANDRIOD_APP_ID,
+        firebaseAndroidAppId: process.env.FIREBASE_ANDROID_APP_ID,
         
         // Claude AI configuration
-        claudeAPIKey: process.env.CLAUDE_API_KEY || process.env.CLAUDE_API_KEY,
+        claudeAPIKey: process.env.CLAUDE_API_KEY,
         
         // ElevenLabs configuration
-        elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY,
+        elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
         
         // Router configuration
         router: {},
