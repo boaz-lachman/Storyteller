@@ -25,7 +25,6 @@ export default ({ config }) => {
       ios: {
         supportsTablet: true,
         bundleIdentifier: 'com.boaz606.storyteller',
-        googleServicesFile: './GoogleService-Info.plist',
         infoPlist: {
           NSMicrophoneUsageDescription: 'This app uses the microphone for audio interactions.',
           NSSpeechRecognitionUsageDescription: 'This app uses speech recognition to read your stories aloud.',
@@ -37,7 +36,6 @@ export default ({ config }) => {
           foregroundImage: './assets/adaptive-icon.png',
           backgroundColor: '#ffffff',
         },
-        googleServicesFile: './google-services.json',
         edgeToEdgeEnabled: true,
         package: 'com.boaz606.storyteller',
         predictiveBackGestureEnabled: false,
