@@ -81,7 +81,7 @@ export default ({ config }) => {
       extra: {
         // Firebase configuration
         firebaseAPIKey: process.env.FIREBASE_API_KEY,
-        firebaseAuthDomain: process.env._FIREBASE_AUTH_DOMAIN,
+        firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
         firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
         firebaseStorageBucket: process.envFIREBASE_STORAGE_BUCKET,
         firebaseIosAppId: process.env.FIREBASE_IOS_APP_ID,

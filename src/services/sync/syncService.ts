@@ -173,181 +173,215 @@ const syncEntityType = async (
 };
 
 /**
- * Sync Stories
+ * Sync Stories - Optimized with batch processing
  */
 const syncStories = async (userId: string): Promise<number> => {
   const unsynced = await getUnsyncedStories(userId);
+  if (unsynced.length === 0) {
+    return 0;
+  }
+
   let syncedCount = 0;
-
-  for (const story of unsynced) {
-    try {
-      await retryWithBackoff(
-        async () => {
-        // Use uploadStory which handles both create and update
-        const uploadResult = await store.dispatch(
-          firestoreApi.endpoints.uploadStory.initiate(story)
-        );
-        if (!!uploadResult.error) {
-          throw new Error('Failed to upload story to Firestore');
+  const BATCH_SIZE = 10; // Process in batches to avoid overwhelming the system
+  
+  // Process stories in parallel batches
+  for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+    const batch = unsynced.slice(i, i + BATCH_SIZE);
+    
+    // Process batch in parallel (no retry for speed, failures go to queue)
+    const results = await Promise.allSettled(
+      batch.map(async (story) => {
+        try {
+          const uploadResult = await store.dispatch(
+            firestoreApi.endpoints.uploadStory.initiate(story)
+          );
+          if (!!uploadResult.error) {
+            throw new Error('Failed to upload story to Firestore');
+          }
+          await markStorySynced(story.id);
+          return { success: true, id: story.id };
+        } catch (error) {
+          // Add to queue for retry later
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { syncQueueManager } = require('./queueManager');
+            await syncQueueManager.add('story', story.id, 'update');
+          } catch (queueError) {
+            console.error('Failed to add story to sync queue:', queueError);
+          }
+          return { success: false, id: story.id, error };
         }
+      })
+    );
 
-        await markStorySynced(story.id);
-        syncedCount++;
-      }, 3, 1000); // 3 retries with 1s initial delay
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`Failed to sync story ${story.id}:`, errorMessage);
-      // Add to queue for retry later
-      // Use require to avoid circular dependency with queueManager
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { syncQueueManager } = require('./queueManager');
-        await syncQueueManager.add('story', story.id, 'update');
-      } catch (queueError) {
-        console.error('Failed to add story to sync queue:', queueError);
-      }
-    }
+    // Count successful syncs
+    syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
   }
 
   return syncedCount;
 };
 
 /**
- * Sync Characters
+ * Sync Characters - Optimized with batch processing
  */
 const syncCharacters = async (userId: string): Promise<number> => {
   const unsynced = await getUnsyncedCharacters(userId);
+  if (unsynced.length === 0) {
+    return 0;
+  }
+
   let syncedCount = 0;
-
-  for (const character of unsynced) {
-    try {
-      await retryWithBackoff(
-        async () => {
-        if (character.deleted) {
-          // For deleted characters, mark as deleted and upload
-          // The firestore service should handle soft deletes
+  const BATCH_SIZE = 20; // Characters are smaller, can process more in parallel
+  
+  // Process characters in parallel batches
+  for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+    const batch = unsynced.slice(i, i + BATCH_SIZE);
+    
+    // Process batch in parallel
+    const results = await Promise.allSettled(
+      batch.map(async (character) => {
+        try {
           const uploadResult = await store.dispatch(
             firestoreApi.endpoints.uploadCharacter.initiate(character)
           );
           if (!!uploadResult.error) {
-            throw new Error('Failed to delete character in Firestore');
+            throw new Error(character.deleted ? 'Failed to delete character in Firestore' : 'Failed to sync character in Firestore');
           }
-        } else {
-          // Use uploadCharacter which handles both create and update
-          const uploadResult = await store.dispatch(
-            firestoreApi.endpoints.uploadCharacter.initiate(character)
-          );
-          if (!!uploadResult.error) {
-            throw new Error('Failed to sync character in Firestore');
-          }
+          await markCharacterSynced(character.id);
+          return { success: true, id: character.id };
+        } catch (error) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { syncQueueManager } = require('./queueManager');
+          syncQueueManager.add('character', character.id, character.deleted ? 'delete' : 'update');
+          return { success: false, id: character.id, error };
         }
+      })
+    );
 
-        await markCharacterSynced(character.id);
-        syncedCount++;
-      });
-    } catch (error) {
-      console.error(`Failed to sync character ${character.id}:`, error);
-      // Use require to avoid circular dependency with queueManager
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { syncQueueManager } = require('./queueManager');
-      syncQueueManager.add('character', character.id, character.deleted ? 'delete' : 'update');
-    }
+    syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
   }
 
   return syncedCount;
 };
 
 /**
- * Sync Blurbs
+ * Sync Blurbs - Optimized with batch processing
  */
 const syncBlurbs = async (userId: string): Promise<number> => {
   const unsynced = await getUnsyncedBlurbs(userId);
-  let syncedCount = 0;
+  if (unsynced.length === 0) {
+    return 0;
+  }
 
-  for (const blurb of unsynced) {
-    try {
-      await retryWithBackoff(
-        async () => {
-        const uploadResult = await store.dispatch(
-          firestoreApi.endpoints.uploadBlurb.initiate(blurb)
-        );
-        if (!!uploadResult.error) {
-          throw new Error('Failed to upload blurb to Firestore');
+  let syncedCount = 0;
+  const BATCH_SIZE = 20;
+  
+  for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+    const batch = unsynced.slice(i, i + BATCH_SIZE);
+    
+    const results = await Promise.allSettled(
+      batch.map(async (blurb) => {
+        try {
+          const uploadResult = await store.dispatch(
+            firestoreApi.endpoints.uploadBlurb.initiate(blurb)
+          );
+          if (!!uploadResult.error) {
+            throw new Error('Failed to upload blurb to Firestore');
+          }
+          await markBlurbSynced(blurb.id);
+          return { success: true, id: blurb.id };
+        } catch (error) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { syncQueueManager } = require('./queueManager');
+          syncQueueManager.add('blurb', blurb.id, 'update');
+          return { success: false, id: blurb.id, error };
         }
-        await markBlurbSynced(blurb.id);
-        syncedCount++;
-      });
-    } catch (error) {
-      console.error(`Failed to sync blurb ${blurb.id}:`, error);
-      // Use require to avoid circular dependency with queueManager
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { syncQueueManager } = require('./queueManager');
-      syncQueueManager.add('blurb', blurb.id, 'update');
-    }
+      })
+    );
+
+    syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
   }
 
   return syncedCount;
 };
 
 /**
- * Sync Scenes
+ * Sync Scenes - Optimized with batch processing
  */
 const syncScenes = async (userId: string): Promise<number> => {
   const unsynced = await getUnsyncedScenes(userId);
-  let syncedCount = 0;
+  if (unsynced.length === 0) {
+    return 0;
+  }
 
-  for (const scene of unsynced) {
-    try {
-      await retryWithBackoff(
-        async () => {
-        const uploadResult = await store.dispatch(
-          firestoreApi.endpoints.uploadScene.initiate(scene)
-        );
-        if (!!uploadResult.error) {
-          throw new Error('Failed to upload scene to Firestore');
+  let syncedCount = 0;
+  const BATCH_SIZE = 20;
+  
+  for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+    const batch = unsynced.slice(i, i + BATCH_SIZE);
+    
+    const results = await Promise.allSettled(
+      batch.map(async (scene) => {
+        try {
+          const uploadResult = await store.dispatch(
+            firestoreApi.endpoints.uploadScene.initiate(scene)
+          );
+          if (!!uploadResult.error) {
+            throw new Error('Failed to upload scene to Firestore');
+          }
+          await markSceneSynced(scene.id);
+          return { success: true, id: scene.id };
+        } catch (error) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { syncQueueManager } = require('./queueManager');
+          syncQueueManager.add('scene', scene.id, 'update');
+          return { success: false, id: scene.id, error };
         }
-        await markSceneSynced(scene.id);
-        syncedCount++;
-      });
-    } catch (error) {
-      console.error(`Failed to sync scene ${scene.id}:`, error);
-      // Use require to avoid circular dependency with queueManager
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { syncQueueManager } = require('./queueManager');
-      syncQueueManager.add('scene', scene.id, 'update');
-    }
+      })
+    );
+
+    syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
   }
 
   return syncedCount;
 };
 
 /**
- * Sync Chapters
+ * Sync Chapters - Optimized with batch processing
  */
 const syncChapters = async (userId: string): Promise<number> => {
   const unsynced = await getUnsyncedChapters(userId);
-  let syncedCount = 0;
+  if (unsynced.length === 0) {
+    return 0;
+  }
 
-  for (const chapter of unsynced) {
-    try {
-      await retryWithBackoff(
-        async () => {
-        const uploadResult = await store.dispatch(
-          firestoreApi.endpoints.uploadChapter.initiate(chapter)
-        );
-        if (!!uploadResult.error) {
-          throw new Error('Failed to upload chapter to Firestore');
+  let syncedCount = 0;
+  const BATCH_SIZE = 20;
+  
+  for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+    const batch = unsynced.slice(i, i + BATCH_SIZE);
+    
+    const results = await Promise.allSettled(
+      batch.map(async (chapter) => {
+        try {
+          const uploadResult = await store.dispatch(
+            firestoreApi.endpoints.uploadChapter.initiate(chapter)
+          );
+          if (!!uploadResult.error) {
+            throw new Error('Failed to upload chapter to Firestore');
+          }
+          await markChapterSynced(chapter.id);
+          return { success: true, id: chapter.id };
+        } catch (error) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { syncQueueManager } = require('./queueManager');
+          syncQueueManager.add('chapter', chapter.id, 'update');
+          return { success: false, id: chapter.id, error };
         }
-        await markChapterSynced(chapter.id);
-        syncedCount++;
-      });
-    } catch (error) {
-      console.error(`Failed to sync chapter ${chapter.id}:`, error);
-      // Use require to avoid circular dependency with queueManager
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { syncQueueManager } = require('./queueManager');
-      syncQueueManager.add('chapter', chapter.id, 'update');
-    }
+      })
+    );
+
+    syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
   }
 
   return syncedCount;
@@ -419,230 +453,272 @@ export const pullRemoteChanges = async (
       storiesToSyncEntities.add(story.id);
     }
     
-    // Download entities for all stories (both pulled and existing, including completed ones)
-    for (const storyId of storiesToSyncEntities) {
-      // Get the story to ensure it exists (may have been pulled or already local)
-      const story = await getStory(storyId);
-      if (!story) {
-        // Story doesn't exist locally, skip
-        continue;
-      }
-      
-      // Get all local entities for this story (for conflict resolution)
-      const storyCharacters = await getCharactersByStory(storyId);
-      const storyBlurbs = await getBlurbsByStory(storyId);
-      const storyScenes = await getScenesByStory(storyId);
-      const storyChapters = await getChaptersByStory(storyId);
+    // Pre-fetch all local entities for all stories at once (performance optimization)
+    const storyIdsArray = Array.from(storiesToSyncEntities);
+    const allLocalEntitiesMap = new Map<string, {
+      characters: Character[];
+      blurbs: IdeaBlurb[];
+      scenes: Scene[];
+      chapters: Chapter[];
+    }>();
 
-      // Download all entities for this story (including completed stories)
-      const entitiesResult = await store.dispatch(
-        firestoreApi.endpoints.downloadEntitiesForStory.initiate({
-          storyId,
-          localEntities: {
-            characters: storyCharacters,
-            blurbs: storyBlurbs,
-            scenes: storyScenes,
-            chapters: storyChapters,
-          },
+    // Fetch all local entities in parallel for all stories
+    await Promise.all(
+      storyIdsArray.map(async (storyId) => {
+        const [characters, blurbs, scenes, chapters] = await Promise.all([
+          getCharactersByStory(storyId),
+          getBlurbsByStory(storyId),
+          getScenesByStory(storyId),
+          getChaptersByStory(storyId),
+        ]);
+        allLocalEntitiesMap.set(storyId, { characters, blurbs, scenes, chapters });
+      })
+    );
+    
+    // Process stories in parallel batches (biggest performance improvement)
+    const STORY_BATCH_SIZE = 5; // Process 5 stories in parallel
+    
+    for (let i = 0; i < storyIdsArray.length; i += STORY_BATCH_SIZE) {
+      const storyBatch = storyIdsArray.slice(i, i + STORY_BATCH_SIZE);
+      
+      // Process batch of stories in parallel
+      const storyResults = await Promise.allSettled(
+        storyBatch.map(async (storyId) => {
+          // Get the story to ensure it exists (may have been pulled or already local)
+          const story = await getStory(storyId);
+          if (!story) {
+            // Story doesn't exist locally, skip
+            return { count: 0 };
+          }
+          
+          // Get pre-fetched local entities for this story
+          const localEntities = allLocalEntitiesMap.get(storyId) || {
+            characters: [],
+            blurbs: [],
+            scenes: [],
+            chapters: [],
+          };
+
+          // Download all entities for this story (including completed stories)
+          const entitiesResult = await store.dispatch(
+            firestoreApi.endpoints.downloadEntitiesForStory.initiate({
+              storyId,
+              localEntities,
+            })
+          );
+
+          if (!entitiesResult.data) {
+            return { count: 0 };
+          }
+
+          let storyPulledCount = 0;
+          const entitiesData = entitiesResult.data;
+          
+          // Track remote entity IDs to detect deletions
+          const remoteCharacterIds = new Set<string>();
+          const remoteBlurbIds = new Set<string>();
+          const remoteSceneIds = new Set<string>();
+          const remoteChapterIds = new Set<string>();
+          
+          // Process characters
+          for (const remoteChar of entitiesData.characters || []) {
+            // Always track remote entity IDs to detect deletions, regardless of timestamp
+            remoteCharacterIds.add(remoteChar.id);
+            
+            // Filter by timestamp if incremental sync (skip update but still track for deletion check)
+            if (sinceTimestamp && remoteChar.updatedAt <= sinceTimestamp) {
+              continue;
+            }
+            const localChar = await getCharacter(remoteChar.id);
+            if (!localChar) {
+              // New character from remote, create locally and mark as synced
+              await createCharacter(remoteChar);
+              await markCharacterSynced(remoteChar.id);
+              storyPulledCount++;
+            } else {
+              // Resolve conflict using Last-Write-Wins
+              // If local entity is already synced and remote is newer, always use remote
+              const shouldUseRemote = localChar.synced 
+                ? remoteChar.updatedAt > localChar.updatedAt
+                : resolveConflict(localChar, remoteChar) === remoteChar || remoteChar.updatedAt > localChar.updatedAt;
+              
+              if (shouldUseRemote) {
+                // Remote is newer or local is synced and remote is newer, update local and mark as synced
+                await updateCharacter(remoteChar.id, remoteChar as any);
+                await markCharacterSynced(remoteChar.id);
+                storyPulledCount++;
+              }
+              // If local is newer and unsynced, it will be pushed in next sync
+            }
+          }
+          
+          // Delete local characters that don't exist in remote (were deleted in Firestore)
+          // Only delete if they're synced (local changes take precedence)
+          for (const localChar of localEntities.characters) {
+            if (!localChar.deleted && !remoteCharacterIds.has(localChar.id) && localChar.synced) {
+              // Character was deleted remotely, delete locally
+              const { deleteCharacter } = require('../database/characters');
+              await deleteCharacter(localChar.id);
+              storyPulledCount++;
+              console.log(`Deleted local character ${localChar.id} - removed from Firestore`);
+            }
+          }
+
+          // Process blurbs
+          for (const remoteBlurb of entitiesData.blurbs || []) {
+            // Always track remote entity IDs to detect deletions, regardless of timestamp
+            remoteBlurbIds.add(remoteBlurb.id);
+            
+            // Filter by timestamp if incremental sync (skip update but still track for deletion check)
+            if (sinceTimestamp && remoteBlurb.updatedAt <= sinceTimestamp) {
+              continue;
+            }
+            const localBlurb = await getBlurb(remoteBlurb.id);
+            if (!localBlurb) {
+              // New blurb from remote, create locally and mark as synced
+              await createBlurb(remoteBlurb);
+              await markBlurbSynced(remoteBlurb.id);
+              storyPulledCount++;
+            } else {
+              // Resolve conflict using Last-Write-Wins
+              // If local entity is already synced and remote is newer, always use remote
+              const shouldUseRemote = localBlurb.synced 
+                ? remoteBlurb.updatedAt > localBlurb.updatedAt
+                : resolveConflict(localBlurb, remoteBlurb) === remoteBlurb || remoteBlurb.updatedAt > localBlurb.updatedAt;
+              
+              if (shouldUseRemote) {
+                // Remote is newer or local is synced and remote is newer, update local and mark as synced
+                await updateBlurb(remoteBlurb.id, remoteBlurb as any);
+                await markBlurbSynced(remoteBlurb.id);
+                storyPulledCount++;
+              }
+              // If local is newer and unsynced, it will be pushed in next sync
+            }
+          }
+          
+          // Delete local blurbs that don't exist in remote (were deleted in Firestore)
+          // Only delete if they're synced (local changes take precedence)
+          for (const localBlurb of localEntities.blurbs) {
+            if (!localBlurb.deleted && !remoteBlurbIds.has(localBlurb.id) && localBlurb.synced) {
+              // Blurb was deleted remotely, delete locally
+              const { deleteBlurb } = require('../database/blurbs');
+              await deleteBlurb(localBlurb.id);
+              storyPulledCount++;
+              console.log(`Deleted local blurb ${localBlurb.id} - removed from Firestore`);
+            }
+          }
+
+          // Process scenes
+          for (const remoteScene of entitiesData.scenes || []) {
+            // Always track remote entity IDs to detect deletions, regardless of timestamp
+            remoteSceneIds.add(remoteScene.id);
+            
+            // Filter by timestamp if incremental sync (skip update but still track for deletion check)
+            if (sinceTimestamp && remoteScene.updatedAt <= sinceTimestamp) {
+              continue;
+            }
+            const localScene = await getScene(remoteScene.id);
+            if (!localScene) {
+              // New scene from remote, create locally and mark as synced
+              await createScene(remoteScene);
+              await markSceneSynced(remoteScene.id);
+              storyPulledCount++;
+            } else {
+              // Resolve conflict using Last-Write-Wins
+              // If local entity is already synced and remote is newer, always use remote
+              const shouldUseRemote = localScene.synced 
+                ? remoteScene.updatedAt > localScene.updatedAt
+                : resolveConflict(localScene, remoteScene) === remoteScene || remoteScene.updatedAt > localScene.updatedAt;
+              
+              if (shouldUseRemote) {
+                // Remote is newer or local is synced and remote is newer, update local and mark as synced
+                await updateScene(remoteScene.id, remoteScene as any);
+                await markSceneSynced(remoteScene.id);
+                storyPulledCount++;
+              }
+              // If local is newer and unsynced, it will be pushed in next sync
+            }
+          }
+          
+          // Delete local scenes that don't exist in remote (were deleted in Firestore)
+          // Only delete if they're synced (local changes take precedence)
+          for (const localScene of localEntities.scenes) {
+            if (!localScene.deleted && !remoteSceneIds.has(localScene.id) && localScene.synced) {
+              // Scene was deleted remotely, delete locally
+              const { deleteScene } = require('../database/scenes');
+              await deleteScene(localScene.id);
+              storyPulledCount++;
+              console.log(`Deleted local scene ${localScene.id} - removed from Firestore`);
+            }
+          }
+
+          // Process chapters
+          for (const remoteChapter of entitiesData.chapters || []) {
+            // Always track remote entity IDs to detect deletions, regardless of timestamp
+            remoteChapterIds.add(remoteChapter.id);
+            
+            // Filter by timestamp if incremental sync (skip update but still track for deletion check)
+            if (sinceTimestamp && remoteChapter.updatedAt <= sinceTimestamp) {
+              continue;
+            }
+            const localChapter = await getChapter(remoteChapter.id);
+            if (!localChapter) {
+              // New chapter from remote, create locally and mark as synced
+              await createChapter(remoteChapter);
+              await markChapterSynced(remoteChapter.id);
+              storyPulledCount++;
+            } else {
+              // Resolve conflict using Last-Write-Wins
+              // If local entity is already synced and remote is newer, always use remote
+              const shouldUseRemote = localChapter.synced 
+                ? remoteChapter.updatedAt > localChapter.updatedAt
+                : resolveConflict(localChapter, remoteChapter) === remoteChapter || remoteChapter.updatedAt > localChapter.updatedAt;
+              
+              if (shouldUseRemote) {
+                // Remote is newer or local is synced and remote is newer, update local and mark as synced
+                await updateChapter(remoteChapter.id, remoteChapter as any);
+                await markChapterSynced(remoteChapter.id);
+                storyPulledCount++;
+              }
+              // If local is newer and unsynced, it will be pushed in next sync
+            }
+          }
+          
+          // Delete local chapters that are marked as deleted in Firestore
+          const deletedChapterIds = entitiesData.deletedChapters || [];
+          for (const deletedChapterId of deletedChapterIds) {
+            const localChapter = await getChapter(deletedChapterId);
+            if (localChapter) {
+              // Chapter is marked as deleted in Firestore, hard delete from local DB
+              const { deleteChapter } = require('../database/chapters');
+              await deleteChapter(deletedChapterId);
+              storyPulledCount++;
+              console.log(`Hard deleted local chapter ${deletedChapterId} - marked as deleted in Firestore`);
+            }
+          }
+          
+          // Delete local chapters that don't exist in remote (were deleted in Firestore)
+          // Only delete if they're synced (local changes take precedence)
+          for (const localChapter of localEntities.chapters) {
+            if (!localChapter.deleted && !remoteChapterIds.has(localChapter.id) && localChapter.synced) {
+              // Chapter was deleted remotely (no longer exists), delete locally
+              const { deleteChapter } = require('../database/chapters');
+              await deleteChapter(localChapter.id);
+              storyPulledCount++;
+              console.log(`Deleted local chapter ${localChapter.id} - removed from Firestore`);
+            }
+          }
+
+          return { count: storyPulledCount };
         })
       );
 
-      if (entitiesResult.data) {
-        // Track remote entity IDs to detect deletions
-        const remoteCharacterIds = new Set<string>();
-        const remoteBlurbIds = new Set<string>();
-        const remoteSceneIds = new Set<string>();
-        const remoteChapterIds = new Set<string>();
-        
-        // Process characters
-        for (const remoteChar of entitiesResult.data.characters || []) {
-          // Always track remote entity IDs to detect deletions, regardless of timestamp
-          remoteCharacterIds.add(remoteChar.id);
-          
-          // Filter by timestamp if incremental sync (skip update but still track for deletion check)
-          if (sinceTimestamp && remoteChar.updatedAt <= sinceTimestamp) {
-            continue;
-          }
-          const localChar = await getCharacter(remoteChar.id);
-          if (!localChar) {
-            // New character from remote, create locally and mark as synced
-            await createCharacter(remoteChar);
-            await markCharacterSynced(remoteChar.id);
-            pulledCount++;
-          } else {
-            // Resolve conflict using Last-Write-Wins
-            // If local entity is already synced and remote is newer, always use remote
-            const shouldUseRemote = localChar.synced 
-              ? remoteChar.updatedAt > localChar.updatedAt
-              : resolveConflict(localChar, remoteChar) === remoteChar || remoteChar.updatedAt > localChar.updatedAt;
-            
-            if (shouldUseRemote) {
-              // Remote is newer or local is synced and remote is newer, update local and mark as synced
-              await updateCharacter(remoteChar.id, remoteChar as any);
-              await markCharacterSynced(remoteChar.id);
-              pulledCount++;
-            }
-            // If local is newer and unsynced, it will be pushed in next sync
-          }
+      // Sum up pulled counts from batch
+      storyResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          pulledCount += result.value.count;
         }
-        
-        // Delete local characters that don't exist in remote (were deleted in Firestore)
-        // Only delete if they're synced (local changes take precedence)
-        for (const localChar of storyCharacters) {
-          if (!localChar.deleted && !remoteCharacterIds.has(localChar.id) && localChar.synced) {
-            // Character was deleted remotely, delete locally
-            const { deleteCharacter } = require('../database/characters');
-            await deleteCharacter(localChar.id);
-            pulledCount++;
-            console.log(`Deleted local character ${localChar.id} - removed from Firestore`);
-          }
-        }
-
-        // Process blurbs
-        for (const remoteBlurb of entitiesResult.data.blurbs || []) {
-          // Always track remote entity IDs to detect deletions, regardless of timestamp
-          remoteBlurbIds.add(remoteBlurb.id);
-          
-          // Filter by timestamp if incremental sync (skip update but still track for deletion check)
-          if (sinceTimestamp && remoteBlurb.updatedAt <= sinceTimestamp) {
-            continue;
-          }
-          const localBlurb = await getBlurb(remoteBlurb.id);
-          if (!localBlurb) {
-            // New blurb from remote, create locally and mark as synced
-            await createBlurb(remoteBlurb);
-            await markBlurbSynced(remoteBlurb.id);
-            pulledCount++;
-          } else {
-            // Resolve conflict using Last-Write-Wins
-            // If local entity is already synced and remote is newer, always use remote
-            const shouldUseRemote = localBlurb.synced 
-              ? remoteBlurb.updatedAt > localBlurb.updatedAt
-              : resolveConflict(localBlurb, remoteBlurb) === remoteBlurb || remoteBlurb.updatedAt > localBlurb.updatedAt;
-            
-            if (shouldUseRemote) {
-              // Remote is newer or local is synced and remote is newer, update local and mark as synced
-              await updateBlurb(remoteBlurb.id, remoteBlurb as any);
-              await markBlurbSynced(remoteBlurb.id);
-              pulledCount++;
-            }
-            // If local is newer and unsynced, it will be pushed in next sync
-          }
-        }
-        
-        // Delete local blurbs that don't exist in remote (were deleted in Firestore)
-        // Only delete if they're synced (local changes take precedence)
-        for (const localBlurb of storyBlurbs) {
-          if (!localBlurb.deleted && !remoteBlurbIds.has(localBlurb.id) && localBlurb.synced) {
-            // Blurb was deleted remotely, delete locally
-            const { deleteBlurb } = require('../database/blurbs');
-            await deleteBlurb(localBlurb.id);
-            pulledCount++;
-            console.log(`Deleted local blurb ${localBlurb.id} - removed from Firestore`);
-          }
-        }
-
-        // Process scenes
-        for (const remoteScene of entitiesResult.data.scenes || []) {
-          // Always track remote entity IDs to detect deletions, regardless of timestamp
-          remoteSceneIds.add(remoteScene.id);
-          
-          // Filter by timestamp if incremental sync (skip update but still track for deletion check)
-          if (sinceTimestamp && remoteScene.updatedAt <= sinceTimestamp) {
-            continue;
-          }
-          const localScene = await getScene(remoteScene.id);
-          if (!localScene) {
-            // New scene from remote, create locally and mark as synced
-            await createScene(remoteScene);
-            await markSceneSynced(remoteScene.id);
-            pulledCount++;
-          } else {
-            // Resolve conflict using Last-Write-Wins
-            // If local entity is already synced and remote is newer, always use remote
-            const shouldUseRemote = localScene.synced 
-              ? remoteScene.updatedAt > localScene.updatedAt
-              : resolveConflict(localScene, remoteScene) === remoteScene || remoteScene.updatedAt > localScene.updatedAt;
-            
-            if (shouldUseRemote) {
-              // Remote is newer or local is synced and remote is newer, update local and mark as synced
-              await updateScene(remoteScene.id, remoteScene as any);
-              await markSceneSynced(remoteScene.id);
-              pulledCount++;
-            }
-            // If local is newer and unsynced, it will be pushed in next sync
-          }
-        }
-        
-        // Delete local scenes that don't exist in remote (were deleted in Firestore)
-        // Only delete if they're synced (local changes take precedence)
-        for (const localScene of storyScenes) {
-          if (!localScene.deleted && !remoteSceneIds.has(localScene.id) && localScene.synced) {
-            // Scene was deleted remotely, delete locally
-            const { deleteScene } = require('../database/scenes');
-            await deleteScene(localScene.id);
-            pulledCount++;
-            console.log(`Deleted local scene ${localScene.id} - removed from Firestore`);
-          }
-        }
-
-        // Process chapters
-        for (const remoteChapter of entitiesResult.data.chapters || []) {
-          // Always track remote entity IDs to detect deletions, regardless of timestamp
-          remoteChapterIds.add(remoteChapter.id);
-          
-          // Filter by timestamp if incremental sync (skip update but still track for deletion check)
-          if (sinceTimestamp && remoteChapter.updatedAt <= sinceTimestamp) {
-            continue;
-          }
-          const localChapter = await getChapter(remoteChapter.id);
-          if (!localChapter) {
-            // New chapter from remote, create locally and mark as synced
-            await createChapter(remoteChapter);
-            await markChapterSynced(remoteChapter.id);
-            pulledCount++;
-          } else {
-            // Resolve conflict using Last-Write-Wins
-            // If local entity is already synced and remote is newer, always use remote
-            const shouldUseRemote = localChapter.synced 
-              ? remoteChapter.updatedAt > localChapter.updatedAt
-              : resolveConflict(localChapter, remoteChapter) === remoteChapter || remoteChapter.updatedAt > localChapter.updatedAt;
-            
-            if (shouldUseRemote) {
-              // Remote is newer or local is synced and remote is newer, update local and mark as synced
-              await updateChapter(remoteChapter.id, remoteChapter as any);
-              await markChapterSynced(remoteChapter.id);
-              pulledCount++;
-            }
-            // If local is newer and unsynced, it will be pushed in next sync
-          }
-        }
-        
-        // Delete local chapters that are marked as deleted in Firestore
-        const deletedChapterIds = entitiesResult.data.deletedChapters || [];
-        for (const deletedChapterId of deletedChapterIds) {
-          const localChapter = await getChapter(deletedChapterId);
-          if (localChapter) {
-            // Chapter is marked as deleted in Firestore, hard delete from local DB
-            const { deleteChapter } = require('../database/chapters');
-            await deleteChapter(deletedChapterId);
-            pulledCount++;
-            console.log(`Hard deleted local chapter ${deletedChapterId} - marked as deleted in Firestore`);
-          }
-        }
-        
-        // Delete local chapters that don't exist in remote (were deleted in Firestore)
-        // Only delete if they're synced (local changes take precedence)
-        for (const localChapter of storyChapters) {
-          if (!localChapter.deleted && !remoteChapterIds.has(localChapter.id) && localChapter.synced) {
-            // Chapter was deleted remotely (no longer exists), delete locally
-            const { deleteChapter } = require('../database/chapters');
-            await deleteChapter(localChapter.id);
-            pulledCount++;
-            console.log(`Deleted local chapter ${localChapter.id} - removed from Firestore`);
-          }
-        }
-      }
+      });
     }
 
   } catch (error) {
