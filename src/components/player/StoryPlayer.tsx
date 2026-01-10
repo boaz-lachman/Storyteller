@@ -31,7 +31,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [allVoices, setAllVoices] = useState<Voice[]>([]); // Store all voices for lookup
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
-  const [speechRate, setSpeechRate] = useState(0.333); // 0.0 to 1.0 (maps to 0.5x-2.0x, 0.333 ≈ 1.0x)
+  const [speechRate, setSpeechRate] = useState(0.533); // 0.0 to 1.0 (maps to 0.5x-2.0x, 0.533 ≈ 1.3x)
   const [speechPitch, setSpeechPitch] = useState(1.0); // 0.0 to 2.0
   const [voiceMenuVisible, setVoiceMenuVisible] = useState(false);
   const [hasVoicesForLocale, setHasVoicesForLocale] = useState(false);
@@ -303,20 +303,39 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
         {/* Voice Selection */}
         <View style={styles.voiceControlRow}>
-          <Text style={styles.label}>Voice:</Text>
+          <Text style={[styles.label, playerState === 'playing' && styles.disabledLabel]}>Voice:</Text>
           <Menu
             key={`voice-menu-${selectedVoice || 'none'}`}
-            visible={voiceMenuVisible}
+            visible={voiceMenuVisible && playerState !== 'playing'}
             onDismiss={() => setVoiceMenuVisible(false)}
             anchor={
               <TouchableOpacity
-                style={styles.voiceSelector}
-                onPress={() => setVoiceMenuVisible(true)}
+                style={[
+                  styles.voiceSelector,
+                  playerState === 'playing' && styles.voiceSelectorDisabled
+                ]}
+                onPress={() => {
+                  if (playerState !== 'playing') {
+                    setVoiceMenuVisible(true);
+                  }
+                }}
+                disabled={playerState === 'playing'}
               >
-                <Text style={styles.voiceText} numberOfLines={1} ellipsizeMode="tail">
+                <Text
+                  style={[
+                    styles.voiceText,
+                    playerState === 'playing' && styles.voiceTextDisabled
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {getSelectedVoiceName()}
                 </Text>
-                <Feather name="chevron-down" size={16} color={colors.primary} />
+                <Feather
+                  name="chevron-down"
+                  size={16}
+                  color={playerState === 'playing' ? colors.textTertiary : colors.primary}
+                />
               </TouchableOpacity>
             }
           >
@@ -327,10 +346,6 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
                   onPress={() => {
                     setSelectedVoice(voice.identifier);
                     setVoiceMenuVisible(false);
-                    // Stop current speech if playing
-                    if (playerState === 'playing') {
-                      handleStop();
-                    }
                   }}
                   title={voice.name || voice.identifier}
                 />
@@ -349,29 +364,50 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
         {/* Speed Control */}
         <View style={styles.controlRow}>
-          <Text style={styles.label}>Speed:</Text>
+          <Text style={[styles.label, playerState === 'playing' && styles.disabledLabel]}>Speed:</Text>
           <View style={styles.speedControls}>
             <TouchableOpacity
-              style={styles.speedButton}
+              style={[
+                styles.speedButton,
+                playerState === 'playing' && styles.speedButtonDisabled
+              ]}
               onPress={handleDecreaseSpeed}
-              disabled={speechRate <= 0.0}
+              disabled={playerState === 'playing' || speechRate <= 0.0}
             >
               <Feather
                 name="minus"
                 size={20}
-                color={speechRate <= 0.0 ? colors.textTertiary : colors.primary}
+                color={
+                  playerState === 'playing' || speechRate <= 0.0
+                    ? colors.textTertiary
+                    : colors.primary
+                }
               />
             </TouchableOpacity>
-            <Text style={styles.speedValue}>{formatSpeed(speechRate)}</Text>
+            <Text
+              style={[
+                styles.speedValue,
+                playerState === 'playing' && styles.speedValueDisabled
+              ]}
+            >
+              {formatSpeed(speechRate)}
+            </Text>
             <TouchableOpacity
-              style={styles.speedButton}
+              style={[
+                styles.speedButton,
+                playerState === 'playing' && styles.speedButtonDisabled
+              ]}
               onPress={handleIncreaseSpeed}
-              disabled={speechRate >= 1.0}
+              disabled={playerState === 'playing' || speechRate >= 1.0}
             >
               <Feather
                 name="plus"
                 size={20}
-                color={speechRate >= 1.0 ? colors.textTertiary : colors.primary}
+                color={
+                  playerState === 'playing' || speechRate >= 1.0
+                    ? colors.textTertiary
+                    : colors.primary
+                }
               />
             </TouchableOpacity>
           </View>
@@ -481,11 +517,22 @@ const styles = StyleSheet.create({
     width: '90%',
     minHeight: 36,
   },
+  voiceSelectorDisabled: {
+    opacity: 0.5,
+    backgroundColor: colors.background + '80',
+  },
   voiceText: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.fontSize.sm,
     color: colors.text,
     flex: 1,
+  },
+  voiceTextDisabled: {
+    color: colors.textSecondary,
+  },
+  disabledLabel: {
+    opacity: 0.5,
+    color: colors.textSecondary,
   },
   speedControls: {
     flexDirection: 'row',
@@ -504,6 +551,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  speedButtonDisabled: {
+    opacity: 0.5,
+    backgroundColor: colors.background + '80',
+  },
   speedValue: {
     fontFamily: typography.fontFamily.semibold,
     fontSize: typography.fontSize.md,
@@ -511,6 +562,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     minWidth: 50,
     textAlign: 'center',
+  },
+  speedValueDisabled: {
+    opacity: 0.5,
+    color: colors.textSecondary,
   },
   playbackControls: {
     flexDirection: 'row',

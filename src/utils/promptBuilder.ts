@@ -291,5 +291,6 @@ Guidelines:
 - Maintain consistency in character development and plot progression
 - Create a cohesive narrative that flows naturally
 - Respect the specified length requirements
-- Write in a style appropriate for the target audience`;
+- Write in a style appropriate for the target audience
+- format it in a way that is easy for text-to-speech to read aloud`;
 };
