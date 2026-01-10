@@ -8,6 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO",
         "FIREBASE_API_KEY": "$FIREBASE_API_KEY",
         "FIREBASE_PROJECT_ID": "$FIREBASE_PROJECT_ID",
         "FIREBASE_AUTH_DOMAIN": "$FIREBASE_AUTH_DOMAIN",
@@ -22,6 +24,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO",
         "FIREBASE_API_KEY": "$FIREBASE_API_KEY",
         "FIREBASE_PROJECT_ID": "$FIREBASE_PROJECT_ID",
         "FIREBASE_AUTH_DOMAIN": "$FIREBASE_AUTH_DOMAIN",
@@ -36,6 +40,8 @@
     "production": {
       "autoIncrement": true,
       "env": {
+        "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
+        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO",
         "FIREBASE_API_KEY": "$FIREBASE_API_KEY",
         "FIREBASE_PROJECT_ID": "$FIREBASE_PROJECT_ID",
         "FIREBASE_AUTH_DOMAIN": "$FIREBASE_AUTH_DOMAIN",

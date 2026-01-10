@@ -13,7 +13,7 @@ export default ({ config }) => {
       name: 'Storyteller',
       slug: 'Storyteller',
       version: '1.0.0',
-      orientation: 'portrait',
+      orientation: 'default',
       icon: './assets/icon.png',
       userInterfaceStyle: 'light',
       newArchEnabled: true,
@@ -25,6 +25,7 @@ export default ({ config }) => {
       ios: {
         supportsTablet: true,
         bundleIdentifier: 'com.boaz606.storyteller',
+        googleServicesFile: "./GoogleService-Info.plist",
         infoPlist: {
           NSMicrophoneUsageDescription: 'This app uses the microphone for audio interactions.',
           NSSpeechRecognitionUsageDescription: 'This app uses speech recognition to read your stories aloud.',
@@ -39,6 +40,7 @@ export default ({ config }) => {
         edgeToEdgeEnabled: true,
         package: 'com.boaz606.storyteller',
         predictiveBackGestureEnabled: false,
+        googleServicesFile: "./google-services.json",
         permissions: [
           'android.permission.RECEIVE_BOOT_COMPLETED',
           'android.permission.WAKE_LOCK',
