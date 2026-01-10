@@ -19,8 +19,7 @@
         "ELEVENLABS_API_KEY": "$ELEVENLABS_API_KEY",
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "development"
-      },
-      "prebuildCommand": "npm run inject-firebase"
+      }
     },
     "preview": {
       "distribution": "internal",
@@ -36,8 +35,7 @@
         "ELEVENLABS_API_KEY": "$ELEVENLABS_API_KEY",
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "preview"
-      },
-      "prebuildCommand": "npm run inject-firebase"
+      }
     },
     "production": {
       "autoIncrement": true,
@@ -53,8 +51,7 @@
         "ELEVENLABS_API_KEY": "$ELEVENLABS_API_KEY",
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "production"
-      },
-      "prebuildCommand": "node scripts/inject-firebase-config.js"
+      }
     }
   },
   "submit": {

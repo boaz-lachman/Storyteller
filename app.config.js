@@ -25,7 +25,7 @@ export default ({ config }) => {
       ios: {
         supportsTablet: true,
         bundleIdentifier: 'com.boaz606.storyteller',
-        googleServicesFile: "./GoogleService-Info.plist",
+        googleServicesFile:  process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
         infoPlist: {
           NSMicrophoneUsageDescription: 'This app uses the microphone for audio interactions.',
           NSSpeechRecognitionUsageDescription: 'This app uses speech recognition to read your stories aloud.',
@@ -40,7 +40,7 @@ export default ({ config }) => {
         edgeToEdgeEnabled: true,
         package: 'com.boaz606.storyteller',
         predictiveBackGestureEnabled: false,
-        googleServicesFile: "./google-services.json",
+        googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
         permissions: [
           'android.permission.RECEIVE_BOOT_COMPLETED',
           'android.permission.WAKE_LOCK',
