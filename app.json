@@ -63,7 +63,12 @@
     "extra": {
       "firebaseAPIKey": "${FIREBASE_API_KEY}",
       "firebaseProjectId": "${FIREBASE_PROJECT_ID}",
+      "firebaseAuthDomain": "${FIREBASE_AUTH_DOMAIN}",
+      "firebaseStorageBucket": "${FIREBASE_STORAGE_BUCKET}",
+      "firebaseAndroidAppId": "${FIREBASE_ANDROID_APP_ID}",
+      "firebaseIosAppId": "${FIREBASE_IOS_APP_ID}",
       "claudeAPIKey": "${CLAUDE_API_KEY}",
+      "elevenlabsApiKey": "${ELEVENLABS_API_KEY}",
       "router": {},
       "eas": {
         "projectId": "10c8468b-a73d-43b5-827b-8838626041b2"
