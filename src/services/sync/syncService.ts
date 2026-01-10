@@ -618,11 +618,24 @@ export const pullRemoteChanges = async (
           }
         }
         
+        // Delete local chapters that are marked as deleted in Firestore
+        const deletedChapterIds = entitiesResult.data.deletedChapters || [];
+        for (const deletedChapterId of deletedChapterIds) {
+          const localChapter = await getChapter(deletedChapterId);
+          if (localChapter) {
+            // Chapter is marked as deleted in Firestore, hard delete from local DB
+            const { deleteChapter } = require('../database/chapters');
+            await deleteChapter(deletedChapterId);
+            pulledCount++;
+            console.log(`Hard deleted local chapter ${deletedChapterId} - marked as deleted in Firestore`);
+          }
+        }
+        
         // Delete local chapters that don't exist in remote (were deleted in Firestore)
         // Only delete if they're synced (local changes take precedence)
         for (const localChapter of storyChapters) {
           if (!localChapter.deleted && !remoteChapterIds.has(localChapter.id) && localChapter.synced) {
-            // Chapter was deleted remotely, delete locally
+            // Chapter was deleted remotely (no longer exists), delete locally
             const { deleteChapter } = require('../database/chapters');
             await deleteChapter(localChapter.id);
             pulledCount++;

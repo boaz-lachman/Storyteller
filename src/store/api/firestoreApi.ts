@@ -399,6 +399,7 @@ export const firestoreApi = createApi({
         blurbs: IdeaBlurb[];
         scenes: Scene[];
         chapters: Chapter[];
+        deletedChapters?: string[];
       },
       {
         storyId: string;

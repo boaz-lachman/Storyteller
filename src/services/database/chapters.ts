@@ -9,11 +9,11 @@ import { getCurrentTimestamp, generateId } from '../../utils/helpers';
  * Create a new chapter
  */
 export const createChapter = async (
-  chapter: ChapterCreateInput & { userId: string; storyId: string }
+  chapter: (ChapterCreateInput & { userId: string; storyId: string }) | Chapter
 ): Promise<Chapter> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
-  const id = chapter.id ?? generateId();
+  const id = ('id' in chapter && chapter.id) ? chapter.id : generateId();
 
   // If order not provided, find the lowest available (vacant) order number
   // If order is provided and conflicts, shift existing chapters to make room
@@ -107,9 +107,9 @@ export const createChapter = async (
       description: chapter.description,
       order: order!,
       importance: chapter.importance,
-      createdAt: now,
-      updatedAt: now,
-      synced: chapter.synced ?? false,
+      createdAt: ('createdAt' in chapter && chapter.createdAt) ? chapter.createdAt : now,
+      updatedAt: ('updatedAt' in chapter && chapter.updatedAt) ? chapter.updatedAt : now,
+      synced: ('synced' in chapter && chapter.synced !== undefined) ? chapter.synced : false,
       deleted: false,
     };
 
@@ -259,11 +259,19 @@ export const reorderChapters = async (
 };
 
 /**
- * Delete a chapter (soft delete)
+ * Delete a chapter (hard delete - removes from database)
+ */
+export const deleteChapter = async (id: string): Promise<void> => {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM Chapters WHERE id = ?', [id]);
+};
+
+/**
+ * Soft delete a chapter (for backward compatibility)
  * Sets order to a unique negative value to free up the order number for reuse
  * Uses a hash of the chapter ID to ensure uniqueness even with the old UNIQUE constraint
  */
-export const deleteChapter = async (id: string): Promise<void> => {
+export const softDeleteChapter = async (id: string): Promise<void> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
   

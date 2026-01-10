@@ -476,6 +476,7 @@ export async function downloadEntitiesForStory(
   blurbs: IdeaBlurb[];
   scenes: Scene[];
   chapters: Chapter[];
+  deletedChapters?: string[];
 }> {
   if (!isFirebaseConfigured()) {
     throw new Error('Firebase is not configured');
@@ -486,6 +487,7 @@ export async function downloadEntitiesForStory(
     blurbs: [] as IdeaBlurb[],
     scenes: [] as Scene[],
     chapters: [] as Chapter[],
+    deletedChapters: [] as string[], // Track deleted chapter IDs
   };
 
   // Download characters
@@ -596,13 +598,13 @@ export async function downloadEntitiesForStory(
     console.error('Error downloading scenes:', error);
   }
 
-  // Download chapters
+  // Download chapters (including deleted ones to detect deletions)
   try {
     const chaptersCollection = getChaptersCollection();
+    // Don't filter by deleted - we need to know about deleted chapters to remove them locally
     const chaptersQuery = query(
       chaptersCollection,
-      where('storyId', '==', storyId),
-      where('deleted', '==', false)
+      where('storyId', '==', storyId)
     );
     const chaptersSnapshot = await getDocs(chaptersQuery);
 
@@ -610,6 +612,12 @@ export async function downloadEntitiesForStory(
       try {
         const data = docSnap.data() as FirestoreChapterData;
         const remoteChapter = fromFirestoreChapter(docSnap.id, data);
+
+        // Track deleted chapters separately
+        if (remoteChapter.deleted) {
+          results.deletedChapters.push(remoteChapter.id);
+          return;
+        }
 
         // Resolve conflict if local entity exists
         if (localEntities?.chapters) {
