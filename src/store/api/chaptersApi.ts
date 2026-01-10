@@ -15,6 +15,7 @@ import {
 import { firestoreApi } from './firestoreApi';
 import { networkService } from '../../services/network/networkService';
 import { syncQueueManager } from '../../services/sync/queueManager';
+import { syncManager } from '../../services/sync/syncManager';
 import type { Chapter, ChapterCreateInput, ChapterUpdateInput } from '../../types';
 
 interface ChaptersQueryArgs {
@@ -223,6 +224,16 @@ export const chaptersApi = createApi({
         }
         return [{ type: 'Chapter', id: `LIST-${args.storyId}` }];
       },
+      async onQueryStarted({ userId }, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Trigger sync after successful creation
+          syncManager.triggerSyncOnEntityChange(userId);
+        } catch (error) {
+          // Sync will happen on next sync cycle
+          console.error('Error triggering sync after chapter creation:', error);
+        }
+      },
     }),
     updateChapter: builder.mutation<Chapter, ChapterUpdateArgs>({
       query: (args) => args,
@@ -258,6 +269,13 @@ export const chaptersApi = createApi({
 
         try {
           await queryFulfilled;
+          
+          // Trigger sync after successful update
+          const state = getState() as any;
+          const authUser = state?.auth?.user;
+          if (authUser?.uid) {
+            syncManager.triggerSyncOnEntityChange(authUser.uid);
+          }
         } catch (err) {
           patchResult.undo();
           listPatchResult?.undo();
@@ -295,6 +313,21 @@ export const chaptersApi = createApi({
           { type: 'Chapter', id: `LIST-${args.storyId}` },
           ...result.map((chapter) => ({ type: 'Chapter' as const, id: chapter.id })),
         ];
+      },
+      async onQueryStarted({ storyId }, { dispatch, queryFulfilled, getState }) {
+        try {
+          await queryFulfilled;
+          
+          // Trigger sync after successful reorder
+          const state = getState() as any;
+          const authUser = state?.auth?.user;
+          if (authUser?.uid) {
+            syncManager.triggerSyncOnEntityChange(authUser.uid);
+          }
+        } catch (error) {
+          // Sync will happen on next sync cycle
+          console.error('Error triggering sync after chapter reorder:', error);
+        }
       },
     }),
   }),

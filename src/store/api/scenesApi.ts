@@ -14,6 +14,7 @@ import {
 import { firestoreApi } from './firestoreApi';
 import { networkService } from '../../services/network/networkService';
 import { syncQueueManager } from '../../services/sync/queueManager';
+import { syncManager } from '../../services/sync/syncManager';
 import type { Scene, SceneCreateInput, SceneUpdateInput } from '../../types';
 
 interface ScenesQueryArgs {
@@ -179,6 +180,16 @@ export const scenesApi = createApi({
         }
         return [{ type: 'Scene', id: `LIST-${args.storyId}` }];
       },
+      async onQueryStarted({ userId }, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Trigger sync after successful creation
+          syncManager.triggerSyncOnEntityChange(userId);
+        } catch (error) {
+          // Sync will happen on next sync cycle
+          console.error('Error triggering sync after scene creation:', error);
+        }
+      },
     }),
     updateScene: builder.mutation<Scene, SceneUpdateArgs>({
       query: (args) => args,
@@ -214,6 +225,13 @@ export const scenesApi = createApi({
 
         try {
           await queryFulfilled;
+          
+          // Trigger sync after successful update
+          const state = getState() as any;
+          const authUser = state?.auth?.user;
+          if (authUser?.uid) {
+            syncManager.triggerSyncOnEntityChange(authUser.uid);
+          }
         } catch (err) {
           patchResult.undo();
           listPatchResult?.undo();
