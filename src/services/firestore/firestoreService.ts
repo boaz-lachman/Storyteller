@@ -8,6 +8,8 @@ import {
   doc,
   writeBatch,
   setDoc,
+  deleteDoc,
+  updateDoc,
   getDocs,
   query,
   where,
@@ -329,6 +331,84 @@ export async function uploadChapter(chapter: Chapter): Promise<Chapter> {
   }, { merge: true });
 
   return { ...chapter, synced: true };
+}
+
+// ============================================================================
+// Delete Functions
+// ============================================================================
+
+/**
+ * Delete a story from Firestore (hard delete)
+ * Stories don't have a deleted field, so they are hard-deleted
+ */
+export async function deleteStoryFromFirestore(storyId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getStoryDoc(storyId);
+  await deleteDoc(docRef);
+}
+
+/**
+ * Delete a character from Firestore (soft delete - mark as deleted)
+ * Characters have a deleted field, so they are soft-deleted
+ */
+export async function deleteCharacterFromFirestore(characterId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getCharacterDoc(characterId);
+  await updateDoc(docRef, {
+    deleted: true,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Delete a blurb from Firestore (soft delete - mark as deleted)
+ */
+export async function deleteBlurbFromFirestore(blurbId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getBlurbDoc(blurbId);
+  await updateDoc(docRef, {
+    deleted: true,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Delete a scene from Firestore (soft delete - mark as deleted)
+ */
+export async function deleteSceneFromFirestore(sceneId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getSceneDoc(sceneId);
+  await updateDoc(docRef, {
+    deleted: true,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Delete a chapter from Firestore (soft delete - mark as deleted)
+ */
+export async function deleteChapterFromFirestore(chapterId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getChapterDoc(chapterId);
+  await updateDoc(docRef, {
+    deleted: true,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 // ============================================================================

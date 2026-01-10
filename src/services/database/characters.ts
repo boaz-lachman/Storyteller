@@ -13,7 +13,7 @@ export const createCharacter = async (
 ): Promise<Character> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
-  const id = generateId();
+  const id = character.id ?? generateId();
 
   const newCharacter: Character = {
     id,
@@ -27,7 +27,7 @@ export const createCharacter = async (
     importance: character.importance,
     createdAt: now,
     updatedAt: now,
-    synced: false,
+    synced: character.synced ?? false,
     deleted: false,
   };
 
@@ -136,6 +136,9 @@ export const updateCharacter = async (
     return getCharacter(id);
   }
 
+  // Mark as unsynced when updated
+  fields.push('synced = ?');
+  values.push(0);
   fields.push('updatedAt = ?');
   values.push(now);
   values.push(id);

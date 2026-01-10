@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing.normal,
     textTransform: 'none', // Don't uppercase
     paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 5,
   },
   labelOutline: {
     // Additional styles for outline variant if needed
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 5,
   },
   contentRTL: {
     // RTL-specific content styles if needed

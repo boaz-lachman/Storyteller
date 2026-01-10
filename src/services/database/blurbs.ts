@@ -13,7 +13,7 @@ export const createBlurb = async (
 ): Promise<IdeaBlurb> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
-  const id = generateId();
+  const id = blurb.id ?? generateId();
 
   const newBlurb: IdeaBlurb = {
     id,
@@ -25,7 +25,7 @@ export const createBlurb = async (
     importance: blurb.importance,
     createdAt: now,
     updatedAt: now,
-    synced: false,
+    synced: blurb.synced ?? false,
     deleted: false,
   };
 
@@ -118,6 +118,9 @@ export const updateBlurb = async (
     return getBlurb(id);
   }
 
+  // Mark as unsynced when updated
+  fields.push('synced = ?');
+  values.push(0);
   fields.push('updatedAt = ?');
   values.push(now);
   values.push(id);

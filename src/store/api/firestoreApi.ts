@@ -11,6 +11,11 @@ import {
   uploadBlurb,
   uploadScene,
   uploadChapter,
+  deleteStoryFromFirestore,
+  deleteCharacterFromFirestore,
+  deleteBlurbFromFirestore,
+  deleteSceneFromFirestore,
+  deleteChapterFromFirestore,
   downloadStories,
   downloadEntitiesForStory,
   isFirebaseConfigured,
@@ -28,10 +33,11 @@ import type {
 // ============================================================================
 
 interface FirestoreQueryArgs {
-  type: 'upload' | 'download';
+  type: 'upload' | 'download' | 'delete';
   entityType?: 'story' | 'character' | 'blurb' | 'scene' | 'chapter';
   operation?: string;
   data?: any;
+  entityId?: string;
   userId?: string;
   storyId?: string;
   localEntities?: {
@@ -59,7 +65,7 @@ const firestoreBaseQuery = (): BaseQueryFn<
         };
       }
 
-      const { type, entityType, operation, data, userId, storyId, localEntities } = args;
+      const { type, entityType, operation, data, entityId, userId, storyId, localEntities } = args;
 
       // Handle upload operations
       if (type === 'upload') {
@@ -171,6 +177,48 @@ const firestoreBaseQuery = (): BaseQueryFn<
         }
       }
 
+      // Handle delete operations
+      if (type === 'delete') {
+        if (!entityId) {
+          return {
+            error: {
+              error: 'Entity ID is required',
+              status: 400,
+            },
+          };
+        }
+
+        switch (entityType) {
+          case 'story':
+            await deleteStoryFromFirestore(entityId);
+            return { data: { id: entityId, deleted: true } };
+
+          case 'character':
+            await deleteCharacterFromFirestore(entityId);
+            return { data: { id: entityId, deleted: true } };
+
+          case 'blurb':
+            await deleteBlurbFromFirestore(entityId);
+            return { data: { id: entityId, deleted: true } };
+
+          case 'scene':
+            await deleteSceneFromFirestore(entityId);
+            return { data: { id: entityId, deleted: true } };
+
+          case 'chapter':
+            await deleteChapterFromFirestore(entityId);
+            return { data: { id: entityId, deleted: true } };
+
+          default:
+            return {
+              error: {
+                error: `Unknown entity type: ${entityType}`,
+                status: 400,
+              },
+            };
+        }
+      }
+
       return {
         error: {
           error: 'Invalid query type',
@@ -258,6 +306,70 @@ export const firestoreApi = createApi({
         type: 'upload',
         entityType: 'chapter',
         data: chapter,
+      }),
+      invalidatesTags: [{ type: 'Chapter', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
+    // ============================================================================
+    // Delete Mutations
+    // ============================================================================
+
+    /**
+     * Delete a story from Firestore (hard delete)
+     */
+    deleteStory: builder.mutation<{ id: string; deleted: boolean }, string>({
+      query: (storyId) => ({
+        type: 'delete',
+        entityType: 'story',
+        entityId: storyId,
+      }),
+      invalidatesTags: [{ type: 'Story', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
+    /**
+     * Delete a character from Firestore (soft delete)
+     */
+    deleteCharacter: builder.mutation<{ id: string; deleted: boolean }, string>({
+      query: (characterId) => ({
+        type: 'delete',
+        entityType: 'character',
+        entityId: characterId,
+      }),
+      invalidatesTags: [{ type: 'Character', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
+    /**
+     * Delete a blurb from Firestore (soft delete)
+     */
+    deleteBlurb: builder.mutation<{ id: string; deleted: boolean }, string>({
+      query: (blurbId) => ({
+        type: 'delete',
+        entityType: 'blurb',
+        entityId: blurbId,
+      }),
+      invalidatesTags: [{ type: 'Blurb', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
+    /**
+     * Delete a scene from Firestore (soft delete)
+     */
+    deleteScene: builder.mutation<{ id: string; deleted: boolean }, string>({
+      query: (sceneId) => ({
+        type: 'delete',
+        entityType: 'scene',
+        entityId: sceneId,
+      }),
+      invalidatesTags: [{ type: 'Scene', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
+    /**
+     * Delete a chapter from Firestore (soft delete)
+     */
+    deleteChapter: builder.mutation<{ id: string; deleted: boolean }, string>({
+      query: (chapterId) => ({
+        type: 'delete',
+        entityType: 'chapter',
+        entityId: chapterId,
       }),
       invalidatesTags: [{ type: 'Chapter', id: 'LIST' }, { type: 'Sync' }],
     }),

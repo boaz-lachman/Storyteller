@@ -11,6 +11,10 @@ import {
   getCharacter,
   updateCharacter,
 } from '../../services/database/characters';
+import { firestoreApi } from './firestoreApi';
+import { networkService } from '../../services/network/networkService';
+import { syncQueueManager } from '../../services/sync/queueManager';
+import { syncManager } from '../../services/sync/syncManager';
 import type { Character, CharacterCreateInput, CharacterUpdateInput } from '../../types';
 
 interface CharactersQueryArgs {
@@ -148,6 +152,16 @@ export const charactersApi = createApi({
       invalidatesTags: (result, error, { storyId }) => [
         { type: 'Character', id: `LIST-${storyId}` },
       ],
+      async onQueryStarted({ userId }, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Trigger sync after successful creation
+          syncManager.triggerSyncOnEntityChange(userId);
+        } catch (error) {
+          // Sync will happen on next sync cycle
+          console.error('Error triggering sync after character creation:', error);
+        }
+      },
     }),
 
     // Update a character
@@ -202,6 +216,13 @@ export const charactersApi = createApi({
 
         try {
           await queryFulfilled;
+          
+          // Trigger sync after successful update
+          const state = getState() as any;
+          const authUser = state?.auth?.user;
+          if (authUser?.uid) {
+            syncManager.triggerSyncOnEntityChange(authUser.uid);
+          }
         } catch (err) {
           // Rollback optimistic updates on error
           patchResult.undo();
@@ -219,23 +240,15 @@ export const charactersApi = createApi({
       },
     }),
 
-    // Delete a character
+    // Delete a character (using delayed deletion - actual deletion handled by deletionManager)
     deleteCharacter: builder.mutation<
       { id: string; deleted: boolean; storyId?: string },
       { id: string; storyId?: string }
     >({
       queryFn: async ({ id }) => {
-        try {
-          await deleteCharacter(id);
-          return { data: { id, deleted: true } };
-        } catch (error: any) {
-          return {
-            error: {
-              error: error.message || 'Unknown error occurred',
-              status: 500,
-            },
-          };
-        }
+        // This is a placeholder - actual deletion is handled by deletionManager
+        // The mutation will be called after the delay if undo wasn't pressed
+        return { data: { id, deleted: true } };
       },
       invalidatesTags: (result, error, { id, storyId }) => {
         const tags: Array<{ type: 'Character'; id: string }> = [{ type: 'Character', id }];

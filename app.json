@@ -40,7 +40,17 @@
       "expo-font",
       "expo-sqlite",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-background-fetch",
+        {
+          "backgroundFetchConfig": {
+            "minimumInterval": 15,
+            "stopOnTerminate": false,
+            "startOnBoot": true
+          }
+        }
+      ]
     ],
     "extra": {
       "firebaseAPIKey": "${FIREBASE_API_KEY}",

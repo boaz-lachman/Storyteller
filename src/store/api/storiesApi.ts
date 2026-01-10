@@ -5,6 +5,11 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { getAllStories, createStory, deleteStory, getStory, updateStory } from '../../services/database/stories';
+import { firestoreApi } from './firestoreApi';
+import { networkService } from '../../services/network/networkService';
+import { syncQueueManager } from '../../services/sync/queueManager';
+import { syncManager } from '../../services/sync/syncManager';
+import { useAuth } from '../../hooks/useAuth';
 import type { Story, StoryCreateInput, StoryUpdateInput } from '../../types';
 
 interface StoriesQueryArgs {
@@ -134,6 +139,16 @@ export const storiesApi = createApi({
     createStory: builder.mutation<Story, StoryCreateArgs>({
       query: (args) => args,
       invalidatesTags: [{ type: 'Story', id: 'LIST' }],
+      async onQueryStarted({ userId }, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Trigger sync after successful creation
+          syncManager.triggerSyncOnEntityChange(userId);
+        } catch (error) {
+          // Sync will happen on next sync cycle
+          console.error('Error triggering sync after story creation:', error);
+        }
+      },
     }),
 
     // Update a story with optimistic updates
@@ -178,6 +193,13 @@ export const storiesApi = createApi({
         try {
           // Wait for query to complete
           await queryFulfilled;
+          
+          // Trigger sync after successful update
+          const state = getState() as any;
+          const authUser = state?.auth?.user;
+          if (authUser?.uid) {
+            syncManager.triggerSyncOnEntityChange(authUser.uid);
+          }
         } catch (err) {
           // If query fails, revert both optimistic updates
           patchResult.undo();
@@ -193,20 +215,12 @@ export const storiesApi = createApi({
       ],
     }),
 
-    // Delete a story
+    // Delete a story (using delayed deletion - actual deletion handled by deletionManager)
     deleteStory: builder.mutation<{ id: string; deleted: boolean }, string>({
       queryFn: async (id) => {
-        try {
-          await deleteStory(id);
-          return { data: { id, deleted: true } };
-        } catch (error: any) {
-          return {
-            error: {
-              error: error.message || 'Unknown error occurred',
-              status: 500,
-            },
-          };
-        }
+        // This is a placeholder - actual deletion is handled by deletionManager
+        // The mutation will be called after the delay if undo wasn't pressed
+        return { data: { id, deleted: true } };
       },
       invalidatesTags: (result, error, id) => [
         { type: 'Story', id },

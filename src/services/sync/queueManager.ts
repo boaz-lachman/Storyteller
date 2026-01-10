@@ -1,114 +1,299 @@
 /**
  * Sync Queue Manager
  * Manages the queue of items waiting to be synced
+ * Persists to SQLite for reliability across app restarts
  */
 import { generateId, getCurrentTimestamp } from '../../utils/helpers';
 import type { SyncQueueItem } from '../../store/slices/syncSlice';
+import {
+  addSyncQueueItem as dbAddSyncQueueItem,
+  getAllSyncQueueItems,
+  getSyncQueueItemsByType,
+  getRetryableSyncQueueItems,
+  getSyncQueueItem as dbGetSyncQueueItem,
+  removeSyncQueueItem as dbRemoveSyncQueueItem,
+  removeSyncQueueItemByEntity,
+  markSyncQueueItemFailed as dbMarkSyncQueueItemFailed,
+  clearSyncQueue as dbClearSyncQueue,
+  clearProcessedSyncQueueItems,
+  getSyncQueueSize,
+  recordToSyncQueueItem,
+  type SyncQueueItemRecord,
+} from '../database/syncQueue';
+import { networkService } from '../network/networkService';
+import { store } from '../../store';
+import { firestoreApi } from '../../store/api/firestoreApi';
 
 export interface QueueItem extends SyncQueueItem {
   retryCount?: number;
   lastError?: string;
+  data?: any;
 }
 
 class SyncQueueManager {
-  private queue: QueueItem[] = [];
   private maxRetries = 3;
+  private isProcessing = false;
 
   /**
-   * Add item to sync queue
+   * Add item to sync queue (persists to SQLite)
    */
-  add(
+  async add(
     type: SyncQueueItem['type'],
     entityId: string,
-    operation: SyncQueueItem['operation']
-  ): string {
-    const queueId = generateId();
+    operation: SyncQueueItem['operation'],
+    data?: any
+  ): Promise<string> {
+    const id = generateId();
     
-    // Remove existing item for same entity/type to avoid duplicates
-    this.queue = this.queue.filter(
-      (item) => !(item.entityId === entityId && item.type === type)
-    );
-
-    const item: QueueItem = {
-      id: queueId,
+    await dbAddSyncQueueItem({
+      id,
       type,
       entityId,
       operation,
       timestamp: getCurrentTimestamp(),
       retryCount: 0,
-    };
+      data,
+    });
 
-    this.queue.push(item);
-    return queueId;
+    return id;
   }
 
   /**
-   * Get all items in queue
+   * Get all items in queue (from SQLite)
    */
-  getAll(): QueueItem[] {
-    return [...this.queue];
+  async getAll(): Promise<QueueItem[]> {
+    const records = await getAllSyncQueueItems();
+    return records.map(this.recordToQueueItem);
   }
 
   /**
    * Get items by type
    */
-  getByType(type: SyncQueueItem['type']): QueueItem[] {
-    return this.queue.filter((item) => item.type === type);
+  async getByType(type: SyncQueueItem['type']): Promise<QueueItem[]> {
+    const records = await getSyncQueueItemsByType(type);
+    return records.map(this.recordToQueueItem);
   }
 
   /**
    * Get items ready to retry (failed but under max retries)
    */
-  getRetryable(): QueueItem[] {
-    return this.queue.filter(
-      (item) => item.lastError && (item.retryCount || 0) < this.maxRetries
-    );
+  async getRetryable(): Promise<QueueItem[]> {
+    const records = await getRetryableSyncQueueItems(this.maxRetries);
+    return records.map(this.recordToQueueItem);
   }
 
   /**
    * Remove item from queue
    */
-  remove(queueId: string): void {
-    this.queue = this.queue.filter((item) => item.id !== queueId);
+  async remove(queueId: string): Promise<void> {
+    await dbRemoveSyncQueueItem(queueId);
   }
 
   /**
    * Mark item as failed and increment retry count
    */
-  markFailed(queueId: string, error: string): void {
-    const item = this.queue.find((i) => i.id === queueId);
-    if (item) {
-      item.lastError = error;
-      item.retryCount = (item.retryCount || 0) + 1;
-    }
+  async markFailed(queueId: string, error: string): Promise<void> {
+    await dbMarkSyncQueueItemFailed(queueId, error);
   }
 
   /**
    * Clear all items from queue
    */
-  clear(): void {
-    this.queue = [];
+  async clear(): Promise<void> {
+    await dbClearSyncQueue();
   }
 
   /**
    * Clear processed items (successfully synced)
    */
-  clearProcessed(processedIds: string[]): void {
-    this.queue = this.queue.filter((item) => !processedIds.includes(item.id));
+  async clearProcessed(processedIds: string[]): Promise<void> {
+    if (processedIds.length > 0) {
+      await clearProcessedSyncQueueItems(processedIds);
+    }
   }
 
   /**
    * Get queue size
    */
-  size(): number {
-    return this.queue.length;
+  async size(): Promise<number> {
+    return await getSyncQueueSize();
   }
 
   /**
    * Check if queue is empty
    */
-  isEmpty(): boolean {
-    return this.queue.length === 0;
+  async isEmpty(): Promise<boolean> {
+    const size = await this.size();
+    return size === 0;
+  }
+
+  /**
+   * Process all items in the sync queue
+   * Attempts to sync queued operations when online
+   */
+  async processQueue(userId: string): Promise<{
+    processed: number;
+    failed: number;
+    errors: string[];
+  }> {
+    // Prevent concurrent processing
+    if (this.isProcessing) {
+      console.log('Queue processing already in progress, skipping...');
+      return { processed: 0, failed: 0, errors: [] };
+    }
+
+    this.isProcessing = true;
+    const errors: string[] = [];
+    let processed = 0;
+    let failed = 0;
+
+    try {
+      // Check if online
+      const online = await networkService.isOnline();
+      if (!online) {
+        console.log('Not online, cannot process queue');
+        return { processed: 0, failed: 0, errors: ['No network connection'] };
+      }
+
+      // Get all items in queue
+      const queueItems = await this.getAll();
+
+      if (queueItems.length === 0) {
+        console.log('Queue is empty, nothing to process');
+        return { processed: 0, failed: 0, errors: [] };
+      }
+
+      console.log(`Processing ${queueItems.length} items in sync queue...`);
+
+      // Separate delete operations from create/update operations
+      const deleteItems = queueItems.filter((item) => item.operation === 'delete');
+      const otherItems = queueItems.filter((item) => item.operation !== 'delete');
+      
+      const processedIds: string[] = [];
+
+      // Process delete operations first
+      for (const item of deleteItems) {
+        try {
+          // Delete from Firestore
+          let deleteResult;
+          switch (item.type) {
+            case 'story':
+              deleteResult = await store.dispatch(
+                firestoreApi.endpoints.deleteStory.initiate(item.entityId)
+              );
+              break;
+            case 'character':
+              deleteResult = await store.dispatch(
+                firestoreApi.endpoints.deleteCharacter.initiate(item.entityId)
+              );
+              break;
+            case 'blurb':
+              deleteResult = await store.dispatch(
+                firestoreApi.endpoints.deleteBlurb.initiate(item.entityId)
+              );
+              break;
+            case 'scene':
+              deleteResult = await store.dispatch(
+                firestoreApi.endpoints.deleteScene.initiate(item.entityId)
+              );
+              break;
+            case 'chapter':
+              deleteResult = await store.dispatch(
+                firestoreApi.endpoints.deleteChapter.initiate(item.entityId)
+              );
+              break;
+            default:
+              throw new Error(`Unknown entity type: ${item.type}`);
+          }
+
+          if (deleteResult.error) {
+            throw new Error(deleteResult.error as string);
+          }
+
+          // Delete succeeded, mark as processed
+          processedIds.push(item.id);
+          processed++;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          await this.markFailed(item.id, errorMessage);
+          failed++;
+          errors.push(`Item ${item.id}: ${errorMessage}`);
+        }
+      }
+
+      // Process create/update operations using full sync
+      // Use callback pattern to avoid circular dependency with syncService
+      if (otherItems.length > 0) {
+        try {
+          // Lazy load syncService to avoid circular dependency
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { syncAll } = require('./syncService');
+          const syncResult = await syncAll(userId);
+          if (syncResult.success) {
+            // Mark all non-delete items as processed
+            for (const item of otherItems) {
+              processedIds.push(item.id);
+              processed++;
+            }
+          } else {
+            // Sync failed, mark items as failed
+            for (const item of otherItems) {
+              await this.markFailed(item.id, syncResult.errors.join('; ') || 'Sync failed');
+              failed++;
+              errors.push(`Item ${item.id}: ${syncResult.errors.join('; ')}`);
+            }
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          for (const item of otherItems) {
+            await this.markFailed(item.id, errorMessage);
+            failed++;
+            errors.push(`Item ${item.id}: ${errorMessage}`);
+          }
+        }
+      }
+
+      // Clear processed items
+      await this.clearProcessed(processedIds);
+
+      // Also attempt to sync unsynced changes (items not in queue but marked as unsynced)
+      // Use require to avoid circular dependency with syncService
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { pushUnsyncedChanges } = require('./syncService');
+        await pushUnsyncedChanges(userId);
+      } catch (error) {
+        console.error('Error pushing unsynced changes:', error);
+        errors.push('Error pushing unsynced changes');
+      }
+
+      console.log(`Queue processing complete: ${processed} processed, ${failed} failed`);
+
+      return { processed, failed, errors };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error processing queue:', error);
+      errors.push(`Queue processing error: ${errorMessage}`);
+      return { processed, failed, errors };
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  /**
+   * Convert database record to QueueItem
+   */
+  private recordToQueueItem(record: SyncQueueItemRecord): QueueItem {
+    return {
+      id: record.id,
+      type: record.type as SyncQueueItem['type'],
+      entityId: record.entityId,
+      operation: record.operation,
+      timestamp: record.timestamp,
+      retryCount: record.retryCount,
+      lastError: record.lastError || undefined,
+      data: record.data ? JSON.parse(record.data) : undefined,
+    };
   }
 }
 

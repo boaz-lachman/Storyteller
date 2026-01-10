@@ -206,7 +206,7 @@ export const generateStory = async (
           'content-type': 'application/json',
           'anthropic-version': CLAUDE_API.ANTHROPIC_VERSION,
         },
-        timeout: 300000, // 5 minutes timeout for story generation
+        timeout: 1200000, // 20 minutes timeout for story generation
       }
     );
 

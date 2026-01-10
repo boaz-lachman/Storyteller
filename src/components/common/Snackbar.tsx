@@ -18,6 +18,7 @@ import { useCreateBlurbMutation } from '../../store/api/blurbsApi';
 import { useCreateSceneMutation } from '../../store/api/scenesApi';
 import { useCreateStoryMutation } from '../../store/api/storiesApi';
 import { useAuth } from '../../hooks/useAuth';
+import { deletionManager } from '../../services/deletion/deletionManager';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 
@@ -75,20 +76,42 @@ export const Snackbar: React.FC = () => {
   const undoAction = snackbar.undoAction;
 
   const handleDismiss = () => {
-    if (deletedCharacter && undoAction?.type === 'undo-character-delete') {
-      dispatch(clearDeletedCharacter());
-    }
-    if (deletedBlurb && undoAction?.type === 'undo-blurb-delete') {
-      dispatch(clearDeletedBlurb());
-    }
-    if (deletedScene && undoAction?.type === 'undo-scene-delete') {
-      dispatch(clearDeletedScene());
+    // Cancel pending deletions when snackbar is dismissed
+    if (undoAction) {
+      if (undoAction.type === 'undo-character-delete') {
+        const characterId = deletedCharacter?.id || undoAction.data?.character?.id;
+        if (characterId) {
+          deletionManager.cancelDeletion(characterId, 'character');
+        }
+        dispatch(clearDeletedCharacter());
+      } else if (undoAction.type === 'undo-blurb-delete') {
+        const blurbId = deletedBlurb?.id || undoAction.data?.blurb?.id;
+        if (blurbId) {
+          deletionManager.cancelDeletion(blurbId, 'blurb');
+        }
+        dispatch(clearDeletedBlurb());
+      } else if (undoAction.type === 'undo-scene-delete') {
+        const sceneId = deletedScene?.id || undoAction.data?.scene?.id;
+        if (sceneId) {
+          deletionManager.cancelDeletion(sceneId, 'scene');
+        }
+        dispatch(clearDeletedScene());
+      } else if (undoAction.type === 'undo-story-delete') {
+        const storyData = undoAction.data as any;
+        const story = storyData?.story || storyData;
+        if (story?.id) {
+          deletionManager.cancelDeletion(story.id, 'story');
+        }
+      }
     }
     dispatch(hideSnackbar());
   };
 
   const handleUndo = async () => {
+    // Cancel pending deletions when undo is pressed
     if (undoAction && undoAction.type === 'undo-character-delete' && deletedCharacter && user) {
+      // Cancel pending deletion
+      deletionManager.cancelDeletion(deletedCharacter.id, 'character');
       try {
         await createCharacter({
           userId: user.uid,
@@ -124,6 +147,8 @@ export const Snackbar: React.FC = () => {
         );
       }
     } else if (undoAction && undoAction.type === 'undo-blurb-delete' && deletedBlurb && user) {
+      // Cancel pending deletion
+      deletionManager.cancelDeletion(deletedBlurb.id, 'blurb');
       try {
         await createBlurb({
           userId: user.uid,
@@ -157,6 +182,8 @@ export const Snackbar: React.FC = () => {
         );
       }
     } else if (undoAction && undoAction.type === 'undo-scene-delete' && deletedScene && user) {
+      // Cancel pending deletion
+      deletionManager.cancelDeletion(deletedScene.id, 'scene');
       try {
         await createScene({
           userId: user.uid,
@@ -193,26 +220,47 @@ export const Snackbar: React.FC = () => {
         );
       }
     } else if (undoAction && undoAction.type === 'undo-story-delete' && undoAction.data && user) {
-      // Handle story undo
+      // Handle story undo - cancel pending deletion
       const storyData = undoAction.data as any;
-      if (storyData.story) {
+      const story = storyData.story || storyData;
+      
+      if (!story || !story.id) {
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        return;
+      }
+      
+      // Cancel pending deletion
+      const cancelled = deletionManager.cancelDeletion(story.id, 'story');
+      
+      if (cancelled) {
+        dispatch(executeUndo());
+        dispatch(hideSnackbar());
+        dispatch(
+          showSnackbar({
+            message: 'Story deletion cancelled',
+            type: 'success',
+          })
+        );
+      } else {
+        // Deletion already executed, restore the story
         try {
           await createStory({
             userId: user.uid,
             data: {
-              title: storyData.story.title,
-              description: storyData.story.description,
-              length: storyData.story.length,
-              theme: storyData.story.theme,
-              tone: storyData.story.tone,
-              pov: storyData.story.pov,
-              targetAudience: storyData.story.targetAudience,
-              setting: storyData.story.setting,
-              timePeriod: storyData.story.timePeriod,
-              status: storyData.story.status,
-              generatedContent: storyData.story.generatedContent,
-              generatedAt: storyData.story.generatedAt,
-              wordCount: storyData.story.wordCount,
+              title: story.title,
+              description: story.description,
+              length: story.length,
+              theme: story.theme,
+              tone: story.tone,
+              pov: story.pov,
+              targetAudience: story.targetAudience,
+              setting: story.setting,
+              timePeriod: story.timePeriod,
+              status: story.status,
+              generatedContent: story.generatedContent,
+              generatedAt: story.generatedAt,
+              wordCount: story.wordCount,
             },
           }).unwrap();
           dispatch(executeUndo());
@@ -234,9 +282,6 @@ export const Snackbar: React.FC = () => {
             })
           );
         }
-      } else {
-        dispatch(executeUndo());
-        dispatch(hideSnackbar());
       }
     } else {
       dispatch(executeUndo());

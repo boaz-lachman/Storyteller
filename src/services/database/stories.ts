@@ -11,7 +11,7 @@ import { getCurrentTimestamp, generateId } from '../../utils/helpers';
 export const createStory = async (story: StoryCreateInput & { userId: string }): Promise<Story> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
-  const id = generateId();
+  const id =  story.id ?? generateId();
 
   const newStory: Story = {
     id,
@@ -31,7 +31,7 @@ export const createStory = async (story: StoryCreateInput & { userId: string }):
     wordCount: story.wordCount,
     createdAt: now,
     updatedAt: now,
-    synced: false,
+    synced: story.synced ?? false,
   };
 
   await db.runAsync(
@@ -124,6 +124,9 @@ export const updateStory = async (
     return getStory(id);
   }
 
+  // Mark as unsynced when updated
+  fields.push('synced = ?');
+  values.push(0);
   fields.push('updatedAt = ?');
   values.push(now);
   values.push(id);

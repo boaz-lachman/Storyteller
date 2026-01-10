@@ -135,7 +135,7 @@ export type {
  */
 export type StoryCreateInput = Omit<
   Story,
-  'id' | 'userId' | 'createdAt' | 'updatedAt' | 'synced' 
+  'id' | 'userId' | 'createdAt' | 'updatedAt' | 'synced'
 >;
 
 export type StoryUpdateInput = Partial<StoryCreateInput>;

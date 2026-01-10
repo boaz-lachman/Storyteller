@@ -11,6 +11,9 @@ import {
   getScene,
   updateScene,
 } from '../../services/database/scenes';
+import { firestoreApi } from './firestoreApi';
+import { networkService } from '../../services/network/networkService';
+import { syncQueueManager } from '../../services/sync/queueManager';
 import type { Scene, SceneCreateInput, SceneUpdateInput } from '../../types';
 
 interface ScenesQueryArgs {
@@ -89,7 +92,24 @@ const scenesBaseQuery = (): BaseQueryFn<
       // Delete scene (check before get single to avoid matching)
       if ('id' in args && 'storyId' in args && !('data' in args)) {
         const { id } = args as SceneDeleteArgs;
+        // Delete locally first
         await deleteScene(id);
+        
+        // Try to delete from Firestore if online
+        const isOnline = await networkService.isOnline();
+        if (isOnline) {
+          try {
+            await firestoreApi.endpoints.deleteScene.initiate(id);
+          } catch (firestoreError) {
+            // If Firestore delete fails, add to sync queue
+            console.error('Failed to delete scene from Firestore:', firestoreError);
+            syncQueueManager.add('scene', id, 'delete');
+          }
+        } else {
+          // If offline, add to sync queue
+          syncQueueManager.add('scene', id, 'delete');
+        }
+        
         return { data: { id } };
       }
 

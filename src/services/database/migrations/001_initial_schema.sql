@@ -168,3 +168,25 @@ CREATE INDEX IF NOT EXISTS idx_generatedStories_storyId ON GeneratedStories(stor
 CREATE INDEX IF NOT EXISTS idx_generatedStories_createdAt ON GeneratedStories(createdAt);
 CREATE INDEX IF NOT EXISTS idx_generatedStories_updatedAt ON GeneratedStories(updatedAt);
 CREATE INDEX IF NOT EXISTS idx_generatedStories_synced ON GeneratedStories(synced);
+
+-- Sync Queue Table
+-- Stores operations that need to be synced to Firestore
+CREATE TABLE IF NOT EXISTS SyncQueue (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory')),
+  entityId TEXT NOT NULL,
+  operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
+  timestamp INTEGER NOT NULL,
+  retryCount INTEGER NOT NULL DEFAULT 0,
+  lastError TEXT,
+  data TEXT, -- JSON string for optional operation data
+  createdAt INTEGER NOT NULL
+);
+
+-- Sync Queue indexes
+CREATE INDEX IF NOT EXISTS idx_syncQueue_type ON SyncQueue(type);
+CREATE INDEX IF NOT EXISTS idx_syncQueue_entityId ON SyncQueue(entityId);
+CREATE INDEX IF NOT EXISTS idx_syncQueue_timestamp ON SyncQueue(timestamp);
+CREATE INDEX IF NOT EXISTS idx_syncQueue_retryCount ON SyncQueue(retryCount);
+-- Index for efficient querying of pending items
+CREATE INDEX IF NOT EXISTS idx_syncQueue_pending ON SyncQueue(type, entityId, timestamp) WHERE retryCount < 3;

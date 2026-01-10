@@ -1,6 +1,7 @@
 /**
  * Empty State Component
  * Displays when a list is empty
+ * Shows syncing indicator when syncing is in progress
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -9,6 +10,9 @@ import { AntDesign } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useAppSelector } from '../../hooks/redux';
+import { selectIsSyncing } from '../../store/slices/syncSlice';
+import { MainBookActivityIndicator } from './MainBookActivityIndicator';
 
 export interface EmptyStateProps {
   title: string;
@@ -24,9 +28,21 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   message,
   icon,
 }) => {
+  const isSyncing = useAppSelector(selectIsSyncing);
+  
   // Default icon if none provided
   const defaultIcon = <AntDesign name="file-text" size={64} color={colors.textTertiary} />;
   const displayIcon = icon || defaultIcon;
+
+  // Show syncing indicator when syncing
+  if (isSyncing) {
+    return (
+      <View style={styles.container}>
+        <MainBookActivityIndicator size="large" />
+        <Text style={styles.title}>loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -12,6 +12,9 @@ import {
   updateChapter,
   reorderChapters,
 } from '../../services/database/chapters';
+import { firestoreApi } from './firestoreApi';
+import { networkService } from '../../services/network/networkService';
+import { syncQueueManager } from '../../services/sync/queueManager';
 import type { Chapter, ChapterCreateInput, ChapterUpdateInput } from '../../types';
 
 interface ChaptersQueryArgs {
@@ -133,7 +136,24 @@ const chaptersBaseQuery = (): BaseQueryFn<
       // Delete chapter (check before get single to avoid matching)
       if ('id' in args && 'storyId' in args && !('data' in args)) {
         const { id } = args as ChapterDeleteArgs;
+        // Delete locally first
         await deleteChapter(id);
+        
+        // Try to delete from Firestore if online
+        const isOnline = await networkService.isOnline();
+        if (isOnline) {
+          try {
+            await firestoreApi.endpoints.deleteChapter.initiate(id);
+          } catch (firestoreError) {
+            // If Firestore delete fails, add to sync queue
+            console.error('Failed to delete chapter from Firestore:', firestoreError);
+            syncQueueManager.add('chapter', id, 'delete');
+          }
+        } else {
+          // If offline, add to sync queue
+          syncQueueManager.add('chapter', id, 'delete');
+        }
+        
         return { data: { id } };
       }
 

@@ -229,7 +229,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
           entering={!hasAnimated.current ? FadeInDown.delay(100).duration(500) : undefined}
           style={styles.header}
         >
-          <Text style={styles.title}>{story.title}</Text>
+          <Text style={styles.title}>Edit Story</Text>
           <View style={styles.headerBadges}>
             {/* Edit Button */}
             <PaperIconButton

@@ -11,11 +11,81 @@ import type {
   GeneratedStory,
 } from '../../types';
 import { safeJsonParse, safeJsonStringify } from '../../utils/helpers';
+import { Timestamp } from 'firebase/firestore';
 
 /**
- * Firestore document data types (without id, as id is the document ID)
+ * Helper function to convert Firestore Timestamp to number (milliseconds)
+ * Handles various Firestore Timestamp formats:
+ * - Firestore Timestamp instance (toMillis/toDate methods)
+ * - Plain object with seconds/nanoseconds
+ * - Already converted number
+ * - Date object
+ */
+function convertTimestamp(value: any): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  // If it's already a number, return it
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  // If it's a Firestore Timestamp object
+  if (value && typeof value === 'object') {
+    // Check for Firestore Timestamp instance methods first
+    if (typeof value.toMillis === 'function') {
+      return value.toMillis();
+    }
+
+    if (typeof value.toDate === 'function') {
+      return value.toDate().getTime();
+    }
+
+    // Firestore Timestamp has seconds and nanoseconds properties
+    // Handle both plain objects and Timestamp instances
+    if ('seconds' in value && 'nanoseconds' in value) {
+      const seconds = typeof value.seconds === 'number' ? value.seconds : Number(value.seconds);
+      const nanoseconds = typeof value.nanoseconds === 'number' ? value.nanoseconds : Number(value.nanoseconds);
+      
+      if (!isNaN(seconds)) {
+        // Convert to milliseconds: seconds * 1000 + nanoseconds / 1,000,000
+        const milliseconds = seconds * 1000 + Math.floor(nanoseconds / 1000000);
+        return milliseconds;
+      }
+    }
+
+    // Handle Firestore REST API timestamp format: { "type": "firestore/timestamp/1.0", "seconds": ..., "nanoseconds": ... }
+    if (value.type === 'firestore/timestamp/1.0' && 'seconds' in value) {
+      const seconds = typeof value.seconds === 'number' ? value.seconds : Number(value.seconds);
+      const nanoseconds = value.nanoseconds || 0;
+      
+      if (!isNaN(seconds)) {
+        return seconds * 1000 + Math.floor(nanoseconds / 1000000);
+      }
+    }
+  }
+
+  // If it's a Date object
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  // Try to parse as number (fallback)
+  const parsed = Number(value);
+  if (!isNaN(parsed) && isFinite(parsed)) {
+    return parsed;
+  }
+
+  console.warn('Failed to convert timestamp:', value);
+  return null;
+}
+
+/**
+ * Firestore document data types (id is included as a field for reference, even though it's also the document ID)
  */
 export interface FirestoreStoryData {
+  id: string; // Story ID (also used as document ID, but stored as field for reference)
   userId: string;
   title: string;
   description: string | null;
@@ -36,6 +106,7 @@ export interface FirestoreStoryData {
 }
 
 export interface FirestoreCharacterData {
+  id: string; // Character ID (also used as document ID, but stored as field for reference)
   userId: string;
   storyId: string;
   name: string;
@@ -51,6 +122,7 @@ export interface FirestoreCharacterData {
 }
 
 export interface FirestoreBlurbData {
+  id: string; // Blurb ID (also used as document ID, but stored as field for reference)
   userId: string;
   storyId: string;
   title: string;
@@ -64,6 +136,7 @@ export interface FirestoreBlurbData {
 }
 
 export interface FirestoreSceneData {
+  id: string; // Scene ID (also used as document ID, but stored as field for reference)
   userId: string;
   storyId: string;
   title: string;
@@ -80,6 +153,7 @@ export interface FirestoreSceneData {
 }
 
 export interface FirestoreChapterData {
+  id: string; // Chapter ID (also used as document ID, but stored as field for reference)
   userId: string;
   storyId: string;
   title: string;
@@ -93,6 +167,7 @@ export interface FirestoreChapterData {
 }
 
 export interface FirestoreGeneratedStoryData {
+  id: string; // GeneratedStory ID (also used as document ID, but stored as field for reference)
   storyId: string;
   userId: string;
   content: string;
@@ -127,6 +202,7 @@ function normalizeUndefined<T>(value: T | null | undefined): T | undefined {
  */
 export function toFirestoreStory(story: Story): FirestoreStoryData {
   return {
+    id: story.id, // Include story ID as a field
     userId: story.userId,
     title: story.title,
     description: normalizeNull(story.description),
@@ -152,10 +228,13 @@ export function toFirestoreStory(story: Story): FirestoreStoryData {
  */
 export function fromFirestoreStory(
   docId: string,
-  data: FirestoreStoryData
+  data: FirestoreStoryData | any // Allow any to handle Timestamp objects
 ): Story {
+  // Use id from data if available, otherwise fallback to docId for backwards compatibility
+  const storyId = data.id || docId;
+  
   return {
-    id: docId,
+    id: storyId,
     userId: data.userId,
     title: data.title,
     description: normalizeUndefined(data.description),
@@ -168,10 +247,10 @@ export function fromFirestoreStory(
     timePeriod: normalizeUndefined(data.timePeriod),
     status: data.status as Story['status'],
     generatedContent: normalizeUndefined(data.generatedContent),
-    generatedAt: normalizeUndefined(data.generatedAt),
+    generatedAt: convertTimestamp(data.generatedAt) || undefined,
     wordCount: normalizeUndefined(data.wordCount),
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true, // Downloaded from Firestore, so synced
   };
 }
@@ -192,6 +271,7 @@ export function toFirestoreCharacter(character: Character): FirestoreCharacterDa
     : safeJsonParse<string[]>(character.traits as any, []);
 
   return {
+    id: character.id, // Include character ID as a field
     userId: character.userId,
     storyId: character.storyId,
     name: character.name,
@@ -212,10 +292,13 @@ export function toFirestoreCharacter(character: Character): FirestoreCharacterDa
  */
 export function fromFirestoreCharacter(
   docId: string,
-  data: FirestoreCharacterData
+  data: FirestoreCharacterData | any // Allow any to handle Timestamp objects
 ): Character {
+  // Use id from data if available, otherwise fallback to docId for backwards compatibility
+  const characterId = data.id || docId;
+  
   return {
-    id: docId,
+    id: characterId,
     userId: data.userId,
     storyId: data.storyId,
     name: data.name,
@@ -224,8 +307,8 @@ export function fromFirestoreCharacter(
     traits: data.traits, // Already an array
     backstory: normalizeUndefined(data.backstory),
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -240,6 +323,7 @@ export function fromFirestoreCharacter(
  */
 export function toFirestoreBlurb(blurb: IdeaBlurb): FirestoreBlurbData {
   return {
+    id: blurb.id, // Include blurb ID as a field
     userId: blurb.userId,
     storyId: blurb.storyId,
     title: blurb.title,
@@ -258,18 +342,21 @@ export function toFirestoreBlurb(blurb: IdeaBlurb): FirestoreBlurbData {
  */
 export function fromFirestoreBlurb(
   docId: string,
-  data: FirestoreBlurbData
+  data: FirestoreBlurbData | any // Allow any to handle Timestamp objects
 ): IdeaBlurb {
+  // Use id from data if available, otherwise fallback to docId for backwards compatibility
+  const blurbId = data.id || docId;
+  
   return {
-    id: docId,
+    id: blurbId,
     userId: data.userId,
     storyId: data.storyId,
     title: data.title,
     description: data.description,
     category: normalizeUndefined(data.category) as IdeaBlurb['category'] | undefined,
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -291,6 +378,7 @@ export function toFirestoreScene(scene: Scene): FirestoreSceneData {
     : safeJsonParse<string[]>(scene.characters as any, []);
 
   return {
+    id: scene.id, // Include scene ID as a field
     userId: scene.userId,
     storyId: scene.storyId,
     title: scene.title,
@@ -312,10 +400,13 @@ export function toFirestoreScene(scene: Scene): FirestoreSceneData {
  */
 export function fromFirestoreScene(
   docId: string,
-  data: FirestoreSceneData
+  data: FirestoreSceneData | any // Allow any to handle Timestamp objects
 ): Scene {
+  // Use id from data if available, otherwise fallback to docId for backwards compatibility
+  const sceneId = data.id || docId;
+  
   return {
-    id: docId,
+    id: sceneId,
     userId: data.userId,
     storyId: data.storyId,
     title: data.title,
@@ -325,8 +416,8 @@ export function fromFirestoreScene(
     mood: normalizeUndefined(data.mood),
     conflictLevel: normalizeUndefined(data.conflictLevel),
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -341,6 +432,7 @@ export function fromFirestoreScene(
  */
 export function toFirestoreChapter(chapter: Chapter): FirestoreChapterData {
   return {
+    id: chapter.id, // Include chapter ID as a field
     userId: chapter.userId,
     storyId: chapter.storyId,
     title: chapter.title,
@@ -359,18 +451,21 @@ export function toFirestoreChapter(chapter: Chapter): FirestoreChapterData {
  */
 export function fromFirestoreChapter(
   docId: string,
-  data: FirestoreChapterData
+  data: FirestoreChapterData | any // Allow any to handle Timestamp objects
 ): Chapter {
+  // Use id from data if available, otherwise fallback to docId for backwards compatibility
+  const chapterId = data.id || docId;
+  
   return {
-    id: docId,
+    id: chapterId,
     userId: data.userId,
     storyId: data.storyId,
     title: data.title,
     description: data.description,
     order: data.order,
     importance: data.importance,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true,
     deleted: data.deleted ?? false,
   };
@@ -387,6 +482,7 @@ export function toFirestoreGeneratedStory(
   generatedStory: GeneratedStory
 ): FirestoreGeneratedStoryData {
   return {
+    id: generatedStory.id, // Include generatedStory ID as a field
     storyId: generatedStory.storyId,
     userId: generatedStory.userId,
     content: generatedStory.content,
@@ -404,18 +500,21 @@ export function toFirestoreGeneratedStory(
  */
 export function fromFirestoreGeneratedStory(
   docId: string,
-  data: FirestoreGeneratedStoryData
+  data: FirestoreGeneratedStoryData | any // Allow any to handle Timestamp objects
 ): GeneratedStory {
+  // Use id from data if available, otherwise fallback to docId for backwards compatibility
+  const generatedStoryId = data.id || docId;
+  
   return {
-    id: docId,
+    id: generatedStoryId,
     storyId: data.storyId,
     userId: data.userId,
     content: data.content,
     complexity: data.complexity as GeneratedStory['complexity'],
     prompt: data.prompt,
     wordCount: data.wordCount,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true,
   };
 }

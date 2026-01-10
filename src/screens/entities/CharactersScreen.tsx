@@ -16,7 +16,14 @@ import {
   useCreateCharacterMutation,
   useUpdateCharacterMutation,
   useDeleteCharacterMutation,
+  charactersApi,
 } from '../../store/api/charactersApi';
+import { deletionManager } from '../../services/deletion/deletionManager';
+import { firestoreApi } from '../../store/api/firestoreApi';
+import { networkService } from '../../services/network/networkService';
+import { syncQueueManager } from '../../services/sync/queueManager';
+import { deleteCharacter as dbDeleteCharacter } from '../../services/database/characters';
+import { store } from '../../store';
 import { CharacterCard } from '../../components/cards/CharacterCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { CharacterModal } from '../../components/modals/CharacterModal';
@@ -93,50 +100,49 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
     setIsModalVisible(true);
   }, []);
 
-  // Handle delete character
+  // Handle delete character (with delayed deletion)
   const handleDeleteCharacter = useCallback(
     (character: Character) => {
-      Alert.alert(
-        'Delete Character',
-        `Are you sure you want to delete "${character.name}"? This action cannot be undone.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
+      // Schedule delayed deletion
+      deletionManager.scheduleDeletion(
+        character.id,
+        'character',
+        character,
+        async () => {
+          // Actual deletion callback
+          try {
+            // Delete locally first
+            await dbDeleteCharacter(character.id);
+            
+            // Try to delete from Firestore if online
+            const isOnline = await networkService.isOnline();
+            if (isOnline) {
               try {
-                dispatch(setDeletedCharacter(character));
-                await deleteCharacterMutation({
-                  id: character.id,
-                  storyId: character.storyId,
-                }).unwrap();
-                dispatch(
-                  showSnackbar({
-                    message: 'Character deleted',
-                    type: 'success',
-                    undoAction: {
-                      type: 'undo-character-delete',
-                      data: { characterId: character.id },
-                    },
-                  })
-                );
-              } catch (err: any) {
-                console.error('Error deleting character:', err);
-                dispatch(clearDeletedCharacter());
-                dispatch(
-                  showSnackbar({
-                    message: err?.error || err?.data?.error || 'Failed to delete character. Please try again.',
-                    type: 'error',
-                  })
-                );
+                await store.dispatch(firestoreApi.endpoints.deleteCharacter.initiate(character.id));
+              } catch (firestoreError) {
+                // If Firestore delete fails, add to sync queue
+                console.error('Failed to delete character from Firestore:', firestoreError);
+                syncQueueManager.add('character', character.id, 'delete');
               }
-            },
-          },
-        ]
+            } else {
+              // If offline, add to sync queue
+              syncQueueManager.add('character', character.id, 'delete');
+            }
+            
+            // Invalidate cache
+            store.dispatch(charactersApi.util.invalidateTags([
+              { type: 'Character', id: character.id },
+              { type: 'Character', id: `LIST-${character.storyId}` },
+            ]));
+          } catch (error) {
+            console.error('Error deleting character:', error);
+            throw error;
+          }
+        },
+        5000 // 5 second delay
       );
     },
-    [deleteCharacterMutation, dispatch]
+    []
   );
 
   // Handle create character
@@ -258,8 +264,8 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 140,
-      offset: 140 * index,
+      length: 160,
+      offset: 160 * index,
       index,
     }),
     []

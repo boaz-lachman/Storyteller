@@ -13,7 +13,7 @@ export const createScene = async (
 ): Promise<Scene> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
-  const id = generateId();
+  const id = scene.id ?? generateId();
 
   const newScene: Scene = {
     id,
@@ -28,7 +28,7 @@ export const createScene = async (
     importance: scene.importance,
     createdAt: now,
     updatedAt: now,
-    synced: false,
+    synced: scene.synced ?? false,
     deleted: false,
   };
 
@@ -131,6 +131,9 @@ export const updateScene = async (
     return getScene(id);
   }
 
+  // Mark as unsynced when updated
+  fields.push('synced = ?');
+  values.push(0);
   fields.push('updatedAt = ?');
   values.push(now);
   values.push(id);

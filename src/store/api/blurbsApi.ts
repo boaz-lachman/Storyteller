@@ -11,6 +11,9 @@ import {
   getBlurb,
   updateBlurb,
 } from '../../services/database/blurbs';
+import { firestoreApi } from './firestoreApi';
+import { networkService } from '../../services/network/networkService';
+import { syncQueueManager } from '../../services/sync/queueManager';
 import type { IdeaBlurb, BlurbCreateInput, BlurbUpdateInput } from '../../types';
 
 interface BlurbsQueryArgs {
@@ -94,7 +97,24 @@ const blurbsBaseQuery = (): BaseQueryFn<
       // Delete blurb (check before get single to avoid matching)
       if ('id' in args && 'storyId' in args && !('data' in args)) {
         const { id } = args as BlurbDeleteArgs;
+        // Delete locally first
         await deleteBlurb(id);
+        
+        // Try to delete from Firestore if online
+        const isOnline = await networkService.isOnline();
+        if (isOnline) {
+          try {
+            await firestoreApi.endpoints.deleteBlurb.initiate(id);
+          } catch (firestoreError) {
+            // If Firestore delete fails, add to sync queue
+            console.error('Failed to delete blurb from Firestore:', firestoreError);
+            syncQueueManager.add('blurb', id, 'delete');
+          }
+        } else {
+          // If offline, add to sync queue
+          syncQueueManager.add('blurb', id, 'delete');
+        }
+        
         return { data: { id } };
       }
 

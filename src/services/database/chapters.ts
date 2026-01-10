@@ -13,7 +13,7 @@ export const createChapter = async (
 ): Promise<Chapter> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
-  const id = generateId();
+  const id = chapter.id ?? generateId();
 
   // If order not provided, find the lowest available (vacant) order number
   // If order is provided and conflicts, shift existing chapters to make room
@@ -109,7 +109,7 @@ export const createChapter = async (
       importance: chapter.importance,
       createdAt: now,
       updatedAt: now,
-      synced: false,
+      synced: chapter.synced ?? false,
       deleted: false,
     };
 
@@ -210,6 +210,9 @@ export const updateChapter = async (
     return getChapter(id);
   }
 
+  // Mark as unsynced when updated
+  fields.push('synced = ?');
+  values.push(0);
   fields.push('updatedAt = ?');
   values.push(now);
   values.push(id);

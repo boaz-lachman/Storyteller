@@ -11,7 +11,13 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
-import { useGetStoriesQuery, useCreateStoryMutation, useDeleteStoryMutation } from '../../store/api/storiesApi';
+import { useGetStoriesQuery, useCreateStoryMutation, useDeleteStoryMutation, storiesApi } from '../../store/api/storiesApi';
+import { deletionManager } from '../../services/deletion/deletionManager';
+import { firestoreApi } from '../../store/api/firestoreApi';
+import { networkService } from '../../services/network/networkService';
+import { syncQueueManager } from '../../services/sync/queueManager';
+import { deleteStory as dbDeleteStory } from '../../services/database/stories';
+import { store } from '../../store';
 import { StoryCard } from '../../components/cards/StoryCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { CreateStoryModal } from '../../components/modals/CreateStoryModal';
@@ -107,39 +113,53 @@ export default function StoriesListScreen() {
   );
 
 
-  // Handle story delete
+  // Handle story delete (with delayed deletion)
   const handleStoryDelete = useCallback(
     async (storyId: string) => {
       // Find the story to be deleted
       const storyToDelete = stories.find((s) => s.id === storyId);
       if (!storyToDelete) return;
 
-      try {
-        // Delete the story
-        await deleteStoryMutation(storyId).unwrap();
-        
-        // Show snackbar with undo option
-        dispatch(
-          showSnackbar({
-            message: 'Story deleted',
-            type: 'success',
-            undoAction: {
-              type: 'undo-story-delete',
-              data: { story: storyToDelete },
-            },
-          })
-        );
-      } catch (error) {
-        console.error('Error deleting story:', error);
-        dispatch(
-          showSnackbar({
-            message: 'Failed to delete story',
-            type: 'error',
-          })
-        );
-      }
+      // Schedule delayed deletion
+      deletionManager.scheduleDeletion(
+        storyId,
+        'story',
+        storyToDelete,
+        async () => {
+          // Actual deletion callback
+          try {
+            // Delete locally first
+            await dbDeleteStory(storyId);
+            
+            // Try to delete from Firestore if online
+            const isOnline = await networkService.isOnline();
+            if (isOnline) {
+              try {
+                await store.dispatch(firestoreApi.endpoints.deleteStory.initiate(storyId));
+              } catch (firestoreError) {
+                // If Firestore delete fails, add to sync queue
+                console.error('Failed to delete story from Firestore:', firestoreError);
+                syncQueueManager.add('story', storyId, 'delete');
+              }
+            } else {
+              // If offline, add to sync queue
+              syncQueueManager.add('story', storyId, 'delete');
+            }
+            
+            // Invalidate cache
+            store.dispatch(storiesApi.util.invalidateTags([
+              { type: 'Story', id: storyId },
+              { type: 'Story', id: 'LIST' },
+            ]));
+          } catch (error) {
+            console.error('Error deleting story:', error);
+            throw error;
+          }
+        },
+        5000 // 5 second delay
+      );
     },
-    [deleteStoryMutation, dispatch, stories]
+    [stories]
   );
 
   // Handle create story
@@ -292,12 +312,10 @@ export default function StoriesListScreen() {
     );
   }, [isLoading, isFetching, hasActiveFilters, stories.length]);
 
-  // Get item layout for BigList optimization
-  // Item height (150) + spacing (15) = 165
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 165, // StoryCard height (150) + spacing (15)
-      offset: 165 * index,
+      length: 195,
+      offset: 195 * index,
       index,
     }),
     []
@@ -309,38 +327,40 @@ export default function StoriesListScreen() {
         <Text style={styles.title}>Your Stories</Text>
       </View>
 
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Search stories by title or description..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          mode="outlined"
-          style={styles.searchInput}
-          contentStyle={styles.searchInputContent}
-          outlineColor={colors.border}
-          activeOutlineColor={colors.primary}
-          textColor={colors.text}
-          placeholderTextColor={colors.textTertiary}
-          left={<TextInput.Icon icon="magnify" />}
-          right={
-            searchQuery ? (
-              <TextInput.Icon
-                icon="close-circle"
-                onPress={() => setSearchQuery('')}
-              />
-            ) : undefined
-          }
-          theme={{
-            colors: {
-              primary: colors.primary,
-              text: colors.text,
-              placeholder: colors.textTertiary,
-              background: colors.surface,
-            },
-          }}
-        />
-      </View>
+      {/* Search Input - Only show if there are stories */}
+      {allStories.length > 0 && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search stories by title or description..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            mode="outlined"
+            style={styles.searchInput}
+            contentStyle={styles.searchInputContent}
+            outlineColor={colors.border}
+            activeOutlineColor={colors.primary}
+            textColor={colors.text}
+            placeholderTextColor={colors.textTertiary}
+            left={<TextInput.Icon icon="magnify" />}
+            right={
+              searchQuery ? (
+                <TextInput.Icon
+                  icon="close-circle"
+                  onPress={() => setSearchQuery('')}
+                />
+              ) : undefined
+            }
+            theme={{
+              colors: {
+                primary: colors.primary,
+                text: colors.text,
+                placeholder: colors.textTertiary,
+                background: colors.surface,
+              },
+            }}
+          />
+        </View>
+      )}
 
       {/* Filter Header - Only show if there are stories */}
       {allStories.length > 0 && (

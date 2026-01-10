@@ -14,10 +14,8 @@ import { appStackHeaderOptions } from './theme';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
-import { useAppSelector } from '../hooks/redux';
-import { selectIsSyncing } from '../store/slices/syncSlice';
-import MainBookActivityIndicator from '../components/common/MainBookActivityIndicator';
 import Logo from '../components/common/Logo';
+import SyncStatusBar from '../components/common/SyncStatusBar';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -52,23 +50,6 @@ function AppStack() {
   );
 }
 
-/**
- * Sync Loader Component
- * Shows MainBookActivityIndicator when syncing
- */
-const SyncLoader = () => {
-  const isSyncing = useAppSelector(selectIsSyncing);
-
-  if (!isSyncing) {
-    return null;
-  }
-
-  return (
-    <View style={styles.syncLoaderContainer}>
-      <MainBookActivityIndicator size={24} />
-    </View>
-  );
-};
 
 /**
  * Drawer Navigator Component
@@ -121,7 +102,7 @@ export default function DrawerNavigator() {
             />
           ),
           drawerLabel: 'Stories',
-          headerRight: () => <SyncLoader />, // Add sync loader to the right
+          headerRight: () => <SyncStatusBar />, // Add sync status bar to the right
         }}
       />
     </Drawer.Navigator>
@@ -131,10 +112,5 @@ export default function DrawerNavigator() {
 const styles = StyleSheet.create({
   logoContainer: {
     marginLeft: spacing.xs, // Small margin from drawer button
-  },
-  syncLoaderContainer: {
-    marginRight: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
