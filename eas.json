@@ -20,7 +20,7 @@
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "development"
       },
-      "prebuildCommand": "npm run inject-firebase"
+      "prebuildCommand": "node scripts/inject-firebase-config.js"
     },
     "preview": {
       "distribution": "internal",
@@ -37,7 +37,7 @@
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "preview"
       },
-      "prebuildCommand": "npm run inject-firebase"
+      "prebuildCommand": "node scripts/inject-firebase-config.js"
     },
     "production": {
       "autoIncrement": true,
@@ -54,7 +54,7 @@
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "production"
       },
-      "prebuildCommand": "npm run inject-firebase"
+      "prebuildCommand": "node scripts/inject-firebase-config.js"
     }
   },
   "submit": {

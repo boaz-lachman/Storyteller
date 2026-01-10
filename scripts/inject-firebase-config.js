@@ -1,17 +1,9 @@
 #!/usr/bin/env node
 // scripts/inject-firebase-config.js
-
+// Filter out EAS Build's unwanted arguments
+process.argv = process.argv.slice(0, 2);
 const fs = require('fs');
 const path = require('path');
-
-// Parse and ignore command line arguments
-// EAS may pass --platform android/ios, but we ignore it and create both files
-// since both are needed for the project configuration (app.json references both)
-const args = process.argv.slice(2);
-if (args.length > 0) {
-  // Silently ignore any arguments (including --platform)
-  // This prevents "unknown option" errors
-}
 
 console.log('🔧 Injecting Firebase config files from EAS secrets...\n');
 
