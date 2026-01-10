@@ -9,7 +9,7 @@
       "distribution": "internal",
       "env": {
         "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
-        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO",
+        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO_PLIST",
         "FIREBASE_API_KEY": "$FIREBASE_API_KEY",
         "FIREBASE_PROJECT_ID": "$FIREBASE_PROJECT_ID",
         "FIREBASE_AUTH_DOMAIN": "$FIREBASE_AUTH_DOMAIN",
@@ -19,13 +19,14 @@
         "ELEVENLABS_API_KEY": "$ELEVENLABS_API_KEY",
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "development"
-      }
+      },
+      "prebuildCommand": "node scripts/inject-firebase-config.js"
     },
     "preview": {
       "distribution": "internal",
       "env": {
         "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
-        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO",
+        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO_PLIST",
         "FIREBASE_API_KEY": "$FIREBASE_API_KEY",
         "FIREBASE_PROJECT_ID": "$FIREBASE_PROJECT_ID",
         "FIREBASE_AUTH_DOMAIN": "$FIREBASE_AUTH_DOMAIN",
@@ -35,13 +36,14 @@
         "ELEVENLABS_API_KEY": "$ELEVENLABS_API_KEY",
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "preview"
-      }
+      },
+      "prebuildCommand": "node scripts/inject-firebase-config.js"
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "GOOGLE_SERVICES_JSON": "$GOOGLE_SERVICES_JSON",
-        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO",
+        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO_PLIST",
         "FIREBASE_API_KEY": "$FIREBASE_API_KEY",
         "FIREBASE_PROJECT_ID": "$FIREBASE_PROJECT_ID",
         "FIREBASE_AUTH_DOMAIN": "$FIREBASE_AUTH_DOMAIN",
@@ -51,7 +53,8 @@
         "ELEVENLABS_API_KEY": "$ELEVENLABS_API_KEY",
         "CLAUDE_API_KEY": "$CLAUDE_API_KEY",
         "APP_ENV": "production"
-      }
+      },
+      "prebuildCommand": "node scripts/inject-firebase-config.js"
     }
   },
   "submit": {
