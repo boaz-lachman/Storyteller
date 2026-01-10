@@ -1,10 +1,18 @@
-// scripts/inject-firebase-config.js
 #!/usr/bin/env node
+// scripts/inject-firebase-config.js
 
 const fs = require('fs');
 const path = require('path');
 
-// Ignore any extra arguments like --platform that EAS might pass
+// Parse and ignore command line arguments
+// EAS may pass --platform android/ios, but we ignore it and create both files
+// since both are needed for the project configuration (app.json references both)
+const args = process.argv.slice(2);
+if (args.length > 0) {
+  // Silently ignore any arguments (including --platform)
+  // This prevents "unknown option" errors
+}
+
 console.log('🔧 Injecting Firebase config files from EAS secrets...\n');
 
 function decodeAndWriteFile(envVar, fileName, description) {
@@ -34,6 +42,7 @@ function decodeAndWriteFile(envVar, fileName, description) {
 }
 
 // Inject google-services.json (Android)
+// Always create both config files since app.json references both
 decodeAndWriteFile(
   'GOOGLE_SERVICES_JSON',
   'google-services.json',
