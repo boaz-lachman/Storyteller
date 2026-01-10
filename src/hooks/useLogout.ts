@@ -13,6 +13,9 @@ import { showSnackbar } from '../store/slices/uiSlice';
 import { persistor } from '../store';
 import { clearDatabase, closeDatabase } from '../services/database/sqlite';
 import { hasUnsyncedItems } from '../utils/unsyncedHelpers';
+import { clearAppState } from '../services/autosave/autosaveService';
+import { unregisterBackgroundSync } from '../services/sync/backgroundSync';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Hook to handle user logout
@@ -25,21 +28,54 @@ export const useLogout = () => {
   const { user } = useAuth();
 
   const performLogout = useCallback(async () => {
+    let databaseCleared = false;
+    // Capture user ID early before logout clears it
+    const userId = user?.uid;
+    
     try {
-      // Clear local database
-      await clearDatabase();
+      // Step 1: Clear local database (critical - must happen first)
+      try {
+        await clearDatabase();
+        databaseCleared = true;
+        console.log('✓ Database cleared successfully');
+      } catch (dbError) {
+        console.error('Error clearing database:', dbError);
+        // Try to close database even if clear failed
+        try {
+          await closeDatabase();
+        } catch (closeError) {
+          console.error('Error closing database:', closeError);
+        }
+        throw dbError; // Re-throw to trigger outer catch
+      }
       
-      // Close database connection
+      // Step 2: Close database connection
       await closeDatabase();
+      console.log('✓ Database connection closed');
       
-      // Sign out from Firebase (this clears Firebase auth persistence)
+      // Step 3: Sign out from Firebase (this clears Firebase auth persistence)
       await signOutUser();
+      console.log('✓ Signed out from Firebase');
       
-      // Clear Redux auth state
+      // Step 4: Clear Redux auth state
       dispatch(logout());
+      console.log('✓ Redux auth state cleared');
       
-      // Purge persisted auth state from AsyncStorage
+      // Step 5: Clear autosave state (navigation, activity context)
+      await clearAppState();
+      console.log('✓ Autosave state cleared');
+      
+      // Step 6: Unregister background sync and clear sync metadata
+      await unregisterBackgroundSync();
+      if (userId) {
+        // Clear sync metadata for this user
+        await AsyncStorage.removeItem(`@storyteller:sync_metadata:${userId}`);
+      }
+      console.log('✓ Background sync unregistered and sync metadata cleared');
+      
+      // Step 7: Purge persisted auth state from AsyncStorage (Redux Persist)
       await persistor.purge();
+      console.log('✓ Persisted Redux state purged');
       
       // Show success message
       dispatch(showSnackbar({ 
@@ -49,18 +85,49 @@ export const useLogout = () => {
     } catch (error) {
       const errorMessage = error instanceof Error 
         ? error.message 
-        : 'Failed to logout. Please try again.';
+        : 'Failed to logout completely. Some data may remain.';
       
-      // Even if Firebase signout fails, clear local state
+      // Ensure database is cleared even if other steps fail
+      if (!databaseCleared) {
+        try {
+          await clearDatabase();
+          await closeDatabase();
+          console.log('✓ Database cleared in error handler');
+        } catch (dbError) {
+          console.error('Failed to clear database in error handler:', dbError);
+        }
+      }
+      
+      // Always clear local state even if Firebase signout fails
+      // Try to clear all user data storage
+      try {
+        await clearAppState();
+      } catch (clearError) {
+        console.error('Failed to clear autosave state:', clearError);
+      }
+      
+      try {
+        await unregisterBackgroundSync();
+        if (userId) {
+          await AsyncStorage.removeItem(`@storyteller:sync_metadata:${userId}`);
+        }
+      } catch (syncError) {
+        console.error('Failed to clear sync data:', syncError);
+      }
+      
       dispatch(logout());
-      await persistor.purge();
+      try {
+        await persistor.purge();
+      } catch (purgeError) {
+        console.error('Failed to purge persisted state:', purgeError);
+      }
       
       dispatch(showSnackbar({ 
         message: errorMessage, 
         type: 'error' 
       }));
     }
-  }, [dispatch]);
+  }, [dispatch, user?.uid]);
 
   const handleLogout = useCallback(async () => {
     if (!user?.uid) {

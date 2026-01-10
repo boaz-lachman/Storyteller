@@ -366,7 +366,8 @@ export const closeDatabase = async (): Promise<void> => {
 
 /**
  * Clear all data from the database
- * Deletes all data from all tables
+ * Deletes all data from all tables including SyncQueue and schema_version
+ * This is used during logout to ensure no user data remains
  */
 export const clearDatabase = async (): Promise<void> => {
   if (!db) {
@@ -374,16 +375,27 @@ export const clearDatabase = async (): Promise<void> => {
   }
 
   try {
-    // Delete all data from all tables
-    await db.execAsync(`
-      DELETE FROM Stories;
-      DELETE FROM Characters;
-      DELETE FROM Blurbs;
-      DELETE FROM Scenes;
-      DELETE FROM Chapters;
-      DELETE FROM GeneratedStories;
-    `);
-    console.log('Database cleared successfully');
+    // Delete all data from all tables in a transaction
+    // This ensures atomicity and that foreign key constraints are respected
+    await db.withTransactionAsync(async () => {
+      // Clear all content tables
+      await db.execAsync(`
+        DELETE FROM SyncQueue;
+        DELETE FROM GeneratedStories;
+        DELETE FROM Chapters;
+        DELETE FROM Scenes;
+        DELETE FROM Blurbs;
+        DELETE FROM Characters;
+        DELETE FROM Stories;
+      `);
+      
+      // Reset schema_version to indicate a fresh database state
+      await db.execAsync(`
+        DELETE FROM schema_version;
+      `);
+    });
+    
+    console.log('Database cleared successfully - all tables emptied');
   } catch (error) {
     console.error('Error clearing database:', error);
     throw error;
