@@ -2,16 +2,22 @@
  * Completed Story Screen
  * Displays the generated story content for completed stories
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Card, Menu } from 'react-native-paper';
+import { Text, Card, Menu, Portal } from 'react-native-paper';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Entypo } from '@expo/vector-icons';
 import type { RouteProp } from '@react-navigation/native';
 import type { StoryTabParamList } from '../../navigation/types';
 import { useGetStoryQuery } from '../../store/api/storiesApi';
+import { useGetCharactersQuery } from '../../store/api/charactersApi';
+import { useGetBlurbsQuery } from '../../store/api/blurbsApi';
+import { useGetScenesQuery } from '../../store/api/scenesApi';
+import { useGetChaptersQuery } from '../../store/api/chaptersApi';
 import { EmptyState } from '../../components/common/EmptyState';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
+import { StoryPlayer } from '../../components/player/StoryPlayer';
+import { ExportModal } from '../../components/modals/ExportModal';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -30,8 +36,15 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
   const { storyId } = route.params;
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [formatMenuVisible, setFormatMenuVisible] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
 
   const { data: story, isLoading } = useGetStoryQuery(storyId);
+  
+  // Fetch entities for export
+  const { data: characters = [] } = useGetCharactersQuery({ storyId });
+  const { data: blurbs = [] } = useGetBlurbsQuery({ storyId });
+  const { data: scenes = [] } = useGetScenesQuery({ storyId });
+  const { data: chapters = [] } = useGetChaptersQuery({ storyId });
 
   // Show loading state
   if (isLoading) {
@@ -64,12 +77,22 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
     >
       {/* Header */}
       <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.header}>
-        <Text style={styles.title}>{story.title}</Text>
-        {story.generatedAt && (
-          <Text style={styles.subtitle}>
-            Generated on {new Date(story.generatedAt).toLocaleDateString()}
-          </Text>
-        )}
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{story.title}</Text>
+            {story.generatedAt && (
+              <Text style={styles.subtitle}>
+                Generated on {new Date(story.generatedAt).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={() => setExportModalVisible(true)}
+          >
+            <Entypo name="export" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       {/* Story Stats */}
@@ -87,6 +110,11 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
           </Card>
         </Animated.View>
       )}
+
+      {/* Story Player */}
+      <Animated.View entering={FadeInDown.delay(175).duration(400)}>
+        <StoryPlayer text={story.generatedContent || ''} />
+      </Animated.View>
 
       {/* Story Content */}
       <Animated.View entering={FadeInDown.delay(200).duration(400)}>
@@ -142,6 +170,23 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
           </Card.Content>
         </Card>
       </Animated.View>
+
+      {/* Export Modal */}
+      <Portal>
+        {story && (
+          <ExportModal
+            visible={exportModalVisible}
+            onDismiss={() => setExportModalVisible(false)}
+            story={story}
+            entities={{
+              characters,
+              blurbs,
+              scenes,
+              chapters,
+            }}
+          />
+        )}
+      </Portal>
     </ScrollView>
   );
 }
@@ -171,6 +216,22 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.lg,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerText: {
+    flex: 1,
+  },
+  exportButton: {
+    padding: spacing.sm,
+    borderRadius: spacing.xs,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginLeft: spacing.md,
   },
   title: {
     fontFamily: typography.fontFamily.bold,

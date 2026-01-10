@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "This app uses speech recognition to read your stories aloud.",
+        "NSSpeechSynthesisUsageDescription": "This app uses text-to-speech to read your stories aloud."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +26,11 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.boaz606.storyteller",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.WAKE_LOCK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -55,7 +63,11 @@
     "extra": {
       "firebaseAPIKey": "${FIREBASE_API_KEY}",
       "firebaseProjectId": "${FIREBASE_PROJECT_ID}",
-      "claudeAPIKey": "${CLAUDE_API_KEY}"
+      "claudeAPIKey": "${CLAUDE_API_KEY}",
+      "router": {},
+      "eas": {
+        "projectId": "10c8468b-a73d-43b5-827b-8838626041b2"
+      }
     }
   }
 }

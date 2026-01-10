@@ -99,7 +99,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
         >
           <MaterialIcons
             name="sync"
-            size={18}
+            size={22}
             color={isSyncing || !isOnline ? colors.textSecondary : colors.primary}
           />
         </TouchableOpacity>
@@ -144,8 +144,12 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   syncButton: {
-    padding: 4,
-    borderRadius: 4,
+    padding: 8,
+    borderRadius: 6,
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   syncButtonDisabled: {
     opacity: 0.5,

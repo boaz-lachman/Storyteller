@@ -32,6 +32,7 @@ import { Input } from '../../components/forms/Input';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatisticsCards } from '../../components/common/StatisticsCards';
+import { StoryPlayer } from '../../components/player/StoryPlayer';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -472,7 +473,16 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                   </Text>
                 </View>
               </View>
+            </Card.Content>
+          </Card>
 
+          {/* Story Player - Only shows if TTS is available for device locale */}
+          <Animated.View entering={FadeInDown.delay(125).duration(400)}>
+            <StoryPlayer text={generatedStory.content} />
+          </Animated.View>
+
+          <Card style={styles.card}>
+            <Card.Content>
               <Divider style={styles.divider} />
 
               {/* Story Content */}
