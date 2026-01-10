@@ -64,7 +64,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-uuid": "^2.0.3",
     "react-native-vector-icons": "^10.3.0",
-    "react-native-worklets": "f0.5.1",
+    "react-native-worklets": "0.5.1",
     "react-redux": "^9.2.0",
     "redux-persist": "^6.0.0"
   },
