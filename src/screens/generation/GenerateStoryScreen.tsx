@@ -113,7 +113,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
       if (!apiKeyConfigured) {
         dispatch(
           showSnackbar({
-            message: 'Claude API key is not configured. Please set EXPO_PUBLIC_CLAUDE_API_KEY in your environment.',
+            message: 'Claude API key is not configured. Please set CLAUDE_API_KEY in your environment.',
             type: 'error',
           })
         );
@@ -307,7 +307,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               <View style={styles.warningContent}>
                 <Ionicons name="warning" size={24} color={colors.warning} />
                 <Text style={styles.warningText}>
-                  Claude API key is not configured. Please set EXPO_PUBLIC_CLAUDE_API_KEY in your environment variables.
+                  Claude API key is not configured. Please set CLAUDE_API_KEY in your environment variables.
                 </Text>
               </View>
             </Card.Content>

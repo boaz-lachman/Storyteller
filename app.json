@@ -14,7 +14,6 @@
     },
     "ios": {
       "supportsTablet": true,
-      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "This app uses speech recognition to read your stories aloud.",
         "NSSpeechSynthesisUsageDescription": "This app uses text-to-speech to read your stories aloud."
@@ -25,7 +24,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "package": "com.boaz606.storyteller",
       "predictiveBackGestureEnabled": false,

@@ -5,6 +5,7 @@
 import axiosInstance from './axiosInstance';
 import { CLAUDE_API } from '../../constants/apiConstants';
 import type { AxiosError } from 'axios';
+import Constants from 'expo-constants';
 
 /**
  * Claude API message structure
@@ -86,11 +87,11 @@ export class ClaudeServiceError extends Error {
  * Throws error if not configured
  */
 const getApiKey = (): string => {
-  const apiKey = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
+  const apiKey = Constants.expoConfig?.extra?.claudeAPIKey;
   
   if (!apiKey) {
     throw new ClaudeServiceError(
-      'Claude API key is not configured. Please set EXPO_PUBLIC_CLAUDE_API_KEY in your environment variables.',
+      'Claude API key is not configured. Please set CLAUDE_API_KEY in your environment variables.',
       401,
       'API_KEY_MISSING'
     );

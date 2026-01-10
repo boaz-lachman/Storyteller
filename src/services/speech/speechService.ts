@@ -105,6 +105,47 @@ class SpeechService {
   }
 
   /**
+   * Clean text by removing unnecessary characters that shouldn't be read aloud
+   * Removes markdown headers (#), special formatting characters, etc.
+   * @param text - Text to clean
+   * @returns Cleaned text
+   */
+  private cleanText(text: string): string {
+    let cleaned = text;
+
+    // Remove markdown headers (# ## ### etc.)
+    cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+
+    // Remove markdown bold/italic markers that might be standalone (**, __, *, _)
+    // But keep them if they're part of words
+    cleaned = cleaned.replace(/(?<!\w)[*_]{1,2}(?!\w)/g, '');
+
+    // Remove markdown links [text](url) but keep the text
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+
+    // Remove markdown image syntax ![alt](url)
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1');
+
+    // Remove markdown code blocks (```code```)
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+
+    // Remove inline code (`code`)
+    cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+
+    // Remove excessive whitespace (3+ spaces or newlines)
+    cleaned = cleaned.replace(/\s{3,}/g, ' ');
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+    // Remove other markdown special characters that don't need to be spoken
+    cleaned = cleaned.replace(/[<>{}|\\^~`]/g, '');
+
+    // Trim and normalize whitespace
+    cleaned = cleaned.trim().replace(/\s+/g, ' ');
+
+    return cleaned;
+  }
+
+  /**
    * Split text into digestible chunks
    * Attempts to split at sentence boundaries when possible
    * @param text - Text to split
@@ -304,6 +345,13 @@ class SpeechService {
       throw new Error('Text cannot be empty');
     }
 
+    // Clean text to remove unnecessary characters
+    const cleanedText = this.cleanText(text);
+
+    if (!cleanedText || cleanedText.trim().length === 0) {
+      throw new Error('Text cannot be empty after cleaning');
+    }
+
     // Stop any current speech
     if (this.isSpeaking) {
       await this.stop();
@@ -313,12 +361,13 @@ class SpeechService {
       this.currentOptions = options || {};
       
       // Split text into chunks
-      this.textChunks = this.splitTextIntoChunks(text);
+      this.textChunks = this.splitTextIntoChunks(cleanedText);
       this.currentChunkIndex = 0;
       this.shouldContinueSpeaking = true;
 
       console.log('Starting chunked speech playback:', {
-        totalTextLength: text.length,
+        originalTextLength: text.length,
+        cleanedTextLength: cleanedText.length,
         numberOfChunks: this.textChunks.length,
         speechRate: options?.rate,
         pitch: options?.pitch,

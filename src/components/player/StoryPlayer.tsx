@@ -17,7 +17,7 @@ export interface StoryPlayerProps {
   onStateChange?: (isPlaying: boolean) => void;
 }
 
-type PlayerState = 'idle' | 'playing' | 'paused' | 'stopped';
+type PlayerState = 'idle' | 'playing' | 'stopped';
 
 /**
  * Story Player Component
@@ -130,8 +130,9 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         nextAppState.match(/inactive|background/) &&
         playerState === 'playing'
       ) {
-        // App went to background while playing - pause
-        handlePause();
+        // App went to background while playing - stop
+        speechService.stop().catch(console.error);
+        setPlayerState('stopped');
         console.log('App has gone to the background');
       }
 
@@ -204,7 +205,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         await speechService.stop();
       }
 
-      // Start playing (expo-speech doesn't support resume, so always restart)
+      // Start playing
       await speechService.speak(cleanedText, {
         language: 'en-US',
         rate: speechRate,
@@ -232,16 +233,6 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
       setPlayerState('idle');
     }
   }, [text, speechRate, speechPitch, selectedVoice, playerState, cleanTextForSpeech]);
-
-  // Handle pause
-  const handlePause = useCallback(async () => {
-    try {
-      await speechService.stop();
-      setPlayerState('paused');
-    } catch (error) {
-      console.error('Error pausing story:', error);
-    }
-  }, []);
 
   // Handle stop
   const handleStop = useCallback(async () => {
@@ -433,14 +424,16 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
           <TouchableOpacity
             style={[styles.controlButton, styles.playPauseButton]}
-            onPress={playerState === 'playing' ? handlePause : handlePlay}
-            disabled={!text || text.trim().length === 0}
+            onPress={handlePlay}
+            disabled={!text || text.trim().length === 0 || playerState === 'playing'}
           >
             <Feather
-              name={playerState === 'playing' ? 'pause' : 'play'}
+              name="play"
               size={32}
               color={
-                !text || text.trim().length === 0 ? colors.textTertiary : colors.primary
+                !text || text.trim().length === 0 || playerState === 'playing'
+                  ? colors.textTertiary
+                  : colors.primary
               }
             />
           </TouchableOpacity>
@@ -451,8 +444,6 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
           <Text style={styles.statusText}>
             {playerState === 'playing'
               ? 'Playing...'
-              : playerState === 'paused'
-              ? 'Paused'
               : playerState === 'stopped'
               ? 'Stopped'
               : 'Ready'}

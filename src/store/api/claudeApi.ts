@@ -6,6 +6,7 @@ import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import type { AxiosRequestConfig, AxiosError } from 'axios';
 import axiosInstance from '../../services/api/axiosInstance';
 import { CLAUDE_API } from '../../constants/apiConstants';
+import Constants from 'expo-constants';
 
 /**
  * Claude API message structure
@@ -109,7 +110,7 @@ const claudeBaseQuery: BaseQueryFn<
 > = async ({ url = '', method = 'POST', data, params }) => {
   try {
     // Get API key from environment
-    const apiKey = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
+    const apiKey = Constants.expoConfig?.extra?.claudeAPIKey;;
 
     if (!apiKey) {
       return {
