@@ -83,7 +83,7 @@ export default ({ config }) => {
         firebaseAPIKey: process.env.FIREBASE_API_KEY,
         firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
         firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
-        firebaseStorageBucket: process.envFIREBASE_STORAGE_BUCKET,
+        firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET,
         firebaseIosAppId: process.env.FIREBASE_IOS_APP_ID,
         firebaseAndroidAppId: process.env.FIREBASE_ANDROID_APP_ID,
         
