@@ -1,0 +1,53 @@
+// scripts/inject-firebase-config.js
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+
+// Ignore any extra arguments like --platform that EAS might pass
+console.log('🔧 Injecting Firebase config files from EAS secrets...\n');
+
+function decodeAndWriteFile(envVar, fileName, description) {
+  if (process.env[envVar]) {
+    try {
+      const decoded = Buffer.from(process.env[envVar], 'base64').toString('utf-8');
+      const filePath = path.join(__dirname, '..', fileName);
+      
+      fs.writeFileSync(filePath, decoded);
+      console.log(`✅ ${description} created`);
+      console.log(`   File: ${fileName}`);
+      
+      // Verify file exists
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        console.log(`   Size: ${stats.size} bytes\n`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to create ${description}:`, error.message);
+      process.exit(1);
+    }
+  } else {
+    console.error(`❌ ${envVar} secret not found!`);
+    console.error(`   Create it with: eas secret:create --scope project --name ${envVar} --value "..."\n`);
+    process.exit(1);
+  }
+}
+
+// Inject google-services.json (Android)
+decodeAndWriteFile(
+  'GOOGLE_SERVICES_JSON',
+  'google-services.json',
+  'Android Firebase config (google-services.json)'
+);
+
+// Inject GoogleService-Info.plist (iOS)
+decodeAndWriteFile(
+  'GOOGLE_SERVICE_INFO_PLIST',
+  'GoogleService-Info.plist',
+  'iOS Firebase config (GoogleService-Info.plist)'
+);
+
+console.log('✅ Firebase config injection complete!\n');
+
+// Exit successfully
+process.exit(0);
