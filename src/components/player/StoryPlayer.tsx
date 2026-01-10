@@ -7,10 +7,12 @@ import { View, StyleSheet, TouchableOpacity, AppState, AppStateStatus } from 're
 import { Text, Card, Menu } from 'react-native-paper';
 import { Feather } from '@expo/vector-icons';
 import * as Localization from 'expo-localization';
+import NetInfo from '@react-native-community/netinfo';
 import { speechService, type Voice } from '../../services/speech/speechService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import MainBookActivityIndicator from '../common/MainBookActivityIndicator';
 
 export interface StoryPlayerProps {
   text: string;
@@ -35,6 +37,9 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
   const [speechPitch, setSpeechPitch] = useState(1.0); // 0.0 to 2.0
   const [voiceMenuVisible, setVoiceMenuVisible] = useState(false);
   const [hasVoicesForLocale, setHasVoicesForLocale] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean | null>(null); // null = checking, true/false = determined
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState<{ current: number; total: number } | null>(null);
   const appState = useRef(AppState.currentState);
 
   // Get device locale
@@ -65,8 +70,41 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     return 'en';
   }, []);
 
-  // Initialize speech service
+  // Check internet connectivity
   useEffect(() => {
+    const checkConnectivity = async () => {
+      const netInfoState = await NetInfo.fetch();
+      const online = Boolean(netInfoState.isConnected && netInfoState.isInternetReachable);
+      setIsOnline(online);
+    };
+
+    // Initial check
+    checkConnectivity();
+
+    // Subscribe to connectivity changes
+    const unsubscribe = NetInfo.addEventListener((netInfoState) => {
+      const online = Boolean(netInfoState.isConnected && netInfoState.isInternetReachable);
+      setIsOnline(online);
+      
+      // If went offline while playing, stop playback
+      if (!online && playerState === 'playing') {
+        speechService.stop().catch(console.error);
+        setPlayerState('stopped');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [playerState]);
+
+  // Initialize speech service (only if online)
+  useEffect(() => {
+    // Don't initialize if we're still checking connectivity or if offline
+    if (isOnline === null || !isOnline) {
+      return;
+    }
+
     const initialize = async () => {
       try {
         await speechService.initialize();
@@ -102,6 +140,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         setIsInitialized(true);
       } catch (error) {
         console.error('Error initializing speech service:', error);
+        setIsInitialized(true); // Mark as initialized even on error to avoid infinite loading
       }
     };
 
@@ -111,7 +150,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     return () => {
       speechService.cleanup();
     };
-  }, [getDeviceLocale]);
+  }, [getDeviceLocale, isOnline]);
 
   // Handle app state changes (interruptions)
   useEffect(() => {
@@ -204,12 +243,20 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         await speechService.stop();
       }
 
-      // Start playing (expo-speech doesn't support resume, so always restart)
+      // Start playing (ElevenLabs TTS - restart for simplicity)
       await speechService.speak(cleanedText, {
         language: 'en-US',
         rate: speechRate,
         pitch: speechPitch,
         voice: selectedVoice || undefined,
+        onLoading: (loading, chunkIndex, totalChunks) => {
+          setIsLoading(loading);
+          if (loading && chunkIndex !== undefined && totalChunks !== undefined) {
+            setLoadingProgress({ current: chunkIndex, total: totalChunks });
+          } else {
+            setLoadingProgress(null);
+          }
+        },
         onStart: () => {
           console.log('Speech playback started');
           setPlayerState('playing');
@@ -217,14 +264,20 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         onDone: () => {
           console.log('Speech playback completed');
           setPlayerState('idle');
+          setIsLoading(false);
+          setLoadingProgress(null);
         },
         onStopped: () => {
           console.log('Speech playback stopped');
           setPlayerState('stopped');
+          setIsLoading(false);
+          setLoadingProgress(null);
         },
         onError: (error) => {
           console.error('Speech playback error:', error);
           setPlayerState('idle');
+          setIsLoading(false);
+          setLoadingProgress(null);
         },
       });
     } catch (error) {
@@ -248,8 +301,12 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     try {
       await speechService.stop();
       setPlayerState('stopped');
+      setIsLoading(false);
+      setLoadingProgress(null);
     } catch (error) {
       console.error('Error stopping story:', error);
+      setIsLoading(false);
+      setLoadingProgress(null);
     }
   }, []);
 
@@ -279,7 +336,16 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     return voice?.name || voice?.identifier || 'Default Voice';
   };
 
+  // Hide player if offline
+  if (isOnline === false) {
+    return null;
+  }
+
   if (!isInitialized) {
+    // Still checking connectivity or initializing
+    if (isOnline === null) {
+      return null; // Don't show anything while checking connectivity
+    }
     return (
       <Card style={styles.card}>
         <Card.Content>
@@ -413,6 +479,18 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
           </View>
         </View>
 
+        {/* Loading Indicator */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <MainBookActivityIndicator size="medium" />
+            {loadingProgress && (
+              <Text style={styles.loadingText}>
+                Generating audio chunk {loadingProgress.current} of {loadingProgress.total}...
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Playback Controls */}
         <View style={styles.playbackControls}>
           <TouchableOpacity
@@ -449,7 +527,9 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         {/* Status Display */}
         <View style={styles.statusRow}>
           <Text style={styles.statusText}>
-            {playerState === 'playing'
+            {isLoading
+              ? 'Loading audio...'
+              : playerState === 'playing'
               ? 'Playing...'
               : playerState === 'paused'
               ? 'Paused'
@@ -595,6 +675,19 @@ const styles = StyleSheet.create({
   },
   stopButton: {
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    marginVertical: spacing.md,
+  },
+  loadingText: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    textAlign: 'center',
   },
   statusRow: {
     alignItems: 'center',
