@@ -26,13 +26,16 @@ import { useSignup } from '../../hooks/useSignup';
 export default function SignupScreen() {
   const isRTL = I18nManager.isRTL;
   const {
+    username,
     email,
     password,
     confirmPassword,
+    usernameError,
     emailError,
     passwordError,
     confirmPasswordError,
     isLoading,
+    updateUsername,
     updateEmail,
     updatePassword,
     updateConfirmPassword,
@@ -61,6 +64,19 @@ export default function SignupScreen() {
           <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
             Sign up to get started
           </Text>
+
+          {/* Username Input */}
+          <Input
+            label="Username"
+            value={username}
+            onChangeText={updateUsername}
+            placeholder="Enter your username"
+            autoCapitalize="none"
+            autoComplete="username"
+            error={usernameError}
+            required
+            style={styles.input}
+          />
 
           {/* Email Input */}
           <Input

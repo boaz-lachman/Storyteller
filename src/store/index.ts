@@ -35,6 +35,7 @@ import syncReducer from './slices/syncSlice';
 import uiReducer from './slices/uiSlice';
 import exportReducer from './slices/exportSlice';
 import autosaveReducer from './slices/autosaveSlice';
+import onboardingReducer from './slices/onboardingSlice';
 
 /**
  * Root reducer combining all reducers
@@ -59,6 +60,7 @@ const rootReducer = combineReducers({
   ui: uiReducer,
   export: exportReducer,
   autosave: autosaveReducer,
+  onboarding: onboardingReducer,
 });
 
 /**

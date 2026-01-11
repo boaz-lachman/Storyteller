@@ -39,6 +39,7 @@ export type StoryTabParamList = {
  */
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
+  Onboarding: undefined;
   App: NavigatorScreenParams<AppStackParamList>;
   // Direct screens for when authenticated
   StoriesList: undefined;

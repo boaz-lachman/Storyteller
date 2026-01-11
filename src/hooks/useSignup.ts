@@ -22,9 +22,11 @@ export const useSignup = () => {
   const navigation = useNavigation<SignupNavigationProp>();
   const dispatch = useAppDispatch();
 
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -35,6 +37,20 @@ export const useSignup = () => {
    */
   const validateForm = (): boolean => {
     let isValid = true;
+
+    // Validate username
+    if (!username.trim()) {
+      setUsernameError('Username is required');
+      isValid = false;
+    } else if (username.trim().length < 3) {
+      setUsernameError('Username must be at least 3 characters');
+      isValid = false;
+    } else if (username.trim().length > 30) {
+      setUsernameError('Username must be less than 30 characters');
+      isValid = false;
+    } else {
+      setUsernameError('');
+    }
 
     // Validate email
     if (!email.trim()) {
@@ -85,7 +101,7 @@ export const useSignup = () => {
     setIsLoading(true);
 
     try {
-      const firebaseUser: FirebaseUser = await signUp(email.trim(), password);
+      const firebaseUser: FirebaseUser = await signUp(email.trim(), password, username.trim());
       
       // Map Firebase user to app user
       const appUser: User = {
@@ -111,6 +127,14 @@ export const useSignup = () => {
    */
   const handleNavigateToLogin = () => {
     navigation.goBack();
+  };
+
+  /**
+   * Update username and clear error if exists
+   */
+  const updateUsername = (text: string) => {
+    setUsername(text);
+    if (usernameError) setUsernameError('');
   };
 
   /**
@@ -147,15 +171,18 @@ export const useSignup = () => {
 
   return {
     // State
+    username,
     email,
     password,
     confirmPassword,
+    usernameError,
     emailError,
     passwordError,
     confirmPasswordError,
     isLoading,
 
     // Actions
+    updateUsername,
     updateEmail,
     updatePassword,
     updateConfirmPassword,

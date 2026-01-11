@@ -17,9 +17,11 @@ import {
   restoreActivityContext,
   setLastSavedAt,
 } from '../store/slices/autosaveSlice';
+import { selectShouldShowOnboarding } from '../store/slices/onboardingSlice';
 import { useAuth } from '../hooks/useAuth';
 import AuthNavigator from './AuthNavigator';
 import DrawerNavigator from './DrawerNavigator';
+import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import type { RootStackParamList } from './types';
 import { navigationTheme } from './theme';
 import { colors } from '../constants/colors';
@@ -46,6 +48,7 @@ export default function AppNavigator() {
   const { isLoading: authLoading } = useAuth();
   const user = useAppSelector(selectUser);
   const isLoading = useAppSelector(selectAuthLoading);
+  const shouldShowOnboarding = useAppSelector(selectShouldShowOnboarding);
   const activityContext = useAppSelector(selectActivityContext);
   const dispatch = useAppDispatch();
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
@@ -188,8 +191,17 @@ export default function AppNavigator() {
             component={AuthNavigator}
             options={{ gestureEnabled: false }} // Prevent back gesture on auth screen
           />
+        ) : shouldShowOnboarding ? (
+          // Onboarding flow - show after login if not completed
+          <Stack.Screen 
+            name="Onboarding" 
+            component={OnboardingScreen}
+            options={{ 
+              gestureEnabled: false, // Prevent back gesture on onboarding
+            }}
+          />
         ) : (
-          // Protected routes - only accessible when authenticated
+          // Protected routes - only accessible when authenticated and onboarding completed
           // Use DrawerNavigator which wraps the app stack
           <Stack.Screen 
             name="App" 

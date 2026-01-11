@@ -8,21 +8,24 @@ import {
   signOut,
   sendPasswordResetEmail,
   onAuthStateChanged,
+  updateProfile,
   User,
   AuthError,
 } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 
 /**
- * Sign up a new user with email and password
+ * Sign up a new user with email, password, and username
  * @param email - User's email address
  * @param password - User's password
+ * @param username - User's username (display name)
  * @returns Promise resolving to the user credential
  * @throws AuthError if sign up fails
  */
 export const signUp = async (
   email: string,
-  password: string
+  password: string,
+  username: string
 ): Promise<User> => {
   try {
     const userCredential = await createUserWithEmailAndPassword(
@@ -30,6 +33,14 @@ export const signUp = async (
       email,
       password
     );
+    
+    // Update user profile with username (displayName)
+    if (username && userCredential.user) {
+      await updateProfile(userCredential.user, {
+        displayName: username,
+      });
+    }
+    
     return userCredential.user;
   } catch (error) {
     const authError = error as AuthError;
