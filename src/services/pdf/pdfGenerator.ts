@@ -79,7 +79,9 @@ export const generateStoryPDF = async (
   story: Story,
   options?: {
     characters?: Character[];
+    blurbs?: IdeaBlurb[];
     includeCharacters?: boolean;
+    includeBlurbs?: boolean;
     includeMetadata?: boolean;
     includeDescription?: boolean;
     includeGeneratedContent?: boolean;
@@ -87,7 +89,9 @@ export const generateStoryPDF = async (
 ): Promise<string> => {
   const {
     characters = [],
+    blurbs = [],
     includeCharacters = false,
+    includeBlurbs = false,
     includeMetadata = true,
     includeDescription = true,
     includeGeneratedContent = true,
@@ -101,6 +105,7 @@ export const generateStoryPDF = async (
     includeGeneratedContent,
   });
   const charactersHtml = includeCharacters ? formatCharacterList(characters) : '';
+  const blurbsHtml = includeBlurbs ? formatBlurbList(blurbs) : '';
 
   const html = `
     <!DOCTYPE html>
@@ -115,6 +120,7 @@ export const generateStoryPDF = async (
         ${metadataHtml}
         ${contentHtml}
         ${charactersHtml}
+        ${blurbsHtml}
         
         <div class="footer">
           Generated on ${new Date().toLocaleString()}
@@ -255,6 +261,73 @@ const formatCharacterList = (characters: Character[]): string => {
         ${charactersHtml}
       </div>
     </div>
+  `;
+};
+
+/**
+ * Format blurb list for PDF
+ * @param blurbs - Array of blurbs
+ * @returns Formatted blurbs HTML
+ */
+const formatBlurbList = (blurbs: IdeaBlurb[]): string => {
+  if (!blurbs || blurbs.length === 0) {
+    return '';
+  }
+
+  const blurbsHtml = blurbs
+    .map((blurb) => {
+      const categoryBadge = blurb.category ? formatCategoryBadge(blurb.category) : '';
+      
+      return `
+        <div class="blurb-item">
+          <div class="blurb-header">
+            <h3 class="blurb-title">${escapeHtml(blurb.title)}</h3>
+            ${categoryBadge}
+          </div>
+          <div class="blurb-description">${escapeHtml(blurb.description).replace(/\n/g, '<br>')}</div>
+        </div>
+      `;
+    })
+    .join('');
+
+  return `
+    <div class="blurbs-section">
+      <h2 class="section-title">Story Ideas & Blurbs</h2>
+      <div class="blurbs-list">
+        ${blurbsHtml}
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Format category badge
+ * @param category - Blurb category
+ * @returns Formatted category badge HTML
+ */
+const formatCategoryBadge = (category: IdeaBlurb['category']): string => {
+  if (!category) return '';
+  
+  const categoryLabels: Record<NonNullable<IdeaBlurb['category']>, string> = {
+    'plot-point': 'Plot Point',
+    'conflict': 'Conflict',
+    'theme': 'Theme',
+    'setting': 'Setting',
+    'other': 'Other',
+  };
+
+  const categoryColors: Record<NonNullable<IdeaBlurb['category']>, string> = {
+    'plot-point': '#9b59b6',
+    'conflict': '#e67e22',
+    'theme': '#16a085',
+    'setting': '#3498db',
+    'other': '#95a5a6',
+  };
+
+  return `
+    <span class="category-badge" style="background-color: ${categoryColors[category]};">
+      ${escapeHtml(categoryLabels[category])}
+    </span>
   `;
 };
 
@@ -456,6 +529,56 @@ const getPDFStyles = (): string => {
         padding-top: 10px;
         border-top: 1px solid #ecf0f1;
         line-height: 1.7;
+      }
+      
+      /* Blurbs Section */
+      .blurbs-section {
+        margin-bottom: 40px;
+      }
+      .blurbs-list {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+      }
+      .blurb-item {
+        background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+        padding: 25px;
+        border-radius: 8px;
+        border-left: 4px solid #3498db;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        transition: transform 0.2s ease;
+      }
+      .blurb-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .blurb-title {
+        color: #2c3e50;
+        font-size: 1.3em;
+        margin: 0;
+        font-weight: 600;
+        flex: 1;
+        min-width: 200px;
+      }
+      .category-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.75em;
+        font-weight: 600;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .blurb-description {
+        color: #34495e;
+        font-size: 1em;
+        line-height: 1.7;
+        text-align: justify;
       }
       
       /* Footer */

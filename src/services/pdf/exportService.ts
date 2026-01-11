@@ -3,7 +3,7 @@
  * Handles exporting stories in various formats using expo-sharing
  */
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { generateStoryPDF } from './pdfGenerator';
 import type { Story, Character, IdeaBlurb, Scene, Chapter } from '../../types';
 
@@ -61,54 +61,51 @@ const exportStoryAsPDF = async (
 ): Promise<string> => {
   const {
     type = 'full',
-    includeCharacters = false,
-    includeBlurbs = false,
-    includeScenes = false,
-    includeChapters = false,
   } = options;
 
-  // Determine what to include based on export type
-  let charactersToInclude: Character[] | undefined;
-  let includeMetadata = true;
-  let includeDescription = true;
-  let includeGeneratedContent = true;
+  // PDF export includes only characters and blurbs
+  // Exclude metadata, description, generated content, scenes, and chapters
+  const charactersToInclude = entities.characters;
+  const blurbsToInclude = entities.blurbs;
+  const includeMetadata = false;
+  const includeDescription = false;
+  const includeGeneratedContent = false;
 
-  switch (type) {
-    case 'full':
-      // Include everything: metadata, description, generated content, and all elements
-      charactersToInclude = includeCharacters ? entities.characters : undefined;
-      includeMetadata = true;
-      includeDescription = true;
-      includeGeneratedContent = true;
-      break;
-    case 'elements-only':
-      // Only include story elements: metadata, description, characters, blurbs, scenes, chapters
-      // Exclude generated content
-      charactersToInclude = includeCharacters ? entities.characters : undefined;
-      includeMetadata = true;
-      includeDescription = true;
-      includeGeneratedContent = false;
-      break;
-    case 'generated-only':
-      // Only include generated story content: title, metadata, description, and generated content
-      // Exclude all elements (characters, blurbs, scenes, chapters)
-      charactersToInclude = undefined;
-      includeMetadata = true;
-      includeDescription = true;
-      includeGeneratedContent = true;
-      break;
-  }
+  // Always include characters and blurbs if they exist in entities
+  const includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
+  const includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
 
   // Generate PDF with appropriate options
   const pdfUri = await generateStoryPDF(story, {
     characters: charactersToInclude,
-    includeCharacters: !!charactersToInclude,
+    blurbs: blurbsToInclude,
+    includeCharacters,
+    includeBlurbs,
     includeMetadata,
     includeDescription,
     includeGeneratedContent,
   });
 
-  return pdfUri;
+  // Rename the PDF file to the story title
+  const filename = generateFilename(story, 'pdf', type);
+  // Extract directory from the original URI
+  const lastSlashIndex = pdfUri.lastIndexOf('/');
+  const directory = lastSlashIndex !== -1 ? pdfUri.substring(0, lastSlashIndex + 1) : '';
+  const newUri = `${directory}${filename}`;
+
+  try {
+    // Move/rename the file to the new location with the story title
+    await FileSystem.moveAsync({
+      from: pdfUri,
+      to: newUri,
+    });
+    return newUri;
+  } catch (error) {
+    console.error('Error renaming PDF file:', error);
+    // If renaming fails, return the original URI
+    console.warn('Failed to rename PDF file, using original URI');
+    return pdfUri;
+  }
 };
 
 /**
@@ -246,7 +243,7 @@ export const getExportTypeOptions = (): Array<{ value: ExportType; label: string
     {
       value: 'elements-only',
       label: 'Elements Only',
-      description: 'Export only story elements (characters, blurbs, scenes, chapters)',
+      description: 'Export only story elements (characters, blurbs)',
     },
     {
       value: 'generated-only',
