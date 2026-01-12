@@ -25,9 +25,9 @@ const Tab = createMaterialTopTabNavigator<StoryTabParamList>();
  * - Properly passes storyId to all tab screens
  */
 const StoryNavigator = ({ 
-  route 
+  route
 }: { 
-  route: RouteProp<AppStackParamList, 'StoryDetail'> 
+  route: RouteProp<AppStackParamList, 'StoryDetail'>;
 }) => {
   const { storyId } = route.params;
     

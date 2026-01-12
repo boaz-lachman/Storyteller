@@ -22,6 +22,7 @@ import { ChapterCard } from '../../components/cards/ChapterCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ChapterModal } from '../../components/modals/ChapterModal';
 import { FloatingActionButton, type FABOption } from '../../components/common/FloatingActionButton';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
@@ -318,17 +319,19 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
   // Show loading state
   if (isLoading) {
     return (
-      <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContainer}>
-        <MainBookActivityIndicator size={80} />
-        <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
-          Loading chapters...
-        </Animated.Text>
-      </Animated.View>
+      <GradientBackground style={styles.loadingContainer}>
+        <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContent}>
+          <MainBookActivityIndicator size={80} />
+          <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
+            Loading chapters...
+          </Animated.Text>
+        </Animated.View>
+      </GradientBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <GradientBackground style={styles.container}>
       <BigList
         data={chapters}
         renderItem={renderItem}
@@ -361,18 +364,21 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         onSubmit={handleSubmit}
         isLoading={isCreating || isUpdating}
       />
-    </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
+  },
+  loadingContent: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
@@ -387,6 +393,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.md,
     paddingBottom: spacing.xl,
+    backgroundColor: 'transparent',
   },
   itemWrapper: {
     marginBottom: spacing.md,

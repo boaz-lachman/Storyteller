@@ -21,6 +21,7 @@ import { BlurbCard } from '../../components/cards/BlurbCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BlurbModal } from '../../components/modals/BlurbModal';
 import { FloatingActionButton, type FABOption } from '../../components/common/FloatingActionButton';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
@@ -289,7 +290,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <GradientBackground style={styles.container}>
       {/* Sort/Filter Header - Only show if there are blurbs */}
       {blurbs.length > 0 && (
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
@@ -398,7 +399,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
         onSubmit={handleSubmit}
         isLoading={isCreating || isUpdating}
       />
-    </View>
+    </GradientBackground>
   );
 }
 

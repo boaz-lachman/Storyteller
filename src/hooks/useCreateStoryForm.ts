@@ -55,7 +55,7 @@ export interface UseCreateStoryFormReturn {
 const LENGTH_OPTIONS: Array<{ label: string; value: CreateStoryFormData['length'] }> = [
   { label: 'Short Story', value: 'short-story' },
   { label: 'Novella', value: 'novella' },
-  { label: 'Novel', value: 'novel' },
+  // { label: 'Novel', value: 'novel' }, // Commented out - novel generation requires chunked generation which is being implemented
 ];
 
 const THEME_OPTIONS: Array<{ label: string; value: CreateStoryFormData['theme'] }> = [

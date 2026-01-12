@@ -4,9 +4,11 @@ import NetInfo from '@react-native-community/netinfo';
 
 /**
  * Configured axios instance with retry logic
+ * Note: Timeout is set per-request for Claude API calls (5 minutes)
+ * This default timeout is for other API calls
  */
 const axiosInstance = axios.create({
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 30 second default timeout (increased from 10s for better reliability)
 });
 
 /**

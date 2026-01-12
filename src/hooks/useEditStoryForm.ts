@@ -58,7 +58,7 @@ export interface UseEditStoryFormReturn {
 const LENGTH_OPTIONS: Array<{ label: string; value: EditStoryFormData['length'] }> = [
   { label: 'Short Story', value: 'short-story' },
   { label: 'Novella', value: 'novella' },
-  { label: 'Novel', value: 'novel' },
+  // { label: 'Novel', value: 'novel' }, // Commented out - novel generation requires chunked generation which is being implemented
 ];
 
 const THEME_OPTIONS: Array<{ label: string; value: EditStoryFormData['theme'] }> = [

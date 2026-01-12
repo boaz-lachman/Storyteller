@@ -18,9 +18,11 @@ export const colors = {
   accentDark: '#D4C09A',
   accentLight: '#F2E6D4',
   
-  // Neutral colors - Warm tones
+  // Neutral colors - Warm tones (with transparency for gradient backgrounds)
   background: '#FFFEF9', // Off-white with warm tint
+  backgroundTransparent: 'rgba(255, 254, 249, 0.85)', // Semi-transparent for overlays on gradient
   surface: '#FFFBF5', // Very light warm beige
+  surfaceTransparent: 'rgba(255, 251, 245, 0.9)', // Semi-transparent surface
   surfaceDark: '#F5F0E8', // Light warm beige
   
   // Text colors - Dark on light
@@ -57,6 +59,13 @@ export const colors = {
   themeRomance: '#E8B5B5', // Warm pink
   themeThriller: '#8B7D6B', // Warm gray-brown
   themeMystery: '#A6967F', // Warm taupe
+
+  // Gradient colors - Colorful and vibrant
+  gradient: {
+    pink: '#FFB5D8', // Soft pink
+    peach: '#FF9F7A', // Warm peach (primary)
+    orange: '#FFD89B', // Light orange
+  },
 } as const;
 
 export type ColorKey = keyof typeof colors;

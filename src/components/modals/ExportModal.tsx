@@ -11,7 +11,7 @@ import MainBookActivityIndicator from '../common/MainBookActivityIndicator';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-import type { Story, Character, IdeaBlurb, Scene, Chapter } from '../../types';
+import type { Story, Character, IdeaBlurb, Scene } from '../../types';
 
 export interface ExportModalProps {
   visible: boolean;
@@ -21,7 +21,6 @@ export interface ExportModalProps {
     characters?: Character[];
     blurbs?: IdeaBlurb[];
     scenes?: Scene[];
-    chapters?: Chapter[];
   };
 }
 

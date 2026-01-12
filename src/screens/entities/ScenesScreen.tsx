@@ -21,6 +21,7 @@ import { SceneCard } from '../../components/cards/SceneCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { SceneModal } from '../../components/modals/SceneModal';
 import { FloatingActionButton, type FABOption } from '../../components/common/FloatingActionButton';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
@@ -272,7 +273,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <GradientBackground style={styles.container}>
       {/* Sort Header - Only show if there are scenes */}
       {scenes.length > 0 && (
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
@@ -345,7 +346,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
         onSubmit={handleSubmit}
         isLoading={isCreating || isUpdating}
       />
-    </View>
+    </GradientBackground>
   );
 }
 

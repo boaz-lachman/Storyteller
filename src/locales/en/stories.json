@@ -1,0 +1,55 @@
+{
+  "list": {
+    "title": "My Stories",
+    "emptyTitle": "No Stories Yet",
+    "emptyMessage": "Create your first story to get started",
+    "createStory": "Create Story"
+  },
+  "detail": {
+    "tabs": {
+      "overview": "Overview",
+      "characters": "Characters",
+      "blurbs": "Blurbs",
+      "scenes": "Scenes",
+      "chapters": "Chapters",
+      "completed": "Story",
+      "generate": "Generate"
+    }
+  },
+  "create": {
+    "title": "Create New Story",
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter story title",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter story description",
+      "length": "Length",
+      "theme": "Theme",
+      "tone": "Tone",
+      "pov": "Point of View",
+      "targetAudience": "Target Audience"
+    },
+    "buttons": {
+      "create": "Create",
+      "cancel": "Cancel"
+    },
+    "validation": {
+      "titleRequired": "Title is required"
+    }
+  },
+  "edit": {
+    "title": "Edit Story",
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel"
+    }
+  },
+  "delete": {
+    "confirmTitle": "Delete Story",
+    "confirmMessage": "Are you sure you want to delete this story? This action cannot be undone.",
+    "deleteButton": "Delete",
+    "cancelButton": "Cancel",
+    "deleted": "Story deleted successfully",
+    "deleteFailed": "Failed to delete story"
+  }
+}

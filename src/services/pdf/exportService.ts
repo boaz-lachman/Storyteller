@@ -63,17 +63,42 @@ const exportStoryAsPDF = async (
     type = 'full',
   } = options;
 
-  // PDF export includes only characters and blurbs
-  // Exclude metadata, description, generated content, scenes, and chapters
+  // Determine what to include based on export type
   const charactersToInclude = entities.characters;
   const blurbsToInclude = entities.blurbs;
-  const includeMetadata = false;
-  const includeDescription = false;
-  const includeGeneratedContent = false;
+  
+  let includeMetadata = false;
+  let includeDescription = false;
+  let includeGeneratedContent = false;
+  let includeCharacters = false;
+  let includeBlurbs = false;
 
-  // Always include characters and blurbs if they exist in entities
-  const includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
-  const includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
+  switch (type) {
+    case 'full':
+      // Full export: include everything
+      includeMetadata = true;
+      includeDescription = true;
+      includeGeneratedContent = !!story.generatedContent && story.generatedContent.trim().length > 0;
+      includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
+      includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
+      break;
+    case 'elements-only':
+      // Elements only: include characters and blurbs
+      includeMetadata = false;
+      includeDescription = false;
+      includeGeneratedContent = false;
+      includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
+      includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
+      break;
+    case 'generated-only':
+      // Generated content only: include only the generated story
+      includeMetadata = false;
+      includeDescription = false;
+      includeGeneratedContent = !!story.generatedContent && story.generatedContent.trim().length > 0;
+      includeCharacters = false;
+      includeBlurbs = false;
+      break;
+  }
 
   // Generate PDF with appropriate options
   const pdfUri = await generateStoryPDF(story, {

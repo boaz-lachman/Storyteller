@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@config-plugins/react-native-webrtc": "^13.0.0",
-    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/poppins": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@livekit/react-native-expo-plugin": "^1.0.1",
     "@mhpdev/react-native-speech": "^1.3.1",
@@ -38,6 +38,7 @@
     "expo-build-properties": "~1.0.10",
     "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.10",
+    "expo-linear-gradient": "~15.0.8",
     "expo-localization": "^17.0.8",
     "expo-network": "~8.0.8",
     "expo-notifications": "^0.32.16",

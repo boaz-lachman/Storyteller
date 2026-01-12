@@ -27,10 +27,13 @@ import { useGenerateStoryMutation } from '../../store/api/claudeApi';
 import type { GenerateStoryResponse } from '../../store/api/claudeApi';
 import { useUpdateStoryMutation } from '../../store/api/storiesApi';
 import { isApiKeyConfigured } from '../../services/api/claudeService';
+import { generateStoryChunked, type ChunkedGenerationProgress } from '../../services/generation/chunkedGenerationService';
+import { CLAUDE_API } from '../../constants/apiConstants';
 import { PaperButton } from '../../components/forms/PaperButton';
 import { Input } from '../../components/forms/Input';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import { StatisticsCards } from '../../components/common/StatisticsCards';
 import { StoryPlayer } from '../../components/player/StoryPlayer';
 import { colors } from '../../constants/colors';
@@ -41,6 +44,7 @@ import { useAppDispatch } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { formatWordCount } from '../../utils/formatting';
+import { countWords } from '../../utils/helpers';
 import { showStoryGenerationNotification, cancelNotification } from '../../services/notifications';
 
 type GenerateStoryScreenRouteProp = RouteProp<StoryTabParamList, 'Generate'>;
@@ -64,6 +68,11 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   const [generatedStory, setGeneratedStory] = useState<GenerateStoryResponse | null>(null);
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [notificationId, setNotificationId] = useState<string | null>(null);
+  const [cutOffChunks, setCutOffChunks] = useState<number[]>([]);
+  
+  // Chunked generation state
+  const [chunkedProgress, setChunkedProgress] = useState<ChunkedGenerationProgress | null>(null);
+  const [isChunkedGeneration, setIsChunkedGeneration] = useState(false);
 
   // RTK Query mutations
   const [generateStory, { isLoading: isGenerating }] = useGenerateStoryMutation();
@@ -133,44 +142,166 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
     }
 
     setGeneratedStory(null);
+    setChunkedProgress(null);
+    setIsChunkedGeneration(false);
+    setCutOffChunks([]);
 
     // Show notification for background generation
     const notifId = await showStoryGenerationNotification();
     setNotificationId(notifId);
 
     try {
-      // Build prompt
       const promptOptions: PromptBuilderOptions = {
         complexity,
         style: style || undefined,
         additionalInstructions: additionalInstructions || undefined,
       };
 
-      const prompt = buildStoryPrompt(story, characters, blurbs, scenes, chapters, promptOptions);
-      const systemPrompt = getDefaultSystemPrompt();
-      const messages = formatPromptForClaude(prompt, systemPrompt);
+      // Use chunked generation for novellas (with or without chapters)
+      // For novellas without chapters, we'll create virtual chunks from scenes/blurbs
+      const shouldUseChunkedGeneration = story.length === 'novella' || chapters.length > 0;
+      
+      if (shouldUseChunkedGeneration) {
+        // Validate chapter count before starting (if using chapters)
+        if (chapters.length > 0 && chapters.length > CLAUDE_API.MAX_CHAPTERS_FOR_GENERATION) {
+          dispatch(
+            showSnackbar({
+              message: `Too many chapters. Maximum ${CLAUDE_API.MAX_CHAPTERS_FOR_GENERATION} chapters allowed per generation to control costs.`,
+              type: 'error',
+            })
+          );
+          if (notifId) {
+            await cancelNotification(notifId);
+            setNotificationId(null);
+          }
+          return;
+        }
 
-      // Generate story using RTK Query mutation
-      const result = await generateStory({
-        messages,
-        maxTokens: 4000, // Increased for longer stories
-        systemPrompt,
-      }).unwrap();
-
-      // Cancel notification on success
-      if (notifId) {
-        await cancelNotification(notifId);
-        setNotificationId(null);
-      }
-
-      if (result) {
-        setGeneratedStory(result);
-        dispatch(
-          showSnackbar({
-            message: 'Story generated successfully!',
-            type: 'success',
-          })
+        setIsChunkedGeneration(true);
+        
+        const result = await generateStoryChunked(
+          story,
+          characters,
+          blurbs,
+          scenes,
+          chapters,
+          {
+            ...promptOptions,
+            onProgress: (progress) => {
+              setChunkedProgress(progress);
+            },
+            onChapterComplete: (chunkNumber, content) => {
+              const chunkLabel = chapters.length > 0 ? 'Chapter' : 'Section';
+              dispatch(
+                showSnackbar({
+                  message: `${chunkLabel} ${chunkNumber} generated successfully!`,
+                  type: 'success',
+                })
+              );
+            },
+            onTokenWarning: (currentTokens, warningThreshold) => {
+              dispatch(
+                showSnackbar({
+                  message: `Warning: Approaching token limit (${currentTokens.toLocaleString()} tokens used). Generation may be incomplete.`,
+                  type: 'warning',
+                })
+              );
+            },
+          }
         );
+
+        // Cancel notification on success
+        if (notifId) {
+          await cancelNotification(notifId);
+          setNotificationId(null);
+        }
+
+        // Convert chunked result to GenerateStoryResponse format
+        const chunkLabel = chapters.length > 0 ? 'chapters' : 'sections';
+        const completedChunks = result.chunks.length;
+        // Calculate expected total chunks
+        const totalChunks = chapters.length > 0 
+          ? chapters.length 
+          : scenes.length > 0 
+            ? Math.ceil(scenes.length / Math.max(2, Math.ceil(scenes.length / 5)))
+            : blurbs.length > 0
+              ? Math.ceil(blurbs.length / 3)
+              : 1;
+        const isComplete = completedChunks >= totalChunks && !chunkedProgress?.error;
+        
+        const response: GenerateStoryResponse = {
+          content: result.completeContent,
+          wordCount: result.totalWordCount,
+          prompt: `Chunked generation for ${completedChunks} ${chunkLabel}`,
+          usage: result.totalUsage,
+        };
+
+        setGeneratedStory(response);
+        setCutOffChunks(result.cutOffChunks || []);
+        setIsChunkedGeneration(false);
+        setChunkedProgress(null);
+
+        // Show appropriate message based on completion status
+        if (isComplete) {
+          dispatch(
+            showSnackbar({
+              message: `Story generated successfully! ${completedChunks} ${chunkLabel} completed.`,
+              type: 'success',
+            })
+          );
+        } else if (chunkedProgress?.error) {
+          dispatch(
+            showSnackbar({
+              message: `Story generation stopped early: ${chunkedProgress.error}. ${completedChunks} ${chunkLabel} were generated.`,
+              type: 'warning',
+            })
+          );
+        } else {
+          dispatch(
+            showSnackbar({
+              message: `Story generation completed with ${completedChunks} of ${totalChunks} ${chunkLabel}.`,
+              type: 'warning',
+            })
+          );
+        }
+      } else {
+        // Use single-call generation for short stories
+        setIsChunkedGeneration(false);
+        
+        const prompt = buildStoryPrompt(story, characters, blurbs, scenes, chapters, promptOptions);
+        const systemPrompt = getDefaultSystemPrompt();
+        const messages = formatPromptForClaude(prompt, systemPrompt);
+
+        // Generate story using RTK Query mutation
+        // Use configured limit instead of Claude's max to control costs
+        const result = await generateStory({
+          messages,
+          maxTokens: CLAUDE_API.MAX_TOKENS_SINGLE_GENERATION,
+          systemPrompt,
+        }).unwrap();
+
+        // Cancel notification on success
+        if (notifId) {
+          await cancelNotification(notifId);
+          setNotificationId(null);
+        }
+
+        if (result) {
+          setGeneratedStory(result);
+          // For single-call generation, if wasCutOff is true, we can't track specific chunks
+          // but we can indicate the story was cut off
+          if (result.wasCutOff) {
+            setCutOffChunks([1]); // Mark as cut off (single chunk)
+          } else {
+            setCutOffChunks([]);
+          }
+          dispatch(
+            showSnackbar({
+              message: 'Story generated successfully!',
+              type: 'success',
+            })
+          );
+        }
       }
     } catch (error: any) {
       console.error('Error generating story:', error);
@@ -180,6 +311,38 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         await cancelNotification(notifId);
         setNotificationId(null);
       }
+
+      setIsChunkedGeneration(false);
+      
+      // Check if we have partial content from chunked generation
+      if (isChunkedGeneration && chunkedProgress?.completedContent) {
+        const partialContent = chunkedProgress.completedContent;
+        if (partialContent && partialContent.trim().length > 0) {
+          // Save partial content so user doesn't lose progress
+          const partialWordCount = countWords(partialContent);
+          const partialResponse: GenerateStoryResponse = {
+            content: partialContent,
+            wordCount: partialWordCount,
+            prompt: 'Partial generation (stopped early)',
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+            },
+          };
+          setGeneratedStory(partialResponse);
+          
+          dispatch(
+            showSnackbar({
+              message: `Generation stopped early, but ${chunkedProgress.completedChunks} sections were saved. You can save this partial content.`,
+              type: 'warning',
+            })
+          );
+          setChunkedProgress(null);
+          return;
+        }
+      }
+      
+      setChunkedProgress(null);
 
       const errorMessage = error?.data?.message || error?.data?.error || error?.message || 'Failed to generate story. Please try again.';
       dispatch(
@@ -211,6 +374,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                   wordCount: generatedStory.wordCount,
                   generatedAt: Date.now(),
                   status: 'completed' as const,
+                  cutOffChunks: cutOffChunks.length > 0 ? cutOffChunks : undefined,
                 },
               }).unwrap();
 
@@ -234,7 +398,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         },
       ]
     );
-  }, [generatedStory, story, storyId, updateStory, dispatch]);
+  }, [generatedStory, story, storyId, cutOffChunks, updateStory, dispatch]);
 
   // Handle regenerate
   const handleRegenerate = useCallback(() => {
@@ -264,30 +428,32 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   // Show loading state
   if (isLoading) {
     return (
-      <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContainer}>
-        <MainBookActivityIndicator size={80} />
-        <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
-          Loading story elements...
-        </Animated.Text>
-      </Animated.View>
+      <GradientBackground>
+        <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContainer}>
+          <MainBookActivityIndicator size={80} />
+          <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
+            Loading story elements...
+          </Animated.Text>
+        </Animated.View>
+      </GradientBackground>
     );
   }
 
   // Show error if story not found
   if (!story) {
     return (
-      <View style={styles.container}>
+      <GradientBackground style={styles.container}>
         <EmptyState
           title="Story Not Found"
           message="The story you're looking for doesn't exist."
           icon={<Ionicons name="alert-circle" size={64} color={colors.error} />}
         />
-      </View>
+      </GradientBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <GradientBackground style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -527,23 +693,35 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
       </ScrollView>
 
       {/* Full Screen Loading Overlay */}
-      {isGenerating && (
+      {(isGenerating || isChunkedGeneration) && (
         <Animated.View entering={FadeIn.duration(300)} style={styles.loadingOverlay}>
           <View style={styles.loadingOverlayContent}>
             <MainBookActivityIndicator size={120} />
-            <Text style={styles.generatingText}>Generating your story...</Text>
-            <Text style={styles.generatingSubtext}>This may take a few minutes</Text>
+            <Text style={styles.generatingText}>
+              {isChunkedGeneration && chunkedProgress
+                ? `Generating ${chapters.length > 0 ? 'Chapter' : 'Section'} ${chunkedProgress.currentChunk} of ${chunkedProgress.totalChunks}...`
+                : 'Generating your story...'}
+            </Text>
+            <Text style={styles.generatingSubtext}>
+              {isChunkedGeneration && chunkedProgress
+                ? `${chunkedProgress.completedChunks} of ${chunkedProgress.totalChunks} ${chapters.length > 0 ? 'chapters' : 'sections'} completed`
+                : 'This may take a few minutes'}
+            </Text>
+            {isChunkedGeneration && chunkedProgress && chunkedProgress.error && (
+              <Text style={styles.errorText}>{chunkedProgress.error}</Text>
+            )}
           </View>
         </Animated.View>
       )}
-    </View>
+      
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    // backgroundColor removed - GradientBackground handles the background
   },
   scrollView: {
     flex: 1,
@@ -554,7 +732,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    // backgroundColor removed - GradientBackground handles the background
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
@@ -750,5 +928,13 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  errorText: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.regular,
+    color: colors.error,
+    marginTop: spacing.sm,
+    textAlign: 'center',
   },
 });

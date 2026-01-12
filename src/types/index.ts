@@ -32,6 +32,7 @@ export interface Story {
   generatedContent?: string;
   generatedAt?: number;
   wordCount?: number;
+  cutOffChunks?: number[]; // Array of chunk/section numbers that were cut off during generation
   createdAt: number;
   updatedAt: number;
   synced: boolean;

@@ -295,3 +295,12 @@ export const toFirestoreFields = (data: any): any => {
   return fields;
 }
 
+/**
+ * Count words in a text string
+ */
+export const countWords = (text: string): number => {
+  if (!text || text.trim().length === 0) {
+    return 0;
+  }
+  return text.trim().split(/\s+/).filter((word) => word.length > 0).length;
+};

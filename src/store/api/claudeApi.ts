@@ -37,12 +37,13 @@ export interface ClaudeResponse {
     text: string;
   }>;
   model: string;
-  stop_reason: string | null;
-  stop_sequence: string | null;
+  stop_sequence?: string;
   usage: {
     input_tokens: number;
     output_tokens: number;
   };
+  stop_reason?: string;
+  wasCutOff?: boolean;
 }
 
 /**
@@ -62,10 +63,13 @@ export interface GenerateStoryResponse {
   content: string;
   wordCount: number;
   prompt: string;
+  stopReason?: string;
+  wasCutOff: boolean;
   usage: {
     inputTokens: number;
     outputTokens: number;
   };
+  
 }
 
 /**
@@ -188,6 +192,12 @@ export const claudeApi = createApi({
         // Parse response
         const content = parseClaudeResponse(response);
 
+        // Check if generation was cut off due to max_tokens
+        const wasCutOff = response.stop_reason === 'max_tokens';
+        if (wasCutOff) {
+          console.warn('Claude API response was cut off due to max_tokens limit. Content may be incomplete.');
+        }
+
         // Build prompt string from messages
         const prompt = arg.messages
           .map((msg) => `${msg.role}: ${msg.content}`)
@@ -204,6 +214,9 @@ export const claudeApi = createApi({
             inputTokens: response.usage.input_tokens,
             outputTokens: response.usage.output_tokens,
           },
+          // Include stop reason to detect incomplete generations
+          stopReason: response.stop_reason,
+          wasCutOff,
         };
       },
       invalidatesTags: ['GeneratedStory'],

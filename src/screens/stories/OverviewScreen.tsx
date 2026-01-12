@@ -24,6 +24,7 @@ import SyncIndicator from '../../components/common/SyncIndicator';
 import EditStoryModal from '../../components/modals/EditStoryModal';
 import { PaperIconButton } from '../../components/forms/PaperIconButton';
 import { StatisticsCards } from '../../components/common/StatisticsCards';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
@@ -179,51 +180,55 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
   // Show loading state with animation (only on first load)
   if (isLoadingStory || isLoadingStats) {
     return (
-      <Animated.View 
-        entering={!hasAnimated.current ? FadeIn.duration(300) : undefined}
-        style={styles.loadingContainer}
-      >
-        <MainBookActivityIndicator size={80} />
-        <Animated.Text 
-          entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
-          style={styles.loadingText}
+      <GradientBackground>
+        <Animated.View 
+          entering={!hasAnimated.current ? FadeIn.duration(300) : undefined}
+          style={styles.loadingContainer}
         >
-          Loading story overview...
-        </Animated.Text>
-      </Animated.View>
+          <MainBookActivityIndicator size={80} />
+          <Animated.Text 
+            entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
+            style={styles.loadingText}
+          >
+            Loading story overview...
+          </Animated.Text>
+        </Animated.View>
+      </GradientBackground>
     );
   }
 
   // Show error state with animation (only on first load)
   if (isError || !story) {
     return (
-      <Animated.View 
-        entering={!hasAnimated.current ? FadeIn.duration(300) : undefined}
-        style={styles.container}
-      >
-        <Animated.Text 
-          entering={!hasAnimated.current ? FadeInDown.delay(100).duration(400) : undefined}
-          style={styles.errorTitle}
+      <GradientBackground>
+        <Animated.View 
+          entering={!hasAnimated.current ? FadeIn.duration(300) : undefined}
+          style={styles.container}
         >
-          Error Loading Story
-        </Animated.Text>
-        <Animated.Text 
-          entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
-          style={styles.errorText}
-        >
-          {error && 'error' in error ? error.error : 'Story not found'}
-        </Animated.Text>
-      </Animated.View>
+          <Animated.Text 
+            entering={!hasAnimated.current ? FadeInDown.delay(100).duration(400) : undefined}
+            style={styles.errorTitle}
+          >
+            Error Loading Story
+          </Animated.Text>
+          <Animated.Text 
+            entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
+            style={styles.errorText}
+          >
+            {error && 'error' in error ? error.error : 'Story not found'}
+          </Animated.Text>
+        </Animated.View>
+      </GradientBackground>
     );
   }
 
   return (
     <>
-      <ScrollView 
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <GradientBackground style={styles.container}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Story Title and Status */}
         <Animated.View 
           entering={!hasAnimated.current ? FadeInDown.delay(100).duration(500) : undefined}
@@ -297,7 +302,8 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
           </Card>
         </Animated.View>
       )}
-      </ScrollView>
+        </ScrollView>
+      </GradientBackground>
       
       {/* Edit Story Modal */}
       <EditStoryModal
@@ -314,7 +320,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    // backgroundColor removed - GradientBackground handles the background
   },
   scrollContent: {
     padding: spacing.lg,

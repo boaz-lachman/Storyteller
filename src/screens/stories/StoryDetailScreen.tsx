@@ -13,6 +13,7 @@ import type { AppStackParamList } from '../../navigation/types';
 import { useGetStoryQuery } from '../../store/api/storiesApi';
 import StoryNavigator from '../../navigation/StoryNavigator';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -45,7 +46,7 @@ export default function StoryDetailScreen() {
     if (story?.title) {
       navigation.setOptions({
         title: story.title,
-        headerTitle: story.title,
+        headerTitle: story.title.toUpperCase(),
         headerBackVisible: false, // Hide back button
       });
     } else {
@@ -58,22 +59,26 @@ export default function StoryDetailScreen() {
   // Show loading state
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <MainBookActivityIndicator size={80} />
-        <Text style={styles.loadingText}>Loading story...</Text>
-      </View>
+      <GradientBackground>
+        <View style={styles.container}>
+          <MainBookActivityIndicator size={80} />
+          <Text style={styles.loadingText}>Loading story...</Text>
+        </View>
+      </GradientBackground>
     );
   }
 
   // Show error state
   if (isError || !story) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorTitle}>Error Loading Story</Text>
-        <Text style={styles.errorText}>
-          {error && 'error' in error ? error.error : 'Story not found'}
-        </Text>
-      </View>
+      <GradientBackground>
+        <View style={styles.container}>
+          <Text style={styles.errorTitle}>Error Loading Story</Text>
+          <Text style={styles.errorText}>
+            {error && 'error' in error ? error.error : 'Story not found'}
+          </Text>
+        </View>
+      </GradientBackground>
     );
   }
 

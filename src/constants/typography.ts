@@ -2,12 +2,12 @@
  * Typography scale and font configurations
  */
 export const typography = {
-  // Font family - Inter (clean sans-serif)
+  // Font family - Poppins (modern, friendly sans-serif)
   fontFamily: {
-    regular: 'Inter_400Regular',
-    medium: 'Inter_500Medium',
-    semibold: 'Inter_600SemiBold',
-    bold: 'Inter_700Bold',
+    regular: 'Poppins_400Regular',
+    medium: 'Poppins_500Medium',
+    semibold: 'Poppins_600SemiBold',
+    bold: 'Poppins_700Bold',
   },
   
   // Font sizes

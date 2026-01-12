@@ -1,0 +1,30 @@
+{
+  "cards": {
+    "welcome": {
+      "title": "Welcome to Storyteller",
+      "description": "Your creative writing companion. Craft, organize, and bring your stories to life with AI-powered assistance."
+    },
+    "stories": {
+      "title": "Create & Manage Stories",
+      "description": "Start new stories, organize your projects, and manage multiple works in progress. Each story is your canvas."
+    },
+    "entities": {
+      "title": "Build Your Story World",
+      "description": "Add characters, blurbs, scenes, and chapters to structure your narrative. Organize your ideas and plot seamlessly."
+    },
+    "ai": {
+      "title": "AI-Powered Generation",
+      "description": "Generate story content with AI assistance. Transform your ideas into compelling narratives with intelligent suggestions."
+    },
+    "export": {
+      "title": "Export & Sync",
+      "description": "Export your stories as PDFs, sync across devices, and never lose your work. Your stories are always with you."
+    }
+  },
+  "buttons": {
+    "skip": "Skip",
+    "next": "Next",
+    "previous": "Previous",
+    "getStarted": "Get Started"
+  }
+}

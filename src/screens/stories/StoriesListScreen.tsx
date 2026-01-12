@@ -22,6 +22,7 @@ import { StoryCard } from '../../components/cards/StoryCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { CreateStoryModal } from '../../components/modals/CreateStoryModal';
 import { FloatingActionButton, type FABOption } from '../../components/common/FloatingActionButton';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import { Input } from '../../components/forms/Input';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
@@ -322,7 +323,7 @@ export default function StoriesListScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <GradientBackground style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Your Stories</Text>
       </View>
@@ -486,7 +487,7 @@ export default function StoriesListScreen() {
         onSubmit={handleCreateStory}
         isLoading={isCreating}
       />
-    </View>
+    </GradientBackground>
   );
 }
 

@@ -28,6 +28,7 @@ import { CharacterCard } from '../../components/cards/CharacterCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { CharacterModal } from '../../components/modals/CharacterModal';
 import { FloatingActionButton, type FABOption } from '../../components/common/FloatingActionButton';
+import { GradientBackground } from '../../components/common/GradientBackground';
 import MainBookActivityIndicator from '../../components/common/MainBookActivityIndicator';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
@@ -295,7 +296,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
   const isLoadingMutation = isCreating || isUpdating || isDeleting;
 
   return (
-    <View style={styles.container}>
+    <GradientBackground style={styles.container}>
       {/* Sort/Filter Header - Only show if there are characters */}
       {characters.length > 0 && (
         <Animated.View entering={FadeInDown.delay(50).duration(400)} style={styles.header}>
@@ -407,7 +408,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
         onSubmit={handleSubmit}
         isLoading={isLoadingMutation}
       />
-    </View>
+    </GradientBackground>
   );
 }
 

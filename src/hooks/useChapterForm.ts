@@ -11,7 +11,6 @@ export interface ChapterFormData {
   description: string;
   importance: number; // 1-10
   order?: number; // Optional, will be auto-assigned if not provided
-  scenes?: string[]; // Scene IDs - optional for now (not in database schema yet)
 }
 
 export interface UseChapterFormProps {
@@ -26,14 +25,12 @@ export interface UseChapterFormReturn {
   description: string;
   importance: number;
   order: number | undefined;
-  scenes: string[];
   
   // Setters
   setTitle: (value: string) => void;
   setDescription: (value: string) => void;
   setImportance: (value: number) => void;
   setOrder: (value: number | undefined) => void;
-  setScenes: (value: string[]) => void;
   
   // Errors
   errors: Record<string, string>;
@@ -57,7 +54,6 @@ export const useChapterForm = ({
   const [description, setDescription] = useState('');
   const [importance, setImportance] = useState(5);
   const [order, setOrder] = useState<number | undefined>(undefined);
-  const [scenes, setScenes] = useState<string[]>([]);
 
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -69,7 +65,6 @@ export const useChapterForm = ({
       setDescription(chapter.description || '');
       setImportance(chapter.importance || 5);
       setOrder(chapter.order);
-      setScenes([]); // Scenes not in schema yet
       setErrors({});
     } else {
       // Reset to defaults for new chapter
@@ -77,7 +72,6 @@ export const useChapterForm = ({
       setDescription('');
       setImportance(5);
       setOrder(undefined); // Will be auto-assigned
-      setScenes([]);
       setErrors({});
     }
   }, [chapter]);
@@ -87,14 +81,12 @@ export const useChapterForm = ({
     title !== (chapter.title || '') ||
     description !== (chapter.description || '') ||
     importance !== (chapter.importance || 5) ||
-    order !== chapter.order ||
-    scenes.length > 0 // Scenes not in schema, so any selection is a change
+    order !== chapter.order
   ) : (
     title !== '' ||
     description !== '' ||
     importance !== 5 ||
-    order !== undefined ||
-    scenes.length > 0
+    order !== undefined
   );
 
   // Reset form to original chapter values or defaults
@@ -104,13 +96,11 @@ export const useChapterForm = ({
       setDescription(chapter.description || '');
       setImportance(chapter.importance || 5);
       setOrder(chapter.order);
-      setScenes([]);
     } else {
       setTitle('');
       setDescription('');
       setImportance(5);
       setOrder(undefined);
-      setScenes([]);
     }
     setErrors({});
   };
@@ -151,7 +141,6 @@ export const useChapterForm = ({
         description: description.trim(),
         importance,
         order: order !== undefined ? order : undefined, // Will be auto-assigned if undefined
-        scenes: scenes.length > 0 ? scenes : undefined,
       });
     }
   };
@@ -162,14 +151,12 @@ export const useChapterForm = ({
     description,
     importance,
     order,
-    scenes,
     
     // Setters
     setTitle,
     setDescription,
     setImportance,
     setOrder,
-    setScenes,
     
     // Errors
     errors,

@@ -1,0 +1,123 @@
+{
+  "characters": {
+    "title": "דמויות",
+    "emptyTitle": "אין דמויות",
+    "emptyMessage": "הוסף דמויות לסיפור שלך",
+    "create": "צור דמות",
+    "edit": "ערוך דמות",
+    "fields": {
+      "name": "שם",
+      "namePlaceholder": "הכנס שם דמות",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הכנס תיאור דמות",
+      "role": "תפקיד",
+      "importance": "חשיבות"
+    },
+    "buttons": {
+      "create": "צור",
+      "save": "שמור",
+      "cancel": "ביטול",
+      "delete": "מחק"
+    },
+    "delete": {
+      "confirmTitle": "מחק דמות",
+      "confirmMessage": "האם אתה בטוח שברצונך למחוק את הדמות הזו?",
+      "deleted": "הדמות נמחקה בהצלחה"
+    }
+  },
+  "blurbs": {
+    "title": "תיאורים קצרים",
+    "emptyTitle": "אין תיאורים קצרים",
+    "emptyMessage": "הוסף תיאורים קצרים לסיפור שלך",
+    "create": "צור תיאור קצר",
+    "edit": "ערוך תיאור קצר",
+    "fields": {
+      "title": "כותרת",
+      "titlePlaceholder": "הכנס כותרת תיאור קצר",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הכנס תיאור קצר",
+      "category": "קטגוריה",
+      "importance": "חשיבות"
+    },
+    "buttons": {
+      "create": "צור",
+      "save": "שמור",
+      "cancel": "ביטול",
+      "delete": "מחק"
+    },
+    "delete": {
+      "confirmTitle": "מחק תיאור קצר",
+      "confirmMessage": "האם אתה בטוח שברצונך למחוק את התיאור הקצר הזה?",
+      "deleted": "התיאור הקצר נמחק בהצלחה"
+    }
+  },
+  "scenes": {
+    "title": "סצנות",
+    "emptyTitle": "אין סצנות",
+    "emptyMessage": "הוסף סצנות לסיפור שלך",
+    "create": "צור סצנה",
+    "edit": "ערוך סצנה",
+    "fields": {
+      "title": "כותרת",
+      "titlePlaceholder": "הכנס כותרת סצנה",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הכנס תיאור סצנה",
+      "importance": "חשיבות"
+    },
+    "buttons": {
+      "create": "צור",
+      "save": "שמור",
+      "cancel": "ביטול",
+      "delete": "מחק"
+    },
+    "delete": {
+      "confirmTitle": "מחק סצנה",
+      "confirmMessage": "האם אתה בטוח שברצונך למחוק את הסצנה הזו?",
+      "deleted": "הסצנה נמחקה בהצלחה"
+    }
+  },
+  "chapters": {
+    "title": "פרקים",
+    "emptyTitle": "אין פרקים",
+    "emptyMessage": "הוסף פרקים לסיפור שלך",
+    "create": "צור פרק",
+    "edit": "ערוך פרק",
+    "fields": {
+      "title": "כותרת",
+      "titlePlaceholder": "הכנס כותרת פרק",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הכנס תיאור פרק",
+      "importance": "חשיבות"
+    },
+    "buttons": {
+      "create": "צור",
+      "save": "שמור",
+      "cancel": "ביטול",
+      "delete": "מחק"
+    },
+    "delete": {
+      "confirmTitle": "מחק פרק",
+      "confirmMessage": "האם אתה בטוח שברצונך למחוק את הפרק הזה?",
+      "deleted": "הפרק נמחק בהצלחה"
+    }
+  },
+  "common": {
+    "roles": {
+      "protagonist": "גיבור",
+      "antagonist": "נבל",
+      "supporting": "תומך",
+      "minor": "שולי"
+    },
+    "categories": {
+      "plotPoint": "נקודת עלילה",
+      "conflict": "קונפליקט",
+      "theme": "נושא",
+      "setting": "הגדרה",
+      "other": "אחר"
+    },
+    "validation": {
+      "nameRequired": "שם נדרש",
+      "titleRequired": "כותרת נדרשת"
+    }
+  }
+}

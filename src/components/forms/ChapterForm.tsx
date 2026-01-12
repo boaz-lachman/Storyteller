@@ -3,13 +3,12 @@
  * Form for creating/editing a chapter with all chapter attributes
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Checkbox } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import { Input } from './Input';
 import { PaperButton } from './PaperButton';
 import { useChapterForm, type ChapterFormData } from '../../hooks/useChapterForm';
-import { useGetScenesQuery } from '../../store/api/scenesApi';
 import { useGetChaptersQuery } from '../../store/api/chaptersApi';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
@@ -34,12 +33,6 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
-  // Fetch scenes for this story
-  const { data: availableScenes = [] } = useGetScenesQuery(
-    { storyId, sortBy: 'title', order: 'ASC' },
-    { skip: !storyId }
-  );
-
   // Fetch existing chapters to determine next order number
   const { data: existingChapters = [] } = useGetChaptersQuery(
     { storyId, sortBy: 'order', order: 'ASC' },
@@ -52,12 +45,10 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
     description,
     importance,
     order,
-    scenes,
     setTitle,
     setDescription,
     setImportance,
     setOrder,
-    setScenes,
     errors,
     handleSubmit,
     resetForm,
@@ -71,15 +62,6 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
   const handleCancel = () => {
     resetForm();
     onCancel();
-  };
-
-  // Handle scene toggle
-  const handleSceneToggle = (sceneId: string) => {
-    if (scenes.includes(sceneId)) {
-      setScenes(scenes.filter((id) => id !== sceneId));
-    } else {
-      setScenes([...scenes, sceneId]);
-    }
   };
 
   // Calculate next order number if not set
@@ -169,40 +151,6 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
         )}
       </View>
 
-      {/* Scene Selection */}
-      <View style={styles.sceneSelectionContainer}>
-        <Text style={styles.sceneSelectionLabel}>Scenes (Optional)</Text>
-        {availableScenes.length === 0 ? (
-          <Text style={styles.noScenesText}>
-            No scenes available. Create scenes first.
-          </Text>
-        ) : (
-          <View style={styles.sceneList}>
-            {availableScenes.map((scene) => (
-              <TouchableOpacity
-                key={scene.id}
-                style={styles.sceneItem}
-                onPress={() => handleSceneToggle(scene.id)}
-              >
-                <Checkbox
-                  status={scenes.includes(scene.id) ? 'checked' : 'unchecked'}
-                  onPress={() => handleSceneToggle(scene.id)}
-                  color={colors.primary}
-                />
-                <View style={styles.sceneInfo}>
-                  <Text style={styles.sceneName}>{scene.title}</Text>
-                  {scene.description && (
-                    <Text style={styles.sceneDescription} numberOfLines={1}>
-                      {scene.description}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-
       <View style={styles.buttonContainer}>
         <PaperButton
           variant="outline"
@@ -269,55 +217,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
     fontStyle: 'italic',
-  },
-  sceneSelectionContainer: {
-    marginBottom: spacing.md,
-  },
-  sceneSelectionLabel: {
-    fontFamily: typography.fontFamily.medium,
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  noScenesText: {
-    fontFamily: typography.fontFamily.regular,
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.regular,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    padding: spacing.sm,
-  },
-  sceneList: {
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: spacing.md,
-    backgroundColor: colors.surface,
-    maxHeight: 200,
-  },
-  sceneItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  sceneInfo: {
-    flex: 1,
-    marginLeft: spacing.sm,
-  },
-  sceneName: {
-    fontFamily: typography.fontFamily.medium,
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.text,
-  },
-  sceneDescription: {
-    fontFamily: typography.fontFamily.regular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.regular,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   sliderContainer: {
     marginBottom: spacing.md,

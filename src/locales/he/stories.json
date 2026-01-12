@@ -1,0 +1,55 @@
+{
+  "list": {
+    "title": "הסיפורים שלי",
+    "emptyTitle": "אין סיפורים עדיין",
+    "emptyMessage": "צור את הסיפור הראשון שלך כדי להתחיל",
+    "createStory": "צור סיפור"
+  },
+  "detail": {
+    "tabs": {
+      "overview": "סקירה",
+      "characters": "דמויות",
+      "blurbs": "תיאורים קצרים",
+      "scenes": "סצנות",
+      "chapters": "פרקים",
+      "completed": "סיפור",
+      "generate": "צור"
+    }
+  },
+  "create": {
+    "title": "צור סיפור חדש",
+    "fields": {
+      "title": "כותרת",
+      "titlePlaceholder": "הכנס כותרת סיפור",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הכנס תיאור סיפור",
+      "length": "אורך",
+      "theme": "נושא",
+      "tone": "טון",
+      "pov": "נקודת מבט",
+      "targetAudience": "קהל יעד"
+    },
+    "buttons": {
+      "create": "צור",
+      "cancel": "ביטול"
+    },
+    "validation": {
+      "titleRequired": "כותרת נדרשת"
+    }
+  },
+  "edit": {
+    "title": "ערוך סיפור",
+    "buttons": {
+      "save": "שמור",
+      "cancel": "ביטול"
+    }
+  },
+  "delete": {
+    "confirmTitle": "מחק סיפור",
+    "confirmMessage": "האם אתה בטוח שברצונך למחוק את הסיפור הזה? פעולה זו לא ניתנת לביטול.",
+    "deleteButton": "מחק",
+    "cancelButton": "ביטול",
+    "deleted": "הסיפור נמחק בהצלחה",
+    "deleteFailed": "מחיקת הסיפור נכשלה"
+  }
+}
