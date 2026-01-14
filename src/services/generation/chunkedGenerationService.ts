@@ -433,6 +433,7 @@ function buildSceneChunkContext(
 
 /**
  * Create virtual chunks from scenes for novellas without chapters
+ * Creates smaller chunks for better granularity and control
  */
 function createVirtualChunksFromScenes(
   scenes: Scene[],
@@ -441,12 +442,12 @@ function createVirtualChunksFromScenes(
   if (scenes.length === 0) {
     // If no scenes, create chunks from blurbs or a single chunk
     if (blurbs.length > 0) {
-      // Group blurbs into chunks (3-4 blurbs per chunk)
-      const chunksPerBlurb = Math.ceil(blurbs.length / 3);
+      // Group blurbs into smaller chunks (1-2 blurbs per chunk for smaller chunks)
+      const blurbsPerChunk = Math.max(1, Math.min(2, Math.ceil(blurbs.length / 8))); // Aim for 6-8 chunks
       const chunks: VirtualChunk[] = [];
       
-      for (let i = 0; i < blurbs.length; i += chunksPerBlurb) {
-        const chunkBlurbs = blurbs.slice(i, i + chunksPerBlurb);
+      for (let i = 0; i < blurbs.length; i += blurbsPerChunk) {
+        const chunkBlurbs = blurbs.slice(i, i + blurbsPerChunk);
         chunks.push({
           order: chunks.length + 1,
           title: `Section ${chunks.length + 1}`,
@@ -466,8 +467,10 @@ function createVirtualChunksFromScenes(
     }];
   }
 
-  // Group scenes into chunks (2-3 scenes per chunk for better context)
-  const scenesPerChunk = Math.max(2, Math.ceil(scenes.length / 5)); // Aim for 3-5 chunks
+  // Group scenes into smaller chunks (1-2 scenes per chunk for better granularity)
+  // Aim for 8-12 chunks instead of 3-5 chunks
+  const targetChunkCount = Math.min(12, Math.max(8, Math.ceil(scenes.length / 1.5))); // More chunks
+  const scenesPerChunk = Math.max(1, Math.ceil(scenes.length / targetChunkCount));
   const sortedScenes = [...scenes].sort((a, b) => b.importance - a.importance);
   const chunks: VirtualChunk[] = [];
 
