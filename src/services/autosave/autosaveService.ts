@@ -9,6 +9,22 @@ import type { RootStackParamList } from '../../navigation/types';
 
 const AUTOSAVE_KEY = '@storyteller:autosave';
 const NAVIGATION_STATE_KEY = '@storyteller:navigationState';
+const FORM_STATE_KEY_PREFIX = '@storyteller:formState:';
+
+/**
+ * Form types that can be auto-saved
+ */
+export type FormType = 'story' | 'character' | 'blurb' | 'scene' | 'chapter';
+
+/**
+ * Form state structure
+ */
+export interface FormState {
+  formType: FormType;
+  entityId?: string;
+  formData: Record<string, any>;
+  storyId?: string; // For entity forms (character, blurb, scene, chapter)
+}
 
 /**
  * Activity context that can be saved
@@ -16,7 +32,8 @@ const NAVIGATION_STATE_KEY = '@storyteller:navigationState';
 export interface ActivityContext {
   selectedStoryId?: string;
   currentTab?: string;
-  formState?: Record<string, any>;
+  formState?: Record<string, any>; // Legacy - kept for backward compatibility
+  activeForm?: FormState; // New form state structure
   lastActiveTimestamp?: number;
 }
 
@@ -104,13 +121,15 @@ export async function loadActivityContext(): Promise<ActivityContext | null> {
  */
 export async function saveAppState(
   navigationState: NavigationState<RootStackParamList> | undefined,
-  activityContext: ActivityContext
+  activityContext: ActivityContext,
+  activeForm?: FormState | null
 ): Promise<void> {
   try {
     const appState: SavedAppState = {
       navigationState: navigationState || null,
       activityContext: {
         ...activityContext,
+        activeForm: activeForm || activityContext.activeForm,
         lastActiveTimestamp: Date.now(),
       },
       savedAt: Date.now(),
@@ -161,6 +180,8 @@ export async function clearAppState(): Promise<void> {
       NAVIGATION_STATE_KEY,
       '@storyteller:activityContext',
     ]);
+    // Also clear all form data
+    await clearAllFormData();
   } catch (error) {
     console.error('Error clearing app state:', error);
   }
@@ -176,5 +197,78 @@ export async function hasSavedState(): Promise<boolean> {
   } catch (error) {
     console.error('Error checking saved state:', error);
     return false;
+  }
+}
+
+/**
+ * Save form data for a specific entity type
+ */
+export async function saveFormData(
+  formType: FormType,
+  formData: Record<string, any>,
+  entityId?: string,
+  storyId?: string
+): Promise<void> {
+  try {
+    const formState: FormState = {
+      formType,
+      entityId,
+      formData,
+      storyId,
+    };
+    const key = `${FORM_STATE_KEY_PREFIX}${formType}${entityId ? `:${entityId}` : ''}`;
+    const serialized = JSON.stringify(formState);
+    await AsyncStorage.setItem(key, serialized);
+  } catch (error) {
+    console.error(`Error saving form data for ${formType}:`, error);
+    // Don't throw - auto-save should be non-blocking
+  }
+}
+
+/**
+ * Load form data for a specific entity type
+ */
+export async function loadFormData(
+  formType: FormType,
+  entityId?: string
+): Promise<FormState | null> {
+  try {
+    const key = `${FORM_STATE_KEY_PREFIX}${formType}${entityId ? `:${entityId}` : ''}`;
+    const serialized = await AsyncStorage.getItem(key);
+    if (serialized) {
+      const formState = JSON.parse(serialized) as FormState;
+      return formState;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error loading form data for ${formType}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Clear form data for a specific entity type
+ */
+export async function clearFormData(formType: FormType, entityId?: string): Promise<void> {
+  try {
+    const key = `${FORM_STATE_KEY_PREFIX}${formType}${entityId ? `:${entityId}` : ''}`;
+    await AsyncStorage.removeItem(key);
+  } catch (error) {
+    console.error(`Error clearing form data for ${formType}:`, error);
+  }
+}
+
+/**
+ * Clear all form data
+ */
+export async function clearAllFormData(): Promise<void> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const formKeys = keys.filter((key) => key.startsWith(FORM_STATE_KEY_PREFIX));
+    if (formKeys.length > 0) {
+      await AsyncStorage.multiRemove(formKeys);
+    }
+  } catch (error) {
+    console.error('Error clearing all form data:', error);
   }
 }

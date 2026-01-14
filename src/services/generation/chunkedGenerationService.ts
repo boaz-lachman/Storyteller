@@ -742,7 +742,7 @@ export async function generateStoryChunked(
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.data?.error || error?.message || 'Failed to generate chunk';
+      const errorMessage = error?.message || error?.data?.message || error?.data?.error || 'Failed to generate chunk';
       const chunkLabel = hasChapters ? 'Chapter' : 'Section';
       
       // Report error progress

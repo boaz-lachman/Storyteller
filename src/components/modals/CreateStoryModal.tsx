@@ -2,12 +2,13 @@
  * Create Story Modal Component
  * Full-page modal wrapper for CreateStoryForm
  */
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Modal, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Appbar } from 'react-native-paper';
 import { CreateStoryForm } from '../forms/CreateStoryForm';
 import type { CreateStoryFormData } from '../../hooks/useCreateStoryForm';
+import { clearFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -29,27 +30,46 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const prevVisibleRef = useRef(visible);
+
   const handleSubmit = (data: CreateStoryFormData) => {
     onSubmit(data);
   };
+
+  const handleClose = async () => {
+    // Clear autosaved form content when modal closes
+    await clearFormData('story', undefined);
+    onClose();
+  };
+
+  // Clear autosaved content when modal becomes invisible
+  useEffect(() => {
+    if (prevVisibleRef.current && !visible) {
+      // Modal was visible and is now hidden - clear autosaved content
+      clearFormData('story', undefined).catch((error) => {
+        console.error('Error clearing form data on modal close:', error);
+      });
+    }
+    prevVisibleRef.current = visible;
+  }, [visible]);
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <StatusBar barStyle="dark-content" />
       <SafeAreaView style={styles.container} edges={['top']}>
         <Appbar.Header style={styles.header}>
-          <Appbar.Action icon="close" onPress={onClose} />
+          <Appbar.Action icon="close" onPress={handleClose} />
           <Appbar.Content title="Create New Story" titleStyle={styles.headerTitle} />
         </Appbar.Header>
         <View style={styles.content}>
           <CreateStoryForm
             onSubmit={handleSubmit}
-            onCancel={onClose}
+            onCancel={handleClose}
             isLoading={isLoading}
           />
         </View>

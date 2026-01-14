@@ -65,8 +65,17 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     return 'en';
   }, []);
 
-  // Initialize speech service
+  // Initialize speech service - only run once on mount
+  const hasInitializedRef = useRef(false);
+  
   useEffect(() => {
+    // Only initialize once, even if component re-renders
+    if (hasInitializedRef.current) {
+      return;
+    }
+    
+    hasInitializedRef.current = true;
+    
     const initialize = async () => {
       try {
         await speechService.initialize();
@@ -107,11 +116,16 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
     initialize();
 
-    // Cleanup on unmount
+    // Cleanup on unmount - but don't reset the service's initialized state
+    // The service already has its own guard against re-initialization
     return () => {
-      speechService.cleanup();
+      // Only cleanup if speech is currently active
+      if (speechService.isCurrentlySpeaking()) {
+        speechService.stop().catch(console.error);
+      }
     };
-  }, [getDeviceLocale]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run once on mount
 
   // Handle app state changes (interruptions)
   useEffect(() => {
@@ -505,7 +519,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     borderRadius: spacing.xs,
     backgroundColor: colors.background,
-    width: '90%',
+    width: '87%',
     minHeight: 36,
   },
   voiceSelectorDisabled: {

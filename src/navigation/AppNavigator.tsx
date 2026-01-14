@@ -16,6 +16,8 @@ import {
   setRestoring, 
   restoreActivityContext,
   setLastSavedAt,
+  setActiveForm,
+  selectActiveForm,
 } from '../store/slices/autosaveSlice';
 import { selectShouldShowOnboarding } from '../store/slices/onboardingSlice';
 import { useAuth } from '../hooks/useAuth';
@@ -30,6 +32,8 @@ import {
   saveAppState,
   loadAppState,
   clearAppState,
+  loadFormData,
+  type FormState,
 } from '../services/autosave/autosaveService';
 import { getDb } from '../services/database/sqlite';
 
@@ -50,6 +54,7 @@ export default function AppNavigator() {
   const isLoading = useAppSelector(selectAuthLoading);
   const shouldShowOnboarding = useAppSelector(selectShouldShowOnboarding);
   const activityContext = useAppSelector(selectActivityContext);
+  const activeForm = useAppSelector(selectActiveForm);
   const dispatch = useAppDispatch();
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [isRestoringState, setIsRestoringState] = useState(true);
@@ -58,7 +63,7 @@ export default function AppNavigator() {
   // Initialize database early in app lifecycle
   useEffect(() => {
     const initDatabase = async () => {
-      if (user) {
+      if (user?.uid) {
         try {
           // Initialize database when user is authenticated
           await getDb();
@@ -69,12 +74,12 @@ export default function AppNavigator() {
     };
 
     initDatabase();
-  }, [user]);
+  }, [user?.uid]);
 
   // Restore app state on mount (only if authenticated)
   useEffect(() => {
     const restoreState = async () => {
-      if (!isLoading && !authLoading && user) {
+      if (!isLoading && !authLoading && user?.uid) {
         try {
           dispatch(setRestoring(true));
           
@@ -87,6 +92,11 @@ export default function AppNavigator() {
             // Restore activity context
             if (savedState.activityContext) {
               dispatch(restoreActivityContext(savedState.activityContext));
+              
+              // Restore active form state if present
+              if (savedState.activityContext.activeForm) {
+                dispatch(setActiveForm(savedState.activityContext.activeForm));
+              }
             }
             
             // Restore navigation state if available
@@ -112,21 +122,21 @@ export default function AppNavigator() {
     };
 
     restoreState();
-  }, [isLoading, authLoading, user, dispatch]);
+  }, [isLoading, authLoading, user?.uid]);
 
   // Save navigation state on navigation changes
   const handleNavigationStateChange = useCallback(
     async (state: NavigationState<RootStackParamList> | undefined) => {
       if (user && state && navigationRef.current?.isReady()) {
         try {
-          await saveAppState(state, activityContext);
+          await saveAppState(state, activityContext, activeForm);
           dispatch(setLastSavedAt(Date.now()));
         } catch (error) {
           console.error('Error saving navigation state:', error);
         }
       }
     },
-    [user, activityContext, dispatch]
+    [user, activityContext, activeForm]
   );
 
   // Save state when app goes to background
@@ -135,7 +145,7 @@ export default function AppNavigator() {
       if (nextAppState === 'background' && user && navigationRef.current?.isReady()) {
         const currentState = navigationRef.current.getRootState();
         try {
-          await saveAppState(currentState, activityContext);
+          await saveAppState(currentState, activityContext, activeForm);
           dispatch(setLastSavedAt(Date.now()));
         } catch (error) {
           console.error('Error saving state on background:', error);
@@ -146,7 +156,7 @@ export default function AppNavigator() {
     return () => {
       subscription.remove();
     };
-  }, [user, activityContext, dispatch]);
+  }, [user?.uid, activityContext, activeForm]);
 
   // Navigation guard: Redirect to Auth if user logs out while on protected route
   useEffect(() => {
@@ -165,7 +175,7 @@ export default function AppNavigator() {
         });
       }
     }
-  }, [user, isLoading, authLoading]);
+  }, [user?.uid, isLoading, authLoading]);
 
   // Show loading indicator while checking auth state or restoring state
   if (isLoading || authLoading || isRestoringState) {

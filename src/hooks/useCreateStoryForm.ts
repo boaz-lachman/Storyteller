@@ -2,8 +2,9 @@
  * Custom hook for CreateStoryForm logic
  * Handles form state, validation, and submission
  */
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { isNotEmpty, isValidLength, required, validationMessages } from '../utils/validation';
+import { useFormAutoSave } from './useFormAutoSave';
 
 export interface CreateStoryFormData {
   title: string;
@@ -19,6 +20,7 @@ export interface CreateStoryFormData {
 
 export interface UseCreateStoryFormProps {
   onSubmit: (data: CreateStoryFormData) => void;
+  onCancel?: () => void;
 }
 
 export interface UseCreateStoryFormReturn {
@@ -50,6 +52,7 @@ export interface UseCreateStoryFormReturn {
   
   // Actions
   handleSubmit: () => void;
+  resetForm: () => void;
 }
 
 const LENGTH_OPTIONS: Array<{ label: string; value: CreateStoryFormData['length'] }> = [
@@ -95,6 +98,7 @@ const AUDIENCE_OPTIONS: Array<{ label: string; value: CreateStoryFormData['targe
  */
 export const useCreateStoryForm = ({
   onSubmit,
+  onCancel,
 }: UseCreateStoryFormProps): UseCreateStoryFormReturn => {
   // Form state
   const [title, setTitle] = useState('');
@@ -109,6 +113,70 @@ export const useCreateStoryForm = ({
 
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Auto-save hook
+  const { restoreFormState, clearSavedState, autoSave } = useFormAutoSave({
+    formType: 'story',
+    entityId: undefined, // No entityId for create forms
+    debounceMs: 1000,
+    enabled: true,
+  });
+
+  // Restore form state on mount
+  useEffect(() => {
+    let isMounted = true;
+    const restoreState = async () => {
+      const savedState = await restoreFormState();
+      if (isMounted && savedState?.formData) {
+        const data = savedState.formData;
+        if (data.title) setTitle(data.title);
+        if (data.description) setDescription(data.description);
+        if (data.length) setLength(data.length);
+        if (data.theme) setTheme(data.theme);
+        if (data.tone) setTone(data.tone);
+        if (data.pov) setPov(data.pov);
+        if (data.targetAudience) setTargetAudience(data.targetAudience);
+        if (data.setting) setSetting(data.setting);
+        if (data.timePeriod) setTimePeriod(data.timePeriod);
+      }
+    };
+    restoreState();
+    return () => {
+      isMounted = false;
+    };
+  }, [restoreFormState]); // Only run on mount
+
+  // Auto-save form data whenever it changes (debounced)
+  useEffect(() => {
+    const formData: Record<string, any> = {
+      title,
+      description,
+      length,
+      theme,
+      tone,
+      pov,
+      targetAudience,
+      setting,
+      timePeriod,
+    };
+    autoSave(formData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, length, theme, tone, pov, targetAudience, setting, timePeriod]);
+
+  // Reset form function
+  const resetForm = useCallback(() => {
+    setTitle('');
+    setDescription('');
+    setLength('short-story');
+    setTheme('fantasy');
+    setTone('neutral');
+    setPov('third-person-limited');
+    setTargetAudience('adult');
+    setSetting('');
+    setTimePeriod('');
+    setErrors({});
+    clearSavedState();
+  }, [clearSavedState]);
 
 
   // Validate form
@@ -132,7 +200,7 @@ export const useCreateStoryForm = ({
   // Handle submit
   const handleSubmit = () => {
     if (validate()) {
-      onSubmit({
+      const formData: CreateStoryFormData = {
         title: title.trim(),
         description: description.trim() || undefined,
         length,
@@ -142,9 +210,15 @@ export const useCreateStoryForm = ({
         targetAudience,
         setting: setting.trim() || undefined,
         timePeriod: timePeriod.trim() || undefined,
-      });
+      };
+      
+      // Clear saved state on successful submit
+      clearSavedState();
+      
+      onSubmit(formData);
     }
   };
+
 
   return {
     // Form state
@@ -174,6 +248,8 @@ export const useCreateStoryForm = ({
     
     // Actions
     handleSubmit,
+    resetForm,
+    clearSavedState, // Expose for manual clearing
   };
 };
 

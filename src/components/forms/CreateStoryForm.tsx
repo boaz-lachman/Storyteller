@@ -2,7 +2,7 @@
  * Create Story Form Component
  * Form for creating a new story with all story attributes
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
@@ -53,7 +53,14 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
     setTimePeriod,
     errors,
     handleSubmit,
-  } = useCreateStoryForm({ onSubmit });
+    clearSavedState,
+  } = useCreateStoryForm({ onSubmit, onCancel });
+
+  // Handle cancel with auto-save clearing
+  const handleCancel = () => {
+    clearSavedState();
+    onCancel();
+  };
 
   return (
     <ScrollView
@@ -212,7 +219,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
       <View style={styles.buttonContainer}>
         <PaperButton
           variant="outline"
-          onPress={onCancel}
+          onPress={handleCancel}
           disabled={isLoading}
           style={[styles.button, styles.cancelButton]}
         >

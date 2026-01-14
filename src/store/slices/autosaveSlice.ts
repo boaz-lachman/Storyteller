@@ -6,14 +6,31 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
 import type { ActivityContext } from '../../services/autosave/autosaveService';
 
+/**
+ * Form types that can be auto-saved
+ */
+export type FormType = 'story' | 'character' | 'blurb' | 'scene' | 'chapter';
+
+/**
+ * Active form state
+ */
+export interface ActiveFormState {
+  formType: FormType;
+  entityId?: string;
+  formData: Record<string, any>;
+  storyId?: string; // For entity forms (character, blurb, scene, chapter)
+}
+
 interface AutosaveState {
   activityContext: ActivityContext;
+  activeForm: ActiveFormState | null;
   isRestoring: boolean;
   lastSavedAt: number | null;
 }
 
 const initialState: AutosaveState = {
   activityContext: {},
+  activeForm: null,
   isRestoring: false,
   lastSavedAt: null,
 };
@@ -100,6 +117,35 @@ const autosaveSlice = createSlice({
       state.activityContext = action.payload;
       state.isRestoring = false;
     },
+
+    /**
+     * Set active form state
+     */
+    setActiveForm: (state, action: PayloadAction<ActiveFormState | null>) => {
+      state.activeForm = action.payload;
+      state.activityContext.lastActiveTimestamp = Date.now();
+    },
+
+    /**
+     * Update form data for active form
+     */
+    updateFormData: (state, action: PayloadAction<Record<string, any>>) => {
+      if (state.activeForm) {
+        state.activeForm.formData = {
+          ...state.activeForm.formData,
+          ...action.payload,
+        };
+        state.activityContext.lastActiveTimestamp = Date.now();
+      }
+    },
+
+    /**
+     * Clear active form state
+     */
+    clearFormState: (state) => {
+      state.activeForm = null;
+      state.activityContext.lastActiveTimestamp = Date.now();
+    },
   },
 });
 
@@ -113,6 +159,9 @@ export const {
   setRestoring,
   setLastSavedAt,
   restoreActivityContext,
+  setActiveForm,
+  updateFormData,
+  clearFormState,
 } = autosaveSlice.actions;
 
 export default autosaveSlice.reducer;
@@ -125,3 +174,4 @@ export const selectCurrentTab = (state: RootState) => state.autosave.activityCon
 export const selectFormState = (state: RootState) => state.autosave.activityContext.formState;
 export const selectIsRestoring = (state: RootState) => state.autosave.isRestoring;
 export const selectLastSavedAt = (state: RootState) => state.autosave.lastSavedAt;
+export const selectActiveForm = (state: RootState) => state.autosave.activeForm;

@@ -26,6 +26,7 @@ import { GradientBackground } from '../../components/common/GradientBackground';
 import { Input } from '../../components/forms/Input';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
+import { loadFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -42,11 +43,70 @@ type ThemeFilter = Story['theme'] | 'all';
 type LengthFilter = Story['length'] | 'all';
 type StatusFilter = Story['status'] | 'all';
 
+// Module-level map to track which users have had their autosave checked
+// This persists across component remounts caused by AppNavigator re-renders
+const checkedUsers = new Set<string>();
+
 export default function StoriesListScreen() {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const { user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Clear checked users when user logs out
+  useEffect(() => {
+    if (!user?.uid) {
+      // User logged out - clear the checked users set
+      // This allows the check to run again if the same user logs back in
+      checkedUsers.clear();
+    }
+  }, [user?.uid]);
+
+  // Check for autosaved story form data when user is available
+  // Only check once per user - persists across remounts caused by AppNavigator re-renders
+  useEffect(() => {
+    // Only check if user is logged in and we haven't checked for this user yet
+    const userId = user?.uid;
+    
+    // Early return if no user
+    if (!userId) {
+      return;
+    }
+    
+    // Check if we've already checked for this user
+    // This prevents multiple checks even if AppNavigator causes remounts
+    if (checkedUsers.has(userId)) {
+      return;
+    }
+
+    // Mark as checked immediately to prevent multiple checks
+    // This must happen synchronously before any async operations
+    checkedUsers.add(userId);
+
+    const checkAutosavedContent = async () => {
+      console.log('checkAutosavedContent');
+      try {
+        const savedFormData = await loadFormData('story', undefined);
+        if (savedFormData && savedFormData.formData) {
+          // Check if there's any meaningful content (not just empty/default values)
+          const hasContent = 
+            savedFormData.formData.title?.trim() ||
+            savedFormData.formData.description?.trim() ||
+            savedFormData.formData.setting?.trim() ||
+            savedFormData.formData.timePeriod?.trim();
+          
+          if (hasContent) {
+            // Open modal with autosaved content - only set once
+            setModalVisible(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking autosaved story form data:', error);
+      }
+    };
+
+    checkAutosavedContent();
+  }, [user?.uid]); // Run when user.uid changes, but Set prevents multiple checks
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
