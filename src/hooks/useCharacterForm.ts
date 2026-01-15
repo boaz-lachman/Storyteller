@@ -2,8 +2,9 @@
  * Custom hook for CharacterForm logic
  * Handles form state, validation, and submission for creating/editing characters
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { isNotEmpty, isValidLength, required, validationMessages, isValidRange } from '../utils/validation';
+import { useFormAutoSave } from './useFormAutoSave';
 import type { Character } from '../types';
 
 export interface CharacterFormData {
@@ -18,6 +19,7 @@ export interface CharacterFormData {
 export interface UseCharacterFormProps {
   character?: Character | null;
   onSubmit: (data: CharacterFormData) => void;
+  storyId?: string;
 }
 
 export interface UseCharacterFormReturn {
@@ -78,6 +80,7 @@ const formatTraits = (traits: string[]): string => {
 export const useCharacterForm = ({
   character,
   onSubmit,
+  storyId,
 }: UseCharacterFormProps): UseCharacterFormReturn => {
   // Form state
   const [name, setName] = useState('');
@@ -90,6 +93,42 @@ export const useCharacterForm = ({
 
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Auto-save hook
+  const { restoreFormState, clearSavedState, autoSave } = useFormAutoSave({
+    formType: 'character',
+    entityId: character?.id,
+    storyId,
+    debounceMs: 1000,
+    enabled: true,
+  });
+
+  // Restore form state on mount (only for create mode or if no character data)
+  useEffect(() => {
+    let isMounted = true;
+    const restoreState = async () => {
+      // Only restore if creating a new character (no character prop)
+      if (!character) {
+        const savedState = await restoreFormState();
+        if (isMounted && savedState?.formData) {
+          const data = savedState.formData;
+          if (data.name) setName(data.name);
+          if (data.description) setDescription(data.description);
+          if (data.importance !== undefined) setImportance(data.importance);
+          if (data.role) setRole(data.role);
+          if (data.traits && Array.isArray(data.traits)) {
+            setTraits(data.traits);
+            setTraitsInputState(formatTraits(data.traits));
+          }
+          if (data.backstory) setBackstory(data.backstory);
+        }
+      }
+    };
+    restoreState();
+    return () => {
+      isMounted = false;
+    };
+  }, [restoreFormState, character]); // Only run on mount or when character changes
 
   // Update traits array when traitsInput changes
   useEffect(() => {
@@ -108,18 +147,22 @@ export const useCharacterForm = ({
       setTraitsInputState(formatTraits(character.traits || []));
       setBackstory(character.backstory || '');
       setErrors({});
-    } else {
-      // Reset to defaults for new character
-      setName('');
-      setDescription('');
-      setImportance(5);
-      setRole('supporting');
-      setTraits([]);
-      setTraitsInputState('');
-      setBackstory('');
-      setErrors({});
     }
   }, [character]);
+
+  // Auto-save form data whenever it changes (debounced)
+  useEffect(() => {
+    const formData: Record<string, any> = {
+      name,
+      description,
+      importance,
+      role,
+      traits,
+      backstory,
+    };
+    autoSave(formData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, description, importance, role, traits, backstory]);
 
   // Check if form has changes
   const hasChanges = character ? (
@@ -139,7 +182,7 @@ export const useCharacterForm = ({
   );
 
   // Reset form to original character values or defaults
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (character) {
       setName(character.name || '');
       setDescription(character.description || '');
@@ -158,7 +201,8 @@ export const useCharacterForm = ({
       setBackstory('');
     }
     setErrors({});
-  };
+    clearSavedState();
+  }, [character, clearSavedState]);
 
   // Handle traits input change
   const setTraitsInput = (value: string) => {
@@ -192,6 +236,9 @@ export const useCharacterForm = ({
   // Handle submit
   const handleSubmit = () => {
     if (validate()) {
+      // Clear saved state on successful submit
+      clearSavedState();
+      
       onSubmit({
         name: name.trim(),
         description: description.trim(),

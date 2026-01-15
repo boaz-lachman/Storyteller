@@ -3,14 +3,16 @@
  * Displays characters for a specific story using BigList
  * Includes empty state, pull-to-refresh, sorting, filtering, and CRUD operations
  */
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { Text, Menu, Divider } from 'react-native-paper';
 import BigList from 'react-native-big-list';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { StoryTabParamList } from '../../navigation/types';
+import { loadFormData } from '../../services/autosave/autosaveService';
 import {
   useGetCharactersQuery,
   useCreateCharacterMutation,
@@ -51,6 +53,10 @@ type SortBy = 'importance' | 'name' | 'createdAt';
 type SortOrder = 'ASC' | 'DESC';
 type RoleFilter = 'protagonist' | 'antagonist' | 'supporting' | 'minor' | 'all';
 
+// Module-level map to track which story/user combinations have had their autosave checked
+// This persists across component remounts caused by navigation re-renders
+const checkedUsersForCharacterForm = new Set<string>();
+
 /**
  * Characters Screen Component
  */
@@ -62,6 +68,68 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+
+  // Clear checked users when user logs out or story changes
+  useEffect(() => {
+    if (!user?.uid || !storyId) {
+      // User logged out or no story - clear the checked users set
+      checkedUsersForCharacterForm.clear();
+    }
+  }, [user?.uid, storyId]);
+
+  // Check for autosaved character form data when screen is focused
+  // Only check once per story/user combination - persists across remounts
+  useFocusEffect(
+    useCallback(() => {
+      // Only check if user is logged in, storyId exists, and we haven't checked for this combination yet
+      const userId = user?.uid;
+      
+      // Early return if no user or storyId
+      if (!userId || !storyId) {
+        return;
+      }
+      
+      // Create a unique key for this story/user combination
+      const checkKey = `${userId}:${storyId}`;
+      
+      // Check if we've already checked for this combination
+      // This prevents multiple checks even if navigation causes remounts
+      if (checkedUsersForCharacterForm.has(checkKey)) {
+        return;
+      }
+
+      // Mark as checked immediately to prevent multiple checks
+      // This must happen synchronously before any async operations
+      checkedUsersForCharacterForm.add(checkKey);
+
+      const checkAutosavedContent = async () => {
+        try {
+          // Check for autosaved character form data (create mode - no entityId)
+          // Only check for forms that belong to this story
+          const savedFormData = await loadFormData('character', undefined);
+          
+          if (savedFormData && savedFormData.formData && savedFormData.storyId === storyId) {
+            // Check if there's any meaningful content (not just empty/default values)
+            const hasContent = 
+              savedFormData.formData.name?.trim() ||
+              savedFormData.formData.description?.trim() ||
+              savedFormData.formData.backstory?.trim() ||
+              (savedFormData.formData.traits && Array.isArray(savedFormData.formData.traits) && savedFormData.formData.traits.length > 0);
+            
+            if (hasContent) {
+              // Open modal with autosaved content - only set once
+              setSelectedCharacter(null); // Create mode
+              setIsModalVisible(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking autosaved character form data:', error);
+        }
+      };
+
+      checkAutosavedContent();
+    }, [user?.uid, storyId])
+  );
 
   // Sort/Filter state
   const [sortBy, setSortBy] = useState<SortBy>('importance');
@@ -407,6 +475,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
         isLoading={isLoadingMutation}
+        storyId={storyId}
       />
     </GradientBackground>
   );

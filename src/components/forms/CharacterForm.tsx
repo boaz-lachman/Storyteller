@@ -20,6 +20,7 @@ export interface CharacterFormProps {
   onSubmit: (data: CharacterFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  storyId?: string;
 }
 
 /**
@@ -30,6 +31,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   onSubmit,
   onCancel,
   isLoading = false,
+  storyId,
 }) => {
   // Use custom hook for form logic
   const {
@@ -49,7 +51,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     handleSubmit,
     resetForm,
     hasChanges,
-  } = useCharacterForm({ character, onSubmit });
+  } = useCharacterForm({ character, onSubmit, storyId });
 
   const handleCancel = () => {
     resetForm();

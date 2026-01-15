@@ -2,7 +2,7 @@
  * Character Modal Component
  * Full-page modal wrapper for CharacterForm
  */
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Modal, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Appbar } from 'react-native-paper';
@@ -10,6 +10,7 @@ import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { CharacterForm } from '../forms/CharacterForm';
 import type { CharacterFormData } from '../../hooks/useCharacterForm';
 import type { Character } from '../../types';
+import { clearFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
@@ -20,6 +21,7 @@ export interface CharacterModalProps {
   onClose: () => void;
   onSubmit: (data: CharacterFormData) => void;
   isLoading?: boolean;
+  storyId?: string;
 }
 
 /**
@@ -32,10 +34,30 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   onClose,
   onSubmit,
   isLoading = false,
+  storyId,
 }) => {
+  const prevVisibleRef = useRef(visible);
+
   const handleSubmit = (data: CharacterFormData) => {
     onSubmit(data);
   };
+
+  const handleClose = async () => {
+    // Clear autosaved form content when modal closes
+    await clearFormData('character', character?.id);
+    onClose();
+  };
+
+  // Clear autosaved content when modal becomes invisible
+  useEffect(() => {
+    if (prevVisibleRef.current && !visible) {
+      // Modal was visible and is now hidden - clear autosaved content
+      clearFormData('character', character?.id).catch((error) => {
+        console.error('Error clearing form data on modal close:', error);
+      });
+    }
+    prevVisibleRef.current = visible;
+  }, [visible, character?.id]);
 
   const modalTitle = character ? 'Edit Character' : 'Create Character';
 
@@ -44,13 +66,13 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
       visible={visible}
       animationType="slide"
       presentationStyle="fullScreen"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <StatusBar barStyle="dark-content" />
       <SafeAreaView style={styles.container} edges={['top']}>
         <Animated.View entering={SlideInDown.duration(300)}>
           <Appbar.Header style={styles.header}>
-            <Appbar.Action icon="close" onPress={onClose} />
+            <Appbar.Action icon="close" onPress={handleClose} />
             <Appbar.Content title={modalTitle} titleStyle={styles.headerTitle} />
           </Appbar.Header>
         </Animated.View>
@@ -58,8 +80,9 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
           <CharacterForm
             character={character}
             onSubmit={handleSubmit}
-            onCancel={onClose}
+            onCancel={handleClose}
             isLoading={isLoading}
+            storyId={storyId}
           />
         </Animated.View>
       </SafeAreaView>

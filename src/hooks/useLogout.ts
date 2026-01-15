@@ -77,6 +77,15 @@ export const useLogout = () => {
       await persistor.purge();
       console.log('✓ Persisted Redux state purged');
       
+      // Step 8: Clear all AsyncStorage data
+      try {
+        await AsyncStorage.clear();
+        console.log('✓ All AsyncStorage data cleared');
+      } catch (asyncStorageError) {
+        console.error('Error clearing AsyncStorage:', asyncStorageError);
+        // Don't throw - continue with logout even if AsyncStorage clear fails
+      }
+      
       // Show success message
       dispatch(showSnackbar({ 
         message: 'Logged out successfully', 
@@ -120,6 +129,14 @@ export const useLogout = () => {
         await persistor.purge();
       } catch (purgeError) {
         console.error('Failed to purge persisted state:', purgeError);
+      }
+      
+      // Try to clear all AsyncStorage even in error case
+      try {
+        await AsyncStorage.clear();
+        console.log('✓ All AsyncStorage data cleared (error handler)');
+      } catch (asyncStorageError) {
+        console.error('Failed to clear AsyncStorage in error handler:', asyncStorageError);
       }
       
       dispatch(showSnackbar({ 
