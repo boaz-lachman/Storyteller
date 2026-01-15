@@ -2,8 +2,9 @@
  * Custom hook for SceneForm logic
  * Handles form state, validation, and submission for creating/editing scenes
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { isNotEmpty, isValidLength, required, validationMessages, isValidRange } from '../utils/validation';
+import { useFormAutoSave } from './useFormAutoSave';
 import type { Scene } from '../types';
 
 export interface SceneFormData {
@@ -19,6 +20,7 @@ export interface SceneFormData {
 export interface UseSceneFormProps {
   scene?: Scene | null;
   onSubmit: (data: SceneFormData) => void;
+  storyId?: string;
 }
 
 export interface UseSceneFormReturn {
@@ -55,6 +57,7 @@ export interface UseSceneFormReturn {
 export const useSceneForm = ({
   scene,
   onSubmit,
+  storyId,
 }: UseSceneFormProps): UseSceneFormReturn => {
   // Form state
   const [title, setTitle] = useState('');
@@ -68,6 +71,40 @@ export const useSceneForm = ({
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Auto-save hook
+  const { restoreFormState, clearSavedState, autoSave } = useFormAutoSave({
+    formType: 'scene',
+    entityId: scene?.id,
+    storyId,
+    debounceMs: 1000,
+    enabled: true,
+  });
+
+  // Restore form state on mount (only for create mode or if no scene data)
+  useEffect(() => {
+    let isMounted = true;
+    const restoreState = async () => {
+      // Only restore if creating a new scene (no scene prop)
+      if (!scene) {
+        const savedState = await restoreFormState();
+        if (isMounted && savedState?.formData) {
+          const data = savedState.formData;
+          if (data.title) setTitle(data.title);
+          if (data.description) setDescription(data.description);
+          if (data.setting) setSetting(data.setting);
+          if (data.characters && Array.isArray(data.characters)) setCharacters(data.characters);
+          if (data.importance !== undefined) setImportance(data.importance);
+          if (data.mood) setMood(data.mood);
+          if (data.conflictLevel !== undefined) setConflictLevel(data.conflictLevel);
+        }
+      }
+    };
+    restoreState();
+    return () => {
+      isMounted = false;
+    };
+  }, [restoreFormState, scene]); // Only run on mount or when scene changes
+
   // Initialize form with scene data
   useEffect(() => {
     if (scene) {
@@ -79,18 +116,23 @@ export const useSceneForm = ({
       setMood(scene.mood || '');
       setConflictLevel(scene.conflictLevel);
       setErrors({});
-    } else {
-      // Reset to defaults for new scene
-      setTitle('');
-      setDescription('');
-      setSetting('');
-      setCharacters([]);
-      setImportance(5);
-      setMood('');
-      setConflictLevel(undefined);
-      setErrors({});
     }
   }, [scene]);
+
+  // Auto-save form data whenever it changes (debounced)
+  useEffect(() => {
+    const formData: Record<string, any> = {
+      title,
+      description,
+      setting,
+      characters,
+      importance,
+      mood,
+      conflictLevel,
+    };
+    autoSave(formData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, setting, characters, importance, mood, conflictLevel]);
 
   // Check if form has changes
   const hasChanges = scene ? (
@@ -112,7 +154,7 @@ export const useSceneForm = ({
   );
 
   // Reset form to original scene values or defaults
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (scene) {
       setTitle(scene.title || '');
       setDescription(scene.description || '');
@@ -131,7 +173,8 @@ export const useSceneForm = ({
       setConflictLevel(undefined);
     }
     setErrors({});
-  };
+    clearSavedState();
+  }, [scene, clearSavedState]);
 
   // Validate form
   const validate = (): boolean => {
@@ -174,6 +217,9 @@ export const useSceneForm = ({
   // Handle submit
   const handleSubmit = () => {
     if (validate()) {
+      // Clear saved state on successful submit
+      clearSavedState();
+      
       onSubmit({
         title: title.trim(),
         description: description.trim(),

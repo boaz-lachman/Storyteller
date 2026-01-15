@@ -59,7 +59,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
     handleSubmit,
     resetForm,
     hasChanges,
-  } = useSceneForm({ scene, onSubmit });
+  } = useSceneForm({ scene, onSubmit, storyId });
 
   const handleCancel = () => {
     resetForm();

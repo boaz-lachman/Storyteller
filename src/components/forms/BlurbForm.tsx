@@ -20,6 +20,7 @@ export interface BlurbFormProps {
   onSubmit: (data: BlurbFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  storyId?: string;
 }
 
 /**
@@ -30,6 +31,7 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
   onSubmit,
   onCancel,
   isLoading = false,
+  storyId,
 }) => {
   // Use custom hook for form logic
   const {
@@ -45,7 +47,7 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
     handleSubmit,
     resetForm,
     hasChanges,
-  } = useBlurbForm({ blurb, onSubmit });
+  } = useBlurbForm({ blurb, onSubmit, storyId });
 
   const handleCancel = () => {
     resetForm();

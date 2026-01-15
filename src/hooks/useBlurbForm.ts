@@ -2,8 +2,9 @@
  * Custom hook for BlurbForm logic
  * Handles form state, validation, and submission for creating/editing blurbs
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { isNotEmpty, isValidLength, required, validationMessages, isValidRange } from '../utils/validation';
+import { useFormAutoSave } from './useFormAutoSave';
 import type { IdeaBlurb } from '../types';
 
 export interface BlurbFormData {
@@ -16,6 +17,7 @@ export interface BlurbFormData {
 export interface UseBlurbFormProps {
   blurb?: IdeaBlurb | null;
   onSubmit: (data: BlurbFormData) => void;
+  storyId?: string;
 }
 
 export interface UseBlurbFormReturn {
@@ -54,6 +56,7 @@ const CATEGORY_OPTIONS: Array<{ label: string; value: BlurbFormData['category'] 
 export const useBlurbForm = ({
   blurb,
   onSubmit,
+  storyId,
 }: UseBlurbFormProps): UseBlurbFormReturn => {
   // Form state
   const [title, setTitle] = useState('');
@@ -64,6 +67,37 @@ export const useBlurbForm = ({
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Auto-save hook
+  const { restoreFormState, clearSavedState, autoSave } = useFormAutoSave({
+    formType: 'blurb',
+    entityId: blurb?.id,
+    storyId,
+    debounceMs: 1000,
+    enabled: true,
+  });
+
+  // Restore form state on mount (only for create mode or if no blurb data)
+  useEffect(() => {
+    let isMounted = true;
+    const restoreState = async () => {
+      // Only restore if creating a new blurb (no blurb prop)
+      if (!blurb) {
+        const savedState = await restoreFormState();
+        if (isMounted && savedState?.formData) {
+          const data = savedState.formData;
+          if (data.title) setTitle(data.title);
+          if (data.description) setDescription(data.description);
+          if (data.importance !== undefined) setImportance(data.importance);
+          if (data.category) setCategory(data.category);
+        }
+      }
+    };
+    restoreState();
+    return () => {
+      isMounted = false;
+    };
+  }, [restoreFormState, blurb]); // Only run on mount or when blurb changes
+
   // Initialize form with blurb data
   useEffect(() => {
     if (blurb) {
@@ -72,15 +106,20 @@ export const useBlurbForm = ({
       setImportance(blurb.importance || 5);
       setCategory(blurb.category || 'other');
       setErrors({});
-    } else {
-      // Reset to defaults for new blurb
-      setTitle('');
-      setDescription('');
-      setImportance(5);
-      setCategory('other');
-      setErrors({});
     }
   }, [blurb]);
+
+  // Auto-save form data whenever it changes (debounced)
+  useEffect(() => {
+    const formData: Record<string, any> = {
+      title,
+      description,
+      importance,
+      category,
+    };
+    autoSave(formData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, importance, category]);
 
   // Check if form has changes
   const hasChanges = blurb ? (
@@ -96,7 +135,7 @@ export const useBlurbForm = ({
   );
 
   // Reset form to original blurb values or defaults
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (blurb) {
       setTitle(blurb.title || '');
       setDescription(blurb.description || '');
@@ -109,7 +148,8 @@ export const useBlurbForm = ({
       setCategory('other');
     }
     setErrors({});
-  };
+    clearSavedState();
+  }, [blurb, clearSavedState]);
 
   // Validate form
   const validate = (): boolean => {
@@ -138,6 +178,9 @@ export const useBlurbForm = ({
   // Handle submit
   const handleSubmit = () => {
     if (validate()) {
+      // Clear saved state on successful submit
+      clearSavedState();
+      
       onSubmit({
         title: title.trim(),
         description: description.trim(),
