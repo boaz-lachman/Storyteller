@@ -57,6 +57,7 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
     chapter,
     onSubmit,
     existingChaptersCount: existingChapters.length,
+    storyId,
   });
 
   const handleCancel = () => {

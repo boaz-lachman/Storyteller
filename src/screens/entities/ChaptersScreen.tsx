@@ -3,14 +3,16 @@
  * Displays chapters for a specific story in order
  * Includes empty state, pull-to-refresh, and CRUD operations
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { View, StyleSheet, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { Text } from 'react-native-paper';
 import BigList from 'react-native-big-list';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { StoryTabParamList } from '../../navigation/types';
+import { loadFormData } from '../../services/autosave/autosaveService';
 import {
   useGetChaptersQuery,
   useCreateChapterMutation,
@@ -40,6 +42,10 @@ interface ChaptersScreenProps {
   route: ChaptersScreenRouteProp;
 }
 
+// Module-level map to track which story/user combinations have had their autosave checked
+// This persists across component remounts caused by navigation re-renders
+const checkedUsersForChapterForm = new Set<string>();
+
 /**
  * Chapters Screen Component
  */
@@ -51,6 +57,66 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+
+  // Clear checked users when user logs out or story changes
+  useEffect(() => {
+    if (!user?.uid || !storyId) {
+      // User logged out or no story - clear the checked users set
+      checkedUsersForChapterForm.clear();
+    }
+  }, [user?.uid, storyId]);
+
+  // Check for autosaved chapter form data when screen is focused
+  // Only check once per story/user combination - persists across remounts
+  useFocusEffect(
+    useCallback(() => {
+      // Only check if user is logged in, storyId exists, and we haven't checked for this combination yet
+      const userId = user?.uid;
+      
+      // Early return if no user or storyId
+      if (!userId || !storyId) {
+        return;
+      }
+      
+      // Create a unique key for this story/user combination
+      const checkKey = `${userId}:${storyId}`;
+      
+      // Check if we've already checked for this combination
+      // This prevents multiple checks even if navigation causes remounts
+      if (checkedUsersForChapterForm.has(checkKey)) {
+        return;
+      }
+
+      // Mark as checked immediately to prevent multiple checks
+      // This must happen synchronously before any async operations
+      checkedUsersForChapterForm.add(checkKey);
+
+      const checkAutosavedContent = async () => {
+        try {
+          // Check for autosaved chapter form data (create mode - no entityId)
+          // Only check for forms that belong to this story
+          const savedFormData = await loadFormData('chapter', undefined);
+          
+          if (savedFormData && savedFormData.formData && savedFormData.storyId === storyId) {
+            // Check if there's any meaningful content (not just empty/default values)
+            const hasContent = 
+              savedFormData.formData.title?.trim() ||
+              savedFormData.formData.description?.trim();
+            
+            if (hasContent) {
+              // Open modal with autosaved content - only set once
+              setSelectedChapter(null); // Create mode
+              setIsModalVisible(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking autosaved chapter form data:', error);
+        }
+      };
+
+      checkAutosavedContent();
+    }, [user?.uid, storyId])
+  );
 
   // RTK Query hooks - always sort by order ASC for chapters
   const {
