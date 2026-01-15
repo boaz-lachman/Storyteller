@@ -45,7 +45,6 @@ import { showSnackbar } from '../../store/slices/uiSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { formatWordCount } from '../../utils/formatting';
 import { countWords } from '../../utils/helpers';
-import { showStoryGenerationNotification, cancelNotification } from '../../services/notifications';
 
 type GenerateStoryScreenRouteProp = RouteProp<StoryTabParamList, 'Generate'>;
 
@@ -67,7 +66,6 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   const [additionalInstructions, setAdditionalInstructions] = useState<string>('');
   const [generatedStory, setGeneratedStory] = useState<GenerateStoryResponse | null>(null);
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
-  const [notificationId, setNotificationId] = useState<string | null>(null);
   const [cutOffChunks, setCutOffChunks] = useState<number[]>([]);
   
   // Chunked generation state
@@ -146,10 +144,6 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
     setIsChunkedGeneration(false);
     setCutOffChunks([]);
 
-    // Show notification for background generation
-    const notifId = await showStoryGenerationNotification();
-    setNotificationId(notifId);
-
     try {
       const promptOptions: PromptBuilderOptions = {
         complexity,
@@ -170,10 +164,6 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               type: 'error',
             })
           );
-          if (notifId) {
-            await cancelNotification(notifId);
-            setNotificationId(null);
-          }
           return;
         }
 
@@ -209,12 +199,6 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
             },
           }
         );
-
-        // Cancel notification on success
-        if (notifId) {
-          await cancelNotification(notifId);
-          setNotificationId(null);
-        }
 
         // Convert chunked result to GenerateStoryResponse format
         const chunkLabel = chapters.length > 0 ? 'chapters' : 'sections';
@@ -280,12 +264,6 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
           systemPrompt,
         }).unwrap();
 
-        // Cancel notification on success
-        if (notifId) {
-          await cancelNotification(notifId);
-          setNotificationId(null);
-        }
-
         if (result) {
           setGeneratedStory(result);
           // For single-call generation, if wasCutOff is true, we can't track specific chunks
@@ -306,12 +284,6 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
     } catch (error: any) {
       console.error('Error generating story:', error);
       
-      // Cancel notification on error
-      if (notifId) {
-        await cancelNotification(notifId);
-        setNotificationId(null);
-      }
-
       setIsChunkedGeneration(false);
       
       // Check if we have partial content from chunked generation
@@ -328,6 +300,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               inputTokens: 0,
               outputTokens: 0,
             },
+            wasCutOff: false
           };
           setGeneratedStory(partialResponse);
           
@@ -405,15 +378,6 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
     setGeneratedStory(null);
     handleGenerate();
   }, [handleGenerate]);
-
-  // Cleanup: Cancel notification if component unmounts while generation is in progress
-  useEffect(() => {
-    return () => {
-      if (notificationId) {
-        cancelNotification(notificationId).catch(console.error);
-      }
-    };
-  }, [notificationId]);
 
   // Format complexity label
   const getComplexityLabel = (value: 'simple' | 'moderate' | 'complex') => {
