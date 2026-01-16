@@ -45,6 +45,7 @@ import { showSnackbar } from '../../store/slices/uiSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { formatWordCount } from '../../utils/formatting';
 import { countWords } from '../../utils/helpers';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type GenerateStoryScreenRouteProp = RouteProp<StoryTabParamList, 'Generate'>;
 
@@ -56,6 +57,7 @@ interface GenerateStoryScreenProps {
  * Generate Story Screen Component
  */
 export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps) {
+  const { t } = useTranslation();
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
@@ -120,7 +122,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
       if (!apiKeyConfigured) {
         dispatch(
           showSnackbar({
-            message: 'Claude API key is not configured. Please set CLAUDE_API_KEY in your environment.',
+            message: t('entities:generation.apiKeyWarning'),
             type: 'error',
           })
         );
@@ -132,7 +134,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
     if (statistics.characterCount === 0 && statistics.blurbCount === 0 && statistics.sceneCount === 0 && statistics.chapterCount === 0) {
       dispatch(
         showSnackbar({
-          message: 'Please add at least one character, blurb, scene, or chapter before generating a story.',
+          message: t('entities:generation.noElementsError'),
           type: 'error',
         })
       );
@@ -160,7 +162,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         if (chapters.length > 0 && chapters.length > CLAUDE_API.MAX_CHAPTERS_FOR_GENERATION) {
           dispatch(
             showSnackbar({
-              message: `Too many chapters. Maximum ${CLAUDE_API.MAX_CHAPTERS_FOR_GENERATION} chapters allowed per generation to control costs.`,
+              message: t('entities:generation.tooManyChaptersError', { max: CLAUDE_API.MAX_CHAPTERS_FOR_GENERATION }),
               type: 'error',
             })
           );
@@ -181,10 +183,10 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               setChunkedProgress(progress);
             },
             onChapterComplete: (chunkNumber, content) => {
-              const chunkLabel = chapters.length > 0 ? 'Chapter' : 'Section';
+              const chunkType = chapters.length > 0 ? t('entities:generation.chunkTypes.chapter') : t('entities:generation.chunkTypes.section');
               dispatch(
                 showSnackbar({
-                  message: `${chunkLabel} ${chunkNumber} generated successfully!`,
+                  message: t('entities:generation.chunkComplete', { type: chunkType, number: chunkNumber }),
                   type: 'success',
                 })
               );
@@ -192,7 +194,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
             onTokenWarning: (currentTokens, warningThreshold) => {
               dispatch(
                 showSnackbar({
-                  message: `Warning: Approaching token limit (${currentTokens.toLocaleString()} tokens used). Generation may be incomplete.`,
+                  message: t('entities:generation.tokenWarning', { tokens: currentTokens.toLocaleString() }),
                   type: 'warning',
                 })
               );
@@ -201,7 +203,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         );
 
         // Convert chunked result to GenerateStoryResponse format
-        const chunkLabel = chapters.length > 0 ? 'chapters' : 'sections';
+        const chunkType = chapters.length > 0 ? t('entities:generation.chunkTypes.chapters') : t('entities:generation.chunkTypes.sections');
         const completedChunks = result.chunks.length;
         // Calculate expected total chunks
         const totalChunks = chapters.length > 0 
@@ -216,7 +218,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         const response: GenerateStoryResponse = {
           content: result.completeContent,
           wordCount: result.totalWordCount,
-          prompt: `Chunked generation for ${completedChunks} ${chunkLabel}`,
+          prompt: `Chunked generation for ${completedChunks} ${chunkType}`,
           usage: result.totalUsage,
         };
 
@@ -229,21 +231,21 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         if (isComplete) {
           dispatch(
             showSnackbar({
-              message: `Story generated successfully! ${completedChunks} ${chunkLabel} completed.`,
+              message: t('entities:generation.generationChunkedSuccess', { completed: completedChunks, type: chunkType }),
               type: 'success',
             })
           );
         } else if (chunkedProgress?.error) {
           dispatch(
             showSnackbar({
-              message: `Story generation stopped early: ${chunkedProgress.error}. ${completedChunks} ${chunkLabel} were generated.`,
+              message: t('entities:generation.generationStoppedEarly', { error: chunkedProgress.error, completed: completedChunks, type: chunkType }),
               type: 'warning',
             })
           );
         } else {
           dispatch(
             showSnackbar({
-              message: `Story generation completed with ${completedChunks} of ${totalChunks} ${chunkLabel}.`,
+              message: t('entities:generation.generationIncomplete', { completed: completedChunks, total: totalChunks, type: chunkType }),
               type: 'warning',
             })
           );
@@ -275,7 +277,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
           }
           dispatch(
             showSnackbar({
-              message: 'Story generated successfully!',
+              message: t('entities:generation.generationSuccess'),
               type: 'success',
             })
           );
@@ -306,7 +308,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
           
           dispatch(
             showSnackbar({
-              message: `Generation stopped early, but ${chunkedProgress.completedChunks} sections were saved. You can save this partial content.`,
+              message: t('entities:generation.generationPartialSaved', { completed: chunkedProgress.completedChunks }),
               type: 'warning',
             })
           );
@@ -317,7 +319,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
       
       setChunkedProgress(null);
 
-      const errorMessage = error?.data?.message || error?.data?.error || error?.message || 'Failed to generate story. Please try again.';
+      const errorMessage = error?.data?.message || error?.data?.error || error?.message || t('entities:generation.generationFailed');
       dispatch(
         showSnackbar({
           message: errorMessage,
@@ -332,12 +334,12 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
     if (!generatedStory || !story) return;
 
     Alert.alert(
-      'Save Generated Story',
-      'This will update the story with the generated content. Continue?',
+      t('entities:generation.saveConfirmTitle'),
+      t('entities:generation.saveConfirmMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('entities:generation.saveCancel'), style: 'cancel' },
         {
-          text: 'Save',
+          text: t('entities:generation.saveConfirm'),
           onPress: async () => {
             try {
               await updateStory({
@@ -353,13 +355,13 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
 
               dispatch(
                 showSnackbar({
-                  message: 'Story saved successfully!',
+                  message: t('entities:generation.saveSuccess'),
                   type: 'success',
                 })
               );
             } catch (error: any) {
               console.error('Error saving story:', error);
-              const errorMessage = error?.error || error?.data?.error || 'Failed to save story. Please try again.';
+              const errorMessage = error?.error || error?.data?.error || t('entities:generation.saveFailed');
               dispatch(
                 showSnackbar({
                   message: errorMessage,
@@ -382,9 +384,9 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   // Format complexity label
   const getComplexityLabel = (value: 'simple' | 'moderate' | 'complex') => {
     const labels: Record<string, string> = {
-      simple: 'Simple',
-      moderate: 'Moderate',
-      complex: 'Complex',
+      simple: t('entities:generation.complexitySimple'),
+      moderate: t('entities:generation.complexityModerate'),
+      complex: t('entities:generation.complexityComplex'),
     };
     return labels[value] || value;
   };
@@ -396,7 +398,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContainer}>
           <MainBookActivityIndicator size={80} />
           <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
-            Loading story elements...
+            {t('entities:common.loading')}
           </Animated.Text>
         </Animated.View>
       </GradientBackground>
@@ -408,8 +410,8 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
     return (
       <GradientBackground style={styles.container}>
         <EmptyState
-          title="Story Not Found"
-          message="The story you're looking for doesn't exist."
+          title={t('stories:detail.errorTitle')}
+          message={t('stories:detail.errorMessage')}
           icon={<Ionicons name="alert-circle" size={64} color={colors.error} />}
         />
       </GradientBackground>
@@ -425,7 +427,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
       >
       {/* Header */}
       <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.header}>
-        <Text style={styles.title}>Generate Story</Text>
+        <Text style={styles.title}>{t('entities:generation.title')}</Text>
         <Text style={styles.subtitle}>{story.title}</Text>
       </Animated.View>
 
@@ -437,7 +439,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               <View style={styles.warningContent}>
                 <Ionicons name="warning" size={24} color={colors.warning} />
                 <Text style={styles.warningText}>
-                  Claude API key is not configured. Please set CLAUDE_API_KEY in your environment variables.
+                  {t('entities:generation.apiKeyWarning')}
                 </Text>
               </View>
             </Card.Content>
@@ -449,11 +451,11 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
       <Animated.View entering={FadeInDown.delay(200).duration(400)}>
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={styles.sectionTitle}>Story Elements Preview</Text>
+            <Text style={styles.sectionTitle}>{t('entities:generation.previewTitle')}</Text>
             <StatisticsCards statistics={statistics} animated={true} />
             {statistics.characterCount === 0 && statistics.blurbCount === 0 && statistics.sceneCount === 0 && statistics.chapterCount === 0 && (
               <Text style={styles.emptyPreviewText}>
-                Add at least one element (character, blurb, scene, or chapter) to generate a story.
+                {t('entities:generation.previewEmpty')}
               </Text>
             )}
           </Card.Content>
@@ -465,11 +467,11 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         <Animated.View entering={FadeInDown.delay(250).duration(400)}>
           <Card style={styles.card}>
             <Card.Content>
-              <Text style={styles.sectionTitle}>Generation Options</Text>
+              <Text style={styles.sectionTitle}>{t('entities:generation.optionsTitle')}</Text>
 
               {/* Complexity Selector */}
               <View style={styles.optionRow}>
-                <Text style={styles.optionLabel}>Complexity</Text>
+                <Text style={styles.optionLabel}>{t('entities:generation.complexity')}</Text>
                 <Menu
                   key={String(complexityMenuVisible)+"1"}
                   visible={complexityMenuVisible}
@@ -489,21 +491,21 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                       setComplexity('simple');
                       setComplexityMenuVisible(false);
                     }}
-                    title="Simple"
+                    title={t('entities:generation.complexitySimple')}
                   />
                   <Menu.Item
                     onPress={() => {
                       setComplexity('moderate');
                       setComplexityMenuVisible(false);
                     }}
-                    title="Moderate"
+                    title={t('entities:generation.complexityModerate')}
                   />
                   <Menu.Item
                     onPress={() => {
                       setComplexity('complex');
                       setComplexityMenuVisible(false);
                     }}
-                    title="Complex"
+                    title={t('entities:generation.complexityComplex')}
                   />
                 </Menu>
               </View>
@@ -511,11 +513,11 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               {/* Style Input */}
               <View style={styles.optionRow}>
                 <Input
-                  label="Writing Style (Optional)"
+                  label={t('entities:generation.styleLabel')}
                   value={style}
                   onChangeText={setStyle}
-                  placeholder='e.g., "literary", "conversational", "poetic", "dramatic", etc.'
-                  helperText="Specify the writing style you want for the generated story"
+                  placeholder={t('entities:generation.stylePlaceholder')}
+                  helperText={t('entities:generation.styleHelper')}
                   containerStyle={styles.inputContainer}
                 />
               </View>
@@ -523,11 +525,11 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               {/* Additional Instructions */}
               <View style={styles.optionRow}>
                 <Input
-                  label="Additional Instructions (Optional)"
+                  label={t('entities:generation.instructionsLabel')}
                   value={additionalInstructions}
                   onChangeText={setAdditionalInstructions}
-                  placeholder="Any specific requirements or preferences for the story"
-                  helperText="Add any specific requirements or preferences for the story generation"
+                  placeholder={t('entities:generation.instructionsPlaceholder')}
+                  helperText={t('entities:generation.instructionsHelper')}
                   multiline
                   numberOfLines={4}
                   containerStyle={styles.inputContainer}
@@ -548,7 +550,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
             disabled={isGenerating || !apiKeyConfigured || (statistics.characterCount === 0 && statistics.blurbCount === 0 && statistics.sceneCount === 0 && statistics.chapterCount === 0)}
             style={styles.generateButton}
           >
-            {isGenerating ? 'Generating...' : 'Generate Story'}
+            {isGenerating ? t('entities:generation.generating') : t('entities:generation.generateButton')}
           </PaperButton>
         </Animated.View>
       )}
@@ -559,7 +561,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.resultHeader}>
-                <Text style={styles.sectionTitle}>Generated Story</Text>
+                <Text style={styles.sectionTitle}>{t('entities:generation.resultTitle')}</Text>
                 <Menu
                   key={String(formatMenuVisible)+"2"}
                   visible={formatMenuVisible}
@@ -578,14 +580,14 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                       setFormatOption('formatted');
                       setFormatMenuVisible(false);
                     }}
-                    title="Formatted"
+                    title={t('entities:generation.formatFormatted')}
                   />
                   <Menu.Item
                     onPress={() => {
                       setFormatOption('raw');
                       setFormatMenuVisible(false);
                     }}
-                    title="Raw Text"
+                    title={t('entities:generation.formatRaw')}
                   />
                 </Menu>
               </View>
@@ -642,14 +644,14 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               disabled={isGenerating}
               style={styles.actionButton}
             >
-              Retry
+              {t('entities:generation.retry')}
             </PaperButton>
             <PaperButton
               variant="primary"
               onPress={handleSave}
               style={styles.actionButton}
             >
-              Save
+              {t('entities:generation.save')}
             </PaperButton>
           </View>
         </Animated.View>
@@ -663,13 +665,21 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
             <MainBookActivityIndicator size={120} />
             <Text style={styles.generatingText}>
               {isChunkedGeneration && chunkedProgress
-                ? `Generating ${chapters.length > 0 ? 'Chapter' : 'Section'} ${chunkedProgress.currentChunk} of ${chunkedProgress.totalChunks}...`
-                : 'Generating your story...'}
+                ? t('entities:generation.generatingChunked', { 
+                    type: chapters.length > 0 ? t('entities:generation.chunkTypes.chapter') : t('entities:generation.chunkTypes.section'),
+                    current: chunkedProgress.currentChunk,
+                    total: chunkedProgress.totalChunks
+                  })
+                : t('entities:generation.generatingOverlay')}
             </Text>
             <Text style={styles.generatingSubtext}>
               {isChunkedGeneration && chunkedProgress
-                ? `${chunkedProgress.completedChunks} of ${chunkedProgress.totalChunks} ${chapters.length > 0 ? 'chapters' : 'sections'} completed`
-                : 'This may take a few minutes'}
+                ? t('entities:generation.generatingChunkedSubtext', {
+                    completed: chunkedProgress.completedChunks,
+                    total: chunkedProgress.totalChunks,
+                    type: chapters.length > 0 ? t('entities:generation.chunkTypes.chapters') : t('entities:generation.chunkTypes.sections')
+                  })
+                : t('entities:generation.generatingSubtext')}
             </Text>
             {isChunkedGeneration && chunkedProgress && chunkedProgress.error && (
               <Text style={styles.errorText}>{chunkedProgress.error}</Text>

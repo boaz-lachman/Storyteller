@@ -22,6 +22,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatDateTime, formatStoryLength, formatStoryTheme } from '../../utils/formatting';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const AnimatedTouchableOpacity = Reanimated.createAnimatedComponent(TouchableOpacity);
 
@@ -40,6 +41,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   onPress,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   const isRTL = I18nManager.isRTL;
   const swipeableRef = useRef<React.ComponentRef<typeof Swipeable>>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -212,7 +214,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                   ]}
                 >
                   <Text style={styles.statusBadgeText}>
-                    {story.status === 'completed' ? 'Completed' : 'Draft'}
+                    {story.status === 'completed' ? t('stories:card.completed') : t('stories:card.draft')}
                   </Text>
                 </View>
               </View>
@@ -277,10 +279,10 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           onDismiss={cancelDelete}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Delete Story</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('stories:delete.confirmTitle')}</Dialog.Title>
           <Dialog.Content>
             <Text style={styles.dialogMessage}>
-              Are you sure you want to delete "{story.title}"? This action cannot be undone.
+              {t('stories:delete.confirmMessage', { title: story.title })}
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
@@ -289,14 +291,14 @@ export const StoryCard: React.FC<StoryCardProps> = ({
               textColor={colors.textSecondary}
               style={styles.dialogButton}
             >
-              Cancel
+              {t('stories:delete.cancelButton')}
             </Button>
             <Button
               onPress={confirmDelete}
               textColor={colors.error}
               style={styles.dialogButton}
             >
-              Delete
+              {t('stories:delete.deleteButton')}
             </Button>
           </Dialog.Actions>
         </Dialog>

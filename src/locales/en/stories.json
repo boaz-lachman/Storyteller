@@ -30,13 +30,38 @@
       "generate": "Generate"
     }
   },
+  "overview": {
+    "title": "Edit Story",
+    "loading": "Loading story overview...",
+    "errorTitle": "Error Loading Story",
+    "errorMessage": "Story not found",
+    "storyDetails": "Story Details",
+    "description": "Description",
+    "metadata": {
+      "theme": "Theme",
+      "length": "Length",
+      "tone": "Tone",
+      "pov": "Point of View",
+      "targetAudience": "Target Audience",
+      "setting": "Setting",
+      "timePeriod": "Time Period",
+      "wordCount": "Word Count"
+    },
+    "messages": {
+      "updated": "Story updated successfully",
+      "updateFailed": "Failed to update story. Please try again."
+    }
+  },
   "create": {
     "title": "Create New Story",
+    "sectionBasic": "Basic Information",
+    "sectionAttributes": "Story Attributes",
+    "sectionAdditional": "Additional Details",
     "fields": {
       "title": "Title",
       "titlePlaceholder": "Enter story title",
       "description": "Description",
-      "descriptionPlaceholder": "Enter story description",
+      "descriptionPlaceholder": "Enter story description (optional)",
       "length": "Length",
       "theme": "Theme",
       "tone": "Tone",
@@ -62,12 +87,84 @@
       "cancel": "Cancel"
     }
   },
+  "card": {
+    "completed": "Completed",
+    "draft": "Draft"
+  },
   "delete": {
     "confirmTitle": "Delete Story",
-    "confirmMessage": "Are you sure you want to delete this story? This action cannot be undone.",
+    "confirmMessage": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
     "deleteButton": "Delete",
     "cancelButton": "Cancel",
     "deleted": "Story deleted successfully",
     "deleteFailed": "Failed to delete story"
+  },
+  "export": {
+    "title": "Export Story",
+    "close": "Close",
+    "exportType": "Export Type",
+    "types": {
+      "full": {
+        "label": "Full Story",
+        "description": "Export everything: story elements and generated content"
+      },
+      "elementsOnly": {
+        "label": "Elements Only",
+        "description": "Export only story elements (characters, blurbs)"
+      },
+      "generatedOnly": {
+        "label": "Generated Content Only",
+        "description": "Export only the generated story content"
+      }
+    },
+    "format": {
+      "pdf": "PDF"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "export": "Export"
+    },
+    "progress": {
+      "exporting": "Exporting...",
+      "preparing": "Preparing export...",
+      "generating": "Generating PDF...",
+      "subtext": "Please wait while we prepare your export"
+    },
+    "success": {
+      "title": "Export Successful",
+      "message": "Your story has been exported successfully!",
+      "subtext": "The file is ready to share. Use the share sheet to save or share it.",
+      "ok": "OK"
+    },
+    "error": {
+      "title": "Export Failed",
+      "defaultMessage": "Failed to export story",
+      "ok": "OK"
+    },
+    "shareDialogTitle": "Share Story"
+  },
+  "completed": {
+    "emptyTitle": "No Generated Story",
+    "emptyMessage": "This story hasn't been generated yet. Go to the Generate tab to create your story.",
+    "generatedOn": "Generated on",
+    "storyTitle": "Story",
+    "formatFormatted": "Formatted",
+    "formatRaw": "Raw Text",
+    "incompleteSections": "{{count}} section{{plural}} incomplete",
+    "incompleteBadge": "Incomplete",
+    "cutOffWarning": "This section was cut off mid-generation due to token limits. Content may be incomplete."
+  },
+  "player": {
+    "title": "Audio Player",
+    "initializing": "Initializing player...",
+    "voice": "Voice:",
+    "defaultVoice": "Default Voice",
+    "noVoicesAvailable": "No voices available",
+    "speed": "Speed:",
+    "status": {
+      "playing": "Playing...",
+      "stopped": "Stopped",
+      "ready": "Ready"
+    }
   }
 }

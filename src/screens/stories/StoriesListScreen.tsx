@@ -33,6 +33,7 @@ import { typography } from '../../constants/typography';
 import type { Story } from '../../types';
 import type { AppStackParamList } from '../../navigation/types';
 import type { CreateStoryFormData } from '../../hooks/useCreateStoryForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList, 'StoriesList'>;
 
@@ -48,6 +49,7 @@ type StatusFilter = Story['status'] | 'all';
 const checkedUsers = new Set<string>();
 
 export default function StoriesListScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const { user } = useAuth();
@@ -242,7 +244,7 @@ export default function StoriesListScreen() {
         
         dispatch(
           showSnackbar({
-            message: 'Story created successfully',
+            message: t('stories:list.created'),
             type: 'success',
           })
         );
@@ -250,7 +252,7 @@ export default function StoriesListScreen() {
         console.error('Error creating story:', error);
         dispatch(
           showSnackbar({
-            message: 'Failed to create story',
+            message: t('stories:list.createFailed'),
             type: 'error',
           })
         );
@@ -327,7 +329,7 @@ export default function StoriesListScreen() {
   const fabOptions: FABOption[] = [
     {
       id: 'create-story',
-      label: 'Create Story',
+      label: t('stories:list.createStory'),
       icon: <AntDesign name="plus" size={24} color={colors.textInverse} />,
       onPress: handleFABPress,
       color: colors.primary,
@@ -358,16 +360,16 @@ export default function StoriesListScreen() {
     if (hasActiveFilters && stories.length === 0) {
       return (
       <EmptyState
-        title="No Stories Found"
-        message="Try adjusting your search or filters"
+        title={t('stories:list.emptySearchTitle')}
+        message={t('stories:list.emptySearchMessage')}
         icon={<AntDesign name="search" size={64} color={colors.textTertiary} />}
       />
       );
     }
     return (
       <EmptyState
-        title="No Stories Yet"
-        message="Create your first story to get started!"
+        title={t('stories:list.emptyTitle')}
+        message={t('stories:list.emptyMessage')}
         icon={<AntDesign name="file-text" size={64} color={colors.textTertiary} />}
       />
     );
@@ -385,14 +387,14 @@ export default function StoriesListScreen() {
   return (
     <GradientBackground style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Your Stories</Text>
+        <Text style={styles.title}>{t('stories:list.title')}</Text>
       </View>
 
       {/* Search Input - Only show if there are stories */}
       {allStories.length > 0 && (
         <View style={styles.searchContainer}>
           <TextInput
-            placeholder="Search stories by title or description..."
+            placeholder={t('stories:list.searchPlaceholder')}
             value={searchQuery}
             onChangeText={setSearchQuery}
             mode="outlined"
@@ -436,14 +438,14 @@ export default function StoriesListScreen() {
                 onPress={() => setFilterMenuVisible(true)}
               >
                 <Ionicons name="filter" size={18} color={colors.text} />
-                <Text style={styles.filterButtonText}>Filters</Text>
+                <Text style={styles.filterButtonText}>{t('stories:list.filters')}</Text>
                 {hasActiveFilters && <View style={styles.filterBadge} />}
               </TouchableOpacity>
             }
           >
             <Menu.Item
               onPress={() => handleThemeFilterChange('all')}
-              title="All Themes"
+              title={t('stories:list.allThemes')}
               leadingIcon={themeFilter === 'all' ? 'check' : undefined}
             />
             {availableThemes.length > 0 && (
@@ -462,7 +464,7 @@ export default function StoriesListScreen() {
             <Divider />
             <Menu.Item
               onPress={() => handleLengthFilterChange('all')}
-              title="All Lengths"
+              title={t('stories:list.allLengths')}
               leadingIcon={lengthFilter === 'all' ? 'check' : undefined}
             />
             {availableLengths.length > 0 && (
@@ -481,7 +483,7 @@ export default function StoriesListScreen() {
             <Divider />
             <Menu.Item
               onPress={() => handleStatusFilterChange('all')}
-              title="All Statuses"
+              title={t('stories:list.allStatuses')}
               leadingIcon={statusFilter === 'all' ? 'check' : undefined}
             />
             {availableStatuses.length > 0 && (
@@ -501,7 +503,7 @@ export default function StoriesListScreen() {
             {hasActiveFilters && (
               <>
                 <Divider />
-                <Menu.Item onPress={handleClearFilters} title="Clear All Filters" />
+                <Menu.Item onPress={handleClearFilters} title={t('stories:list.clearAllFilters')} />
               </>
             )}
           </Menu>
@@ -511,7 +513,7 @@ export default function StoriesListScreen() {
               onPress={handleClearFilters}
             >
               <Ionicons name="close-circle" size={18} color={colors.text} />
-              <Text style={styles.clearButtonText}>Clear</Text>
+              <Text style={styles.clearButtonText}>{t('stories:list.clear')}</Text>
             </TouchableOpacity>
           )}
         </View>

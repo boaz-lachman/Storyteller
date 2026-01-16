@@ -98,7 +98,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   onPress={onDismiss}
                   icon={() => <Feather name="x" size={20} color={colors.primary} />}
                 >
-                  Close
                 </Button>
               </View>
 

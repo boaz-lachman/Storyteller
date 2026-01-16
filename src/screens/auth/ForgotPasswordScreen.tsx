@@ -20,12 +20,16 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { theme } from '../../constants/theme';
 import { useForgotPassword } from '../../hooks/useForgotPassword';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useAppSelector } from '../../hooks/redux';
+import { selectIsRTL } from '../../store/slices/languageSlice';
 
 /**
  * Forgot Password Screen Component
  */
 export default function ForgotPasswordScreen() {
-  const isRTL = I18nManager.isRTL;
+  const { t } = useTranslation();
+  const isRTL = useAppSelector(selectIsRTL);
   const {
     email,
     emailError,
@@ -52,22 +56,22 @@ export default function ForgotPasswordScreen() {
 
           {/* Title */}
           <Text style={[styles.title, isRTL && styles.titleRTL]}>
-            Forgot Password?
+            {t('auth:forgotPassword.title')}
           </Text>
           <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
             {isSuccess
-              ? 'Password reset email sent! Check your inbox and follow the instructions to reset your password.'
-              : 'Enter your email address and we\'ll send you a link to reset your password.'}
+              ? t('auth:forgotPassword.subtitleSuccess')
+              : t('auth:forgotPassword.subtitle')}
           </Text>
 
           {!isSuccess ? (
             <>
               {/* Email Input */}
               <Input
-                label="Email"
+                label={t('auth:forgotPassword.email')}
                 value={email}
                 onChangeText={updateEmail}
-                placeholder="Enter your email"
+                placeholder={t('auth:forgotPassword.emailPlaceholder')}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
@@ -85,13 +89,13 @@ export default function ForgotPasswordScreen() {
                 disabled={isLoading}
                 style={styles.resetButton}
               >
-                Send Reset Link
+                {t('auth:forgotPassword.resetButton')}
               </PaperButton>
             </>
           ) : (
             <View style={styles.successContainer}>
               <Text style={[styles.successText, isRTL && styles.successTextRTL]}>
-                You will be redirected to the login screen shortly...
+                {t('auth:forgotPassword.redirectMessage')}
               </Text>
             </View>
           )}
@@ -99,14 +103,14 @@ export default function ForgotPasswordScreen() {
           {/* Back to Login Link */}
           <View style={[styles.loginContainer, isRTL && styles.loginContainerRTL]}>
             <Text style={[styles.loginText, isRTL && styles.loginTextRTL]}>
-              Remember your password?{' '}
+              {t('auth:forgotPassword.rememberPassword')}{' '}
             </Text>
             <PaperButton
             variant="text"
               onPress={handleNavigateToLogin}
               labelStyle={styles.loginLink}
             >
-              Sign In
+              {t('auth:forgotPassword.backToLogin')}
             </PaperButton>
           </View>
         </View>

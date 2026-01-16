@@ -19,12 +19,16 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useLogin } from '../../hooks/useLogin';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useAppSelector } from '../../hooks/redux';
+import { selectIsRTL } from '../../store/slices/languageSlice';
 
 /**
  * Login Screen Component
  */
 export default function LoginScreen() {
-  const isRTL = I18nManager.isRTL;
+  const { t } = useTranslation();
+  const isRTL = useAppSelector(selectIsRTL);
   const {
     email,
     password,
@@ -54,18 +58,18 @@ export default function LoginScreen() {
 
           {/* Title */}
           <Text style={[styles.title, isRTL && styles.titleRTL]}>
-            Welcome!
+            {t('auth:login.title')}
           </Text>
           <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
-            Sign in to continue
+            {t('auth:login.subtitle')}
           </Text>
 
           {/* Email Input */}
           <Input
-            label="Email"
+            label={t('auth:login.email')}
             value={email}
             onChangeText={updateEmail}
-            placeholder="Enter your email"
+            placeholder={t('auth:login.emailPlaceholder')}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -76,10 +80,10 @@ export default function LoginScreen() {
 
           {/* Password Input */}
           <Input
-            label="Password"
+            label={t('auth:login.password')}
             value={password}
             onChangeText={updatePassword}
-            placeholder="Enter your password"
+            placeholder={t('auth:login.passwordPlaceholder')}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="password"
@@ -95,7 +99,7 @@ export default function LoginScreen() {
             style={styles.forgotPasswordButton}
             labelStyle={styles.forgotPasswordText}
           >
-            Forgot Password?
+            {t('auth:login.forgotPassword')}
           </PaperButton>
 
           {/* Login Button */}
@@ -106,20 +110,20 @@ export default function LoginScreen() {
             disabled={isLoading}
             style={styles.loginButton}
           >
-            Sign In
+            {t('auth:login.signInButton')}
           </PaperButton>
 
           {/* Sign Up Link */}
           <View style={[styles.signupContainer, isRTL && styles.signupContainerRTL]}>
             <Text style={[styles.signupText, isRTL && styles.signupTextRTL]}>
-              Don't have an account?{' '}
+              {t('auth:login.signUpPrompt')}{' '}
             </Text>
             <PaperButton
             variant="text"
               onPress={handleNavigateToSignup}
               labelStyle={styles.signupLink}
             >
-              Sign Up
+              {t('auth:login.signUpLink')}
             </PaperButton>
           </View>
         </View>

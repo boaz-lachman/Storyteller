@@ -36,6 +36,7 @@ import uiReducer from './slices/uiSlice';
 import exportReducer from './slices/exportSlice';
 import autosaveReducer from './slices/autosaveSlice';
 import onboardingReducer from './slices/onboardingSlice';
+import languageReducer from './slices/languageSlice';
 
 /**
  * Root reducer combining all reducers
@@ -61,6 +62,7 @@ const rootReducer = combineReducers({
   export: exportReducer,
   autosave: autosaveReducer,
   onboarding: onboardingReducer,
+  language: languageReducer,
 });
 
 /**
@@ -86,6 +88,7 @@ const persistConfig = {
     'sync',
     'export',
     'autosave', // Auto-save state is managed separately via AsyncStorage
+    // Note: 'language' is NOT in blacklist, so it will be persisted
   ],
 };
 

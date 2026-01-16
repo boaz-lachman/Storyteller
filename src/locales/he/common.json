@@ -1,0 +1,86 @@
+{
+  "buttons": {
+    "save": "שמור",
+    "cancel": "ביטול",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "create": "צור",
+    "update": "עדכן",
+    "close": "סגור",
+    "confirm": "אישור",
+    "yes": "כן",
+    "no": "לא",
+    "ok": "אישור",
+    "retry": "נסה שוב",
+    "back": "חזור",
+    "next": "הבא",
+    "submit": "שלח",
+    "reset": "איפוס",
+    "clear": "נקה",
+    "add": "הוסף",
+    "remove": "הסר",
+    "export": "ייצא",
+    "share": "שתף",
+    "download": "הורד",
+    "upload": "העלה",
+    "search": "חפש",
+    "filter": "סנן",
+    "sort": "מיין",
+    "refresh": "רענן",
+    "loading": "טוען...",
+    "undo": "בטל",
+    "dismiss": "סגור",
+    "logout": "התנתק"
+  },
+  "inputs": {
+    "required": "נדרש",
+    "optional": "אופציונלי",
+    "invalid": "לא תקין",
+    "minLength": "חייב להיות לפחות {{min}} תווים",
+    "maxLength": "חייב להיות פחות מ-{{max}} תווים",
+    "invalidEmail": "אנא הזן כתובת אימייל תקינה",
+    "invalidPassword": "סיסמה חייבת להיות לפחות 6 תווים",
+    "passwordsDoNotMatch": "הסיסמאות אינן תואמות"
+  },
+  "modals": {
+    "title": "חלון",
+    "close": "סגור",
+    "confirm": "אישור",
+    "cancel": "ביטול"
+  },
+  "emptyState": {
+    "title": "לא נמצאו פריטים",
+    "message": "התחל על ידי הוספת הפריט הראשון שלך",
+    "loading": "טוען..."
+  },
+  "loading": {
+    "loading": "טוען...",
+    "pleaseWait": "אנא המתן...",
+    "processing": "מעבד..."
+  },
+  "errors": {
+    "error": "שגיאה",
+    "somethingWentWrong": "משהו השתבש",
+    "tryAgain": "אנא נסה שוב",
+    "networkError": "שגיאת רשת. אנא בדוק את החיבור שלך.",
+    "serverError": "שגיאת שרת. אנא נסה שוב מאוחר יותר.",
+    "unknownError": "אירעה שגיאה לא ידועה",
+    "validationError": "אנא בדוק את הקלט שלך ונסה שוב"
+  },
+  "messages": {
+    "success": "הצלחה",
+    "error": "שגיאה",
+    "info": "מידע",
+    "warning": "אזהרה",
+    "deleted": "נמחק בהצלחה",
+    "saved": "נשמר בהצלחה",
+    "updated": "עודכן בהצלחה",
+    "created": "נוצר בהצלחה"
+  },
+  "language": {
+    "title": "שפה",
+    "english": "אנגלית",
+    "hebrew": "עברית",
+    "selectLanguage": "בחר שפה"
+  }
+}

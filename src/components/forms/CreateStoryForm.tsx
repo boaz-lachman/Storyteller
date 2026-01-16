@@ -12,6 +12,7 @@ import { useCreateStoryForm, FORM_OPTIONS, type CreateStoryFormData } from '../.
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Re-export CreateStoryFormData from hook for backward compatibility
 export type { CreateStoryFormData } from '../../hooks/useCreateStoryForm';
@@ -31,6 +32,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   // Use custom hook for form logic
   const {
     title,
@@ -68,34 +70,34 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Basic Information</Text>
+      <Text style={styles.sectionTitle}>{t('stories:create.sectionBasic')}</Text>
       
       <Input
-        label="Title"
+        label={t('stories:create.fields.title')}
         value={title}
         onChangeText={setTitle}
         error={errors.title}
         required
-        placeholder="Enter story title"
+        placeholder={t('stories:create.fields.titlePlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Description"
+        label={t('stories:create.fields.description')}
         value={description}
         onChangeText={setDescription}
         error={errors.description}
-        placeholder="Enter story description (optional)"
+        placeholder={t('stories:create.fields.descriptionPlaceholder')}
         multiline
         numberOfLines={4}
         containerStyle={styles.inputContainer}
       />
 
-      <Text style={styles.sectionTitle}>Story Attributes</Text>
+      <Text style={styles.sectionTitle}>{t('stories:create.sectionAttributes')}</Text>
 
       {/* Length Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Length *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:create.fields.length')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={length}
@@ -116,7 +118,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
 
       {/* Theme Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Theme *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:create.fields.theme')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={theme}
@@ -137,7 +139,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
 
       {/* Tone Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Tone *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:create.fields.tone')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={tone}
@@ -158,7 +160,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
 
       {/* POV Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Point of View *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:create.fields.pov')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={pov}
@@ -179,7 +181,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
 
       {/* Target Audience Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Target Audience *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:create.fields.targetAudience')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={targetAudience}
@@ -198,21 +200,21 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Additional Details</Text>
+      <Text style={styles.sectionTitle}>{t('stories:create.sectionAdditional')}</Text>
 
       <Input
-        label="Setting"
+        label={t('stories:create.fields.setting')}
         value={setting}
         onChangeText={setSetting}
-        placeholder="Enter story setting (optional)"
+        placeholder={t('stories:create.fields.settingPlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Time Period"
+        label={t('stories:create.fields.timePeriod')}
         value={timePeriod}
         onChangeText={setTimePeriod}
-        placeholder="Enter time period (optional)"
+        placeholder={t('stories:create.fields.timePeriodPlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
@@ -223,7 +225,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
           disabled={isLoading}
           style={[styles.button, styles.cancelButton]}
         >
-          Cancel
+          {t('stories:create.buttons.cancel')}
         </PaperButton>
         <PaperButton
           variant="primary"
@@ -232,7 +234,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
           disabled={isLoading}
           style={[styles.button, styles.submitButton]}
         >
-          Create
+          {t('stories:create.buttons.create')}
         </PaperButton>
       </View>
     </ScrollView>

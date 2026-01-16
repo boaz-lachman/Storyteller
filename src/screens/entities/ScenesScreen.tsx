@@ -34,6 +34,7 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Scene } from '../../types';
 import type { SceneFormData } from '../../hooks/useSceneForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type ScenesScreenRouteProp = RouteProp<StoryTabParamList, 'Scenes'>;
 
@@ -52,6 +53,7 @@ const checkedUsersForSceneForm = new Set<string>();
  * Scenes Screen Component
  */
 export default function ScenesScreen({ route }: ScenesScreenProps) {
+  const { t } = useTranslation();
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
@@ -162,12 +164,12 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
   const handleDeleteScene = useCallback(
     (scene: Scene) => {
       Alert.alert(
-        'Delete Scene',
-        `Are you sure you want to delete "${scene.title}"? This action cannot be undone.`,
+        t('entities:scenes.delete.confirmTitle'),
+        t('entities:scenes.delete.confirmMessage', { title: scene.title }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common:buttons.cancel'), style: 'cancel' },
           {
-            text: 'Delete',
+            text: t('entities:scenes.buttons.delete'),
             style: 'destructive',
             onPress: async () => {
               try {
@@ -178,7 +180,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
                 }).unwrap();
                 dispatch(
                   showSnackbar({
-                    message: 'Scene deleted',
+                    message: t('entities:scenes.delete.deleted'),
                     type: 'success',
                     undoAction: {
                       type: 'undo-scene-delete',
@@ -191,7 +193,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
                 dispatch(clearDeletedScene());
                 dispatch(
                   showSnackbar({
-                    message: err?.error || err?.data?.error || 'Failed to delete scene. Please try again.',
+                    message: err?.error || err?.data?.error || t('entities:scenes.delete.deleteFailed'),
                     type: 'error',
                   })
                 );
@@ -230,7 +232,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Scene updated',
+              message: t('entities:scenes.messages.updated'),
               type: 'success',
             })
           );
@@ -243,7 +245,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Scene created',
+              message: t('entities:scenes.messages.created'),
               type: 'success',
             })
           );
@@ -253,7 +255,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
         console.error('Error saving scene:', err);
         dispatch(
           showSnackbar({
-            message: err?.error || err?.data?.error || 'Failed to save scene. Please try again.',
+            message: err?.error || err?.data?.error || t('entities:scenes.messages.saveFailed'),
             type: 'error',
           })
         );
@@ -279,7 +281,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
   const fabOptions: FABOption[] = [
     {
       id: 'create-scene',
-      label: 'Create Scene',
+      label: t('entities:scenes.addScene'),
       icon: <Ionicons name="add" size={24} color={colors.textInverse} />,
       onPress: handleCreateScene,
       color: colors.primary,
@@ -312,8 +314,8 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
     }
     return (
       <EmptyState
-        title="No Scenes Yet"
-        message="Add your first scene to get started!"
+        title={t('entities:scenes.emptyTitle')}
+        message={t('entities:scenes.emptyMessage')}
         icon={<FontAwesome6 name="paragraph" size={64} color={colors.textTertiary} />}
       />
     );
@@ -335,7 +337,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
       <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContainer}>
         <MainBookActivityIndicator size={80} />
         <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
-          Loading scenes...
+          {t('entities:scenes.loading')}
         </Animated.Text>
       </Animated.View>
     );
@@ -358,7 +360,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
               >
                 <Ionicons name="swap-vertical" size={18} color={colors.text} />
                 <Text style={styles.headerButtonText}>
-                  Sort: {sortBy === 'importance' ? 'Importance' : sortBy === 'title' ? 'Title' : 'Date'}{' '}
+                  {t('entities:scenes.sort.sort')}: {sortBy === 'importance' ? t('entities:scenes.sort.byImportance') : sortBy === 'title' ? t('entities:scenes.sort.byTitle') : t('entities:scenes.sort.byDate')}{' '}
                   {sortOrder === 'ASC' ? '↑' : '↓'}
                 </Text>
               </TouchableOpacity>
@@ -366,17 +368,17 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
           >
             <Menu.Item
               onPress={() => handleSortChange('importance')}
-              title="Importance"
+              title={t('entities:scenes.sort.byImportance')}
               leadingIcon={sortBy === 'importance' ? 'check' : undefined}
             />
             <Menu.Item
               onPress={() => handleSortChange('title')}
-              title="Title"
+              title={t('entities:scenes.sort.byTitle')}
               leadingIcon={sortBy === 'title' ? 'check' : undefined}
             />
             <Menu.Item
               onPress={() => handleSortChange('createdAt')}
-              title="Date Created"
+              title={t('entities:scenes.sort.byDate')}
               leadingIcon={sortBy === 'createdAt' ? 'check' : undefined}
             />
           </Menu>

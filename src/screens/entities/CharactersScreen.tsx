@@ -42,6 +42,7 @@ import { typography } from '../../constants/typography';
 import { formatCharacterRole } from '../../utils/formatting';
 import type { Character } from '../../types';
 import type { CharacterFormData } from '../../hooks/useCharacterForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type CharactersScreenRouteProp = RouteProp<StoryTabParamList, 'Characters'>;
 
@@ -61,6 +62,7 @@ const checkedUsersForCharacterForm = new Set<string>();
  * Characters Screen Component
  */
 export default function CharactersScreen({ route }: CharactersScreenProps) {
+  const { t } = useTranslation();
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
@@ -240,7 +242,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Character updated',
+              message: t('entities:characters.messages.updated'),
               type: 'success',
             })
           );
@@ -253,7 +255,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Character created',
+              message: t('entities:characters.messages.created'),
               type: 'success',
             })
           );
@@ -263,7 +265,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
         console.error('Error saving character:', err);
         dispatch(
           showSnackbar({
-            message: err?.error || err?.data?.error || 'Failed to save character. Please try again.',
+            message: err?.error || err?.data?.error || t('entities:characters.messages.saveFailed'),
             type: 'error',
           })
         );
@@ -323,8 +325,8 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
     }
     return (
       <EmptyState
-        title="No Characters Yet"
-        message="Add your first character to get started!"
+        title={t('entities:characters.emptyTitle')}
+        message={t('entities:characters.emptyMessage')}
         icon={<Ionicons name="people" size={64} color={colors.textTertiary} />}
       />
     );
@@ -345,7 +347,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
     {
       id: 'add-character',
       icon: <Ionicons name="person-add" size={24} color={colors.textInverse} />,
-      label: 'Add Character',
+      label: t('entities:characters.addCharacter'),
       onPress: handleCreateCharacter,
       color: colors.primary,
     },
@@ -356,7 +358,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
     return (
       <View style={styles.loadingContainer}>
         <MainBookActivityIndicator size={80} />
-        <Text style={styles.loadingText}>Loading characters...</Text>
+        <Text style={styles.loadingText}>{t('entities:characters.loading')}</Text>
       </View>
     );
   }
@@ -379,7 +381,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
               >
                 <Ionicons name="swap-vertical" size={18} color={colors.text} />
                 <Text style={styles.headerButtonText}>
-                  Sort: {sortBy === 'importance' ? 'Importance' : sortBy === 'name' ? 'Name' : 'Date'}
+                  {t('entities:characters.sort.sort')}: {sortBy === 'importance' ? t('entities:characters.sort.byImportance') : sortBy === 'name' ? t('entities:characters.sort.byName') : t('entities:characters.sort.byDate')}
                   {' '}
                   {sortOrder === 'ASC' ? '↑' : '↓'}
                 </Text>
@@ -388,17 +390,17 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
           >
             <Menu.Item
               onPress={() => handleSortChange('importance')}
-              title="Importance"
+              title={t('entities:characters.sort.byImportance')}
               leadingIcon={sortBy === 'importance' ? 'check' : undefined}
             />
             <Menu.Item
               onPress={() => handleSortChange('name')}
-              title="Name"
+              title={t('entities:characters.sort.byName')}
               leadingIcon={sortBy === 'name' ? 'check' : undefined}
             />
             <Menu.Item
               onPress={() => handleSortChange('createdAt')}
-              title="Date Created"
+              title={t('entities:characters.sort.byDate')}
               leadingIcon={sortBy === 'createdAt' ? 'check' : undefined}
             />
           </Menu>
@@ -414,14 +416,14 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
               >
                 <Ionicons name="filter" size={18} color={colors.text} />
                 <Text style={styles.headerButtonText}>
-                  Filter: {roleFilter === 'all' ? 'All' : roleFilter.charAt(0).toUpperCase() + roleFilter.slice(1)}
+                  {t('entities:characters.filter.filter')}: {roleFilter === 'all' ? t('entities:characters.filter.allRoles') : formatCharacterRole(roleFilter)}
                 </Text>
               </TouchableOpacity>
             }
           >
             <Menu.Item
               onPress={() => handleFilterChange('all')}
-              title="All Roles"
+              title={t('entities:characters.filter.allRoles')}
               leadingIcon={roleFilter === 'all' ? 'check' : undefined}
             />
             {availableRoles.length > 0 && (

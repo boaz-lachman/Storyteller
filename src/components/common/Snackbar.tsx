@@ -21,6 +21,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { deletionManager } from '../../services/deletion/deletionManager';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Maps snackbar type to react-native-paper Snackbar style
@@ -58,6 +59,7 @@ const getSnackbarStyle = (type: 'success' | 'error' | 'info' | 'warning' | null)
  * Respects safe area insets for proper positioning on all devices
  */
 export const Snackbar: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const snackbar = useAppSelector(selectSnackbar);
   const deletedCharacter = useAppSelector(selectDeletedCharacter);
@@ -296,11 +298,11 @@ export const Snackbar: React.FC = () => {
   // Determine action button: show "Undo" if undoAction is provided, otherwise "Dismiss"
   const action = undoAction
     ? {
-        label: 'Undo',
+        label: t('common:buttons.undo'),
         onPress: handleUndo,
       }
     : {
-        label: 'Dismiss',
+        label: t('common:buttons.dismiss'),
         onPress: handleDismiss,
       };
 

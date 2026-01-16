@@ -5,11 +5,13 @@
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAppDispatch } from './redux';
+import { useAppDispatch, useAppSelector } from './redux';
 import { setUser, setError, clearError, User } from '../store/slices/authSlice';
 import { showSnackbar } from '../store/slices/uiSlice';
 import { signUp } from '../services/firebase/auth';
 import { isValidEmail, isValidPassword, passwordsMatch } from '../utils/validation';
+import { selectLanguage } from '../store/slices/languageSlice';
+import { translate } from '../services/translation/translationService';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 type AuthStackParamList = {
@@ -21,6 +23,7 @@ type SignupNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 export const useSignup = () => {
   const navigation = useNavigation<SignupNavigationProp>();
   const dispatch = useAppDispatch();
+  const language = useAppSelector(selectLanguage);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -40,13 +43,13 @@ export const useSignup = () => {
 
     // Validate username
     if (!username.trim()) {
-      setUsernameError('Username is required');
+      setUsernameError(translate(language, 'auth:signup.usernameRequired'));
       isValid = false;
     } else if (username.trim().length < 3) {
-      setUsernameError('Username must be at least 3 characters');
+      setUsernameError(translate(language, 'auth:signup.usernameTooShort'));
       isValid = false;
     } else if (username.trim().length > 30) {
-      setUsernameError('Username must be less than 30 characters');
+      setUsernameError(translate(language, 'auth:signup.usernameTooLong'));
       isValid = false;
     } else {
       setUsernameError('');
@@ -54,10 +57,10 @@ export const useSignup = () => {
 
     // Validate email
     if (!email.trim()) {
-      setEmailError('Email is required');
+      setEmailError(translate(language, 'auth:signup.emailRequired'));
       isValid = false;
     } else if (!isValidEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(translate(language, 'auth:signup.invalidEmail'));
       isValid = false;
     } else {
       setEmailError('');
@@ -65,10 +68,10 @@ export const useSignup = () => {
 
     // Validate password
     if (!password) {
-      setPasswordError('Password is required');
+      setPasswordError(translate(language, 'auth:signup.passwordRequired'));
       isValid = false;
     } else if (!isValidPassword(password)) {
-      setPasswordError('Password must be at least 6 characters');
+      setPasswordError(translate(language, 'auth:signup.passwordTooShort'));
       isValid = false;
     } else {
       setPasswordError('');
@@ -76,10 +79,10 @@ export const useSignup = () => {
 
     // Validate confirm password
     if (!confirmPassword) {
-      setConfirmPasswordError('Please confirm your password');
+      setConfirmPasswordError(translate(language, 'auth:signup.confirmPasswordRequired'));
       isValid = false;
     } else if (!passwordsMatch(password, confirmPassword)) {
-      setConfirmPasswordError('Passwords do not match');
+      setConfirmPasswordError(translate(language, 'auth:signup.passwordsDoNotMatch'));
       isValid = false;
     } else {
       setConfirmPasswordError('');
@@ -112,9 +115,10 @@ export const useSignup = () => {
       };
 
       dispatch(setUser(appUser));
-      dispatch(showSnackbar({ message: 'Account created successfully!', type: 'success' }));
+      dispatch(showSnackbar({ message: translate(language, 'auth:signup.accountCreated'), type: 'success' }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Signup failed. Please try again.';
+      const defaultError = translate(language, 'auth:signup.signupFailed');
+      const errorMessage = error instanceof Error ? error.message : defaultError;
       dispatch(setError(errorMessage));
       dispatch(showSnackbar({ message: errorMessage, type: 'error' }));
     } finally {

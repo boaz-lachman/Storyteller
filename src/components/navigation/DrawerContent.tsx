@@ -8,8 +8,10 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Text, Divider, TouchableRipple } from 'react-native-paper';
-import { useAppSelector } from '../../hooks/redux';
+import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 import { selectUser } from '../../store/slices/authSlice';
+import { selectLanguage } from '../../store/slices/languageSlice';
+import { setLanguage } from '../../store/slices/languageSlice';
 import { useLogout } from '../../hooks/useLogout';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
@@ -17,6 +19,11 @@ import { typography } from '../../constants/typography';
 import PaperButton from '../forms/PaperButton';
 import { Ionicons } from '@expo/vector-icons';
 import type { AppStackParamList } from '../../navigation/types';
+import { useTranslation } from '../../hooks/useTranslation';
+import { Menu } from 'react-native-paper';
+import { useState } from 'react';
+import { I18nManager } from 'react-native';
+import type { Language } from '../../store/slices/languageSlice';
 
 /**
  * Custom Drawer Content
@@ -24,9 +31,13 @@ import type { AppStackParamList } from '../../navigation/types';
  * Uses SafeAreaView to respect device safe areas
  */
 export default function DrawerContent(props: DrawerContentComponentProps) {
+  const { t, language } = useTranslation();
   const user = useAppSelector(selectUser);
+  const currentLanguage = useAppSelector(selectLanguage);
+  const dispatch = useAppDispatch();
   const { logout } = useLogout();
   const insets = useSafeAreaInsets();
+  const [languageMenuVisible, setLanguageMenuVisible] = useState(false);
 
   // Get current route name - check if we're on StoriesList
   const currentRouteIndex = props.state?.index ?? 0;
@@ -45,6 +56,24 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
     props.navigation.navigate('AppStack', {
       screen: 'StoriesList',
     });
+    props.navigation.closeDrawer();
+  };
+
+  const handleLanguageChange = (newLanguage: Language) => {
+    // Update Redux state
+    dispatch(setLanguage(newLanguage));
+    
+    // Update I18nManager for RTL support
+    const isRTL = newLanguage === 'he';
+    if (I18nManager.isRTL !== isRTL) {
+      I18nManager.forceRTL(isRTL);
+      I18nManager.allowRTL(isRTL);
+      // Note: Full RTL layout changes may require app restart on some platforms
+      // Translations will update immediately, but layout changes may need restart
+    }
+    
+    setLanguageMenuVisible(false);
+    // Close drawer after language change
     props.navigation.closeDrawer();
   };
 
@@ -94,10 +123,49 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                   color={colors.primary} 
                   style={styles.drawerItemIcon}
                 />
-                <Text style={styles.drawerItemText}>Stories</Text>
+                <Text style={styles.drawerItemText}>{t('stories:list.title')}</Text>
               </View>
             </TouchableRipple>
           )}
+
+          {/* Language Selection */}
+          <Menu
+            visible={languageMenuVisible}
+            onDismiss={() => setLanguageMenuVisible(false)}
+            anchor={
+              <TouchableRipple
+                onPress={() => setLanguageMenuVisible(true)}
+                style={styles.drawerItem}
+                rippleColor={colors.primary + '20'}
+              >
+                <View style={styles.drawerItemContent}>
+                  <Ionicons 
+                    name="language-outline" 
+                    size={24} 
+                    color={colors.primary} 
+                    style={styles.drawerItemIcon}
+                  />
+                  <Text style={styles.drawerItemText}>{t('common:language.title')}</Text>
+                  <View style={styles.languageIndicator}>
+                    <Text style={styles.languageIndicatorText}>
+                      {currentLanguage === 'en' ? 'EN' : 'HE'}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableRipple>
+            }
+          >
+            <Menu.Item
+              onPress={() => handleLanguageChange('en')}
+              title={t('common:language.english')}
+              leadingIcon={currentLanguage === 'en' ? 'check' : undefined}
+            />
+            <Menu.Item
+              onPress={() => handleLanguageChange('he')}
+              title={t('common:language.hebrew')}
+              leadingIcon={currentLanguage === 'he' ? 'check' : undefined}
+            />
+          </Menu>
         </View>
       </DrawerContentScrollView>
 
@@ -116,7 +184,7 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
             style={styles.logoutButton}
             labelStyle={styles.logoutButtonText}
           >
-            Logout
+            {t('common:buttons.logout')}
           </PaperButton>
         </View>
       </View>
@@ -213,5 +281,18 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.semibold,
     fontSize: typography.fontSize.md,
     fontWeight: typography.fontWeight.semibold,
+  },
+  languageIndicator: {
+    marginLeft: 'auto',
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.xs,
+  },
+  languageIndicatorText: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
   },
 });

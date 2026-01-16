@@ -11,6 +11,7 @@ import ScenesScreen from '../screens/entities/ScenesScreen';
 import ChaptersScreen from '../screens/entities/ChaptersScreen';
 import GenerateStoryScreen from '../screens/generation/GenerateStoryScreen';
 import { materialTopTabOptions } from './theme';
+import { useTranslation } from '../hooks/useTranslation';
 
 const Tab = createMaterialTopTabNavigator<StoryTabParamList>();
 
@@ -29,6 +30,7 @@ const StoryNavigator = ({
 }: { 
   route: RouteProp<AppStackParamList, 'StoryDetail'>;
 }) => {
+  const { t } = useTranslation();
   const { storyId } = route.params;
     
   return (
@@ -40,7 +42,7 @@ const StoryNavigator = ({
         component={CompletedStoryScreen}
         initialParams={{ storyId }}
         options={{
-          tabBarLabel: 'Story',
+          tabBarLabel: t('stories:detail.tabs.completed'),
           tabBarIcon: ({ color }) => (
             <Feather 
               name="book-open" 
@@ -55,7 +57,7 @@ const StoryNavigator = ({
         component={OverviewScreen}
         initialParams={{ storyId }}
         options={{
-          tabBarLabel: 'Overview',
+          tabBarLabel: t('stories:detail.tabs.overview'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? 'document-text' : 'document-text-outline'} 
@@ -70,7 +72,7 @@ const StoryNavigator = ({
         component={CharactersScreen}
         initialParams={{ storyId }}
         options={{
-          tabBarLabel: 'Characters',
+          tabBarLabel: t('stories:detail.tabs.characters'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? 'people' : 'people-outline'} 
@@ -85,7 +87,7 @@ const StoryNavigator = ({
         component={BlurbsScreen}
         initialParams={{ storyId }}
         options={{
-          tabBarLabel: 'Blurbs',
+          tabBarLabel: t('stories:detail.tabs.blurbs'),
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome5 
               name="pen-fancy" 
@@ -100,7 +102,7 @@ const StoryNavigator = ({
         component={ScenesScreen}
         initialParams={{ storyId }}
         options={{
-          tabBarLabel: 'Scenes',
+          tabBarLabel: t('stories:detail.tabs.scenes'),
           tabBarIcon: ({ color, focused }) => (
             <FontAwesome6 
               name="paragraph" 
@@ -115,7 +117,7 @@ const StoryNavigator = ({
         component={ChaptersScreen}
         initialParams={{ storyId }}
         options={{
-          tabBarLabel: 'Chapters',
+          tabBarLabel: t('stories:detail.tabs.chapters'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? 'reader' : 'reader-outline'} 
@@ -130,7 +132,7 @@ const StoryNavigator = ({
         component={GenerateStoryScreen}
         initialParams={{ storyId }}
         options={{
-          tabBarLabel: 'Generate',
+          tabBarLabel: t('stories:detail.tabs.generate'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? 'sparkles' : 'sparkles-outline'} 

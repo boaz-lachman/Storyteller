@@ -5,11 +5,13 @@
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAppDispatch } from './redux';
+import { useAppDispatch, useAppSelector } from './redux';
 import { setUser, setError, clearError, User } from '../store/slices/authSlice';
 import { showSnackbar } from '../store/slices/uiSlice';
 import { signIn } from '../services/firebase/auth';
 import { isValidEmail, isValidPassword } from '../utils/validation';
+import { selectLanguage } from '../store/slices/languageSlice';
+import { translate } from '../services/translation/translationService';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 type AuthStackParamList = {
@@ -22,6 +24,7 @@ type LoginNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 export const useLogin = () => {
   const navigation = useNavigation<LoginNavigationProp>();
   const dispatch = useAppDispatch();
+  const language = useAppSelector(selectLanguage);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,10 +40,10 @@ export const useLogin = () => {
 
     // Validate email
     if (!email.trim()) {
-      setEmailError('Email is required');
+      setEmailError(translate(language, 'auth:login.emailRequired'));
       isValid = false;
     } else if (!isValidEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(translate(language, 'auth:login.invalidEmail'));
       isValid = false;
     } else {
       setEmailError('');
@@ -48,10 +51,10 @@ export const useLogin = () => {
 
     // Validate password
     if (!password) {
-      setPasswordError('Password is required');
+      setPasswordError(translate(language, 'auth:login.passwordRequired'));
       isValid = false;
     } else if (!isValidPassword(password)) {
-      setPasswordError('Password must be at least 6 characters');
+      setPasswordError(translate(language, 'auth:login.passwordTooShort'));
       isValid = false;
     } else {
       setPasswordError('');
@@ -84,9 +87,10 @@ export const useLogin = () => {
       };
 
       dispatch(setUser(appUser));
-      dispatch(showSnackbar({ message: 'Login successful!', type: 'success' }));
+      dispatch(showSnackbar({ message: translate(language, 'auth:login.loginSuccess') || 'Login successful!', type: 'success' }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      const defaultError = translate(language, 'auth:login.loginFailed');
+      const errorMessage = error instanceof Error ? error.message : defaultError;
       dispatch(setError(errorMessage));
       dispatch(showSnackbar({ message: errorMessage, type: 'error' }));
     } finally {

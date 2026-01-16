@@ -13,6 +13,7 @@ import { typography } from '../../constants/typography';
 import { useAppSelector } from '../../hooks/redux';
 import { selectIsSyncing } from '../../store/slices/syncSlice';
 import { MainBookActivityIndicator } from './MainBookActivityIndicator';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface EmptyStateProps {
   title: string;
@@ -28,6 +29,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   message,
   icon,
 }) => {
+  const { t } = useTranslation();
   const isSyncing = useAppSelector(selectIsSyncing);
   
   // Default icon if none provided
@@ -39,7 +41,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     return (
       <View style={styles.container}>
         <MainBookActivityIndicator size="large" />
-        <Text style={styles.title}>loading...</Text>
+        <Text style={styles.title}>{t('common:loading.loading')}</Text>
       </View>
     );
   }

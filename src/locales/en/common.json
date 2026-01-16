@@ -1,0 +1,86 @@
+{
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "retry": "Retry",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "add": "Add",
+    "remove": "Remove",
+    "export": "Export",
+    "share": "Share",
+    "download": "Download",
+    "upload": "Upload",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "loading": "Loading...",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "logout": "Logout"
+  },
+  "inputs": {
+    "required": "Required",
+    "optional": "Optional",
+    "invalid": "Invalid",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be less than {{max}} characters",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidPassword": "Password must be at least 6 characters",
+    "passwordsDoNotMatch": "Passwords do not match"
+  },
+  "modals": {
+    "title": "Modal",
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "emptyState": {
+    "title": "No items found",
+    "message": "Get started by adding your first item",
+    "loading": "Loading..."
+  },
+  "loading": {
+    "loading": "Loading...",
+    "pleaseWait": "Please wait...",
+    "processing": "Processing..."
+  },
+  "errors": {
+    "error": "Error",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Please try again",
+    "networkError": "Network error. Please check your connection.",
+    "serverError": "Server error. Please try again later.",
+    "unknownError": "An unknown error occurred",
+    "validationError": "Please check your input and try again"
+  },
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "info": "Information",
+    "warning": "Warning",
+    "deleted": "Deleted successfully",
+    "saved": "Saved successfully",
+    "updated": "Updated successfully",
+    "created": "Created successfully"
+  },
+  "language": {
+    "title": "Language",
+    "english": "English",
+    "hebrew": "Hebrew",
+    "selectLanguage": "Select Language"
+  }
+}

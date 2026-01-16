@@ -17,6 +17,7 @@ import { GradientBackground } from '../../components/common/GradientBackground';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type StoryDetailRouteProp = RouteProp<AppStackParamList, 'StoryDetail'>;
 type StoryDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, 'StoryDetail'>;
@@ -29,6 +30,7 @@ type StoryDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, 'S
  * - Renders StoryNavigator with tab navigation
  */
 export default function StoryDetailScreen() {
+  const { t } = useTranslation();
   const route = useRoute<StoryDetailRouteProp>();
   const navigation = useNavigation<StoryDetailNavigationProp>();
   const { storyId } = route.params;
@@ -62,7 +64,7 @@ export default function StoryDetailScreen() {
       <GradientBackground>
         <View style={styles.container}>
           <MainBookActivityIndicator size={80} />
-          <Text style={styles.loadingText}>Loading story...</Text>
+          <Text style={styles.loadingText}>{t('stories:detail.loading')}</Text>
         </View>
       </GradientBackground>
     );
@@ -73,9 +75,9 @@ export default function StoryDetailScreen() {
     return (
       <GradientBackground>
         <View style={styles.container}>
-          <Text style={styles.errorTitle}>Error Loading Story</Text>
+          <Text style={styles.errorTitle}>{t('stories:detail.errorTitle')}</Text>
           <Text style={styles.errorText}>
-            {error && 'error' in error ? error.error : 'Story not found'}
+            {error && 'error' in error ? error.error : t('stories:detail.errorMessage')}
           </Text>
         </View>
       </GradientBackground>

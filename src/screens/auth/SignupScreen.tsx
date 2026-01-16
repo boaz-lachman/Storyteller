@@ -19,12 +19,16 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useSignup } from '../../hooks/useSignup';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useAppSelector } from '../../hooks/redux';
+import { selectIsRTL } from '../../store/slices/languageSlice';
 
 /**
  * Signup Screen Component
  */
 export default function SignupScreen() {
-  const isRTL = I18nManager.isRTL;
+  const { t } = useTranslation();
+  const isRTL = useAppSelector(selectIsRTL);
   const {
     username,
     email,
@@ -59,18 +63,18 @@ export default function SignupScreen() {
 
           {/* Title */}
           <Text style={[styles.title, isRTL && styles.titleRTL]}>
-            Create Account
+            {t('auth:signup.title')}
           </Text>
           <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
-            Sign up to get started
+            {t('auth:signup.subtitle')}
           </Text>
 
           {/* Username Input */}
           <Input
-            label="Username"
+            label={t('auth:signup.username')}
             value={username}
             onChangeText={updateUsername}
-            placeholder="Enter your username"
+            placeholder={t('auth:signup.usernamePlaceholder')}
             autoCapitalize="none"
             autoComplete="username"
             error={usernameError}
@@ -80,10 +84,10 @@ export default function SignupScreen() {
 
           {/* Email Input */}
           <Input
-            label="Email"
+            label={t('auth:signup.email')}
             value={email}
             onChangeText={updateEmail}
-            placeholder="Enter your email"
+            placeholder={t('auth:signup.emailPlaceholder')}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -94,25 +98,25 @@ export default function SignupScreen() {
 
           {/* Password Input */}
           <Input
-            label="Password"
+            label={t('auth:signup.password')}
             value={password}
             onChangeText={updatePassword}
-            placeholder="Enter your password"
+            placeholder={t('auth:signup.passwordPlaceholder')}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="password-new"
             error={passwordError}
-            helperText="Must be at least 6 characters"
+            helperText={t('auth:signup.passwordHelper')}
             required
             style={styles.input}
           />
 
           {/* Confirm Password Input */}
           <Input
-            label="Confirm Password"
+            label={t('auth:signup.confirmPassword')}
             value={confirmPassword}
             onChangeText={updateConfirmPassword}
-            placeholder="Confirm your password"
+            placeholder={t('auth:signup.confirmPasswordPlaceholder')}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="password-new"
@@ -129,20 +133,20 @@ export default function SignupScreen() {
             disabled={isLoading}
             style={styles.signupButton}
           >
-            Sign Up
+            {t('auth:signup.signUpButton')}
           </PaperButton>
 
           {/* Login Link */}
           <View style={[styles.loginContainer, isRTL && styles.loginContainerRTL]}>
             <Text style={[styles.loginText, isRTL && styles.loginTextRTL]}>
-              Already have an account?{' '}
+              {t('auth:signup.signInPrompt')}{' '}
             </Text>
             <PaperButton
             variant='text'
               onPress={handleNavigateToLogin}
               labelStyle={styles.loginLink}
             >
-              Sign In
+              {t('auth:signup.signInLink')}
             </PaperButton>
           </View>
         </View>

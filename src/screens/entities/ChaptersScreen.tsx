@@ -35,6 +35,7 @@ import { typography } from '../../constants/typography';
 import type { Chapter } from '../../types';
 import type { ChapterFormData } from '../../hooks/useChapterForm';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type ChaptersScreenRouteProp = RouteProp<StoryTabParamList, 'Chapters'>;
 
@@ -50,6 +51,7 @@ const checkedUsersForChapterForm = new Set<string>();
  * Chapters Screen Component
  */
 export default function ChaptersScreen({ route }: ChaptersScreenProps) {
+  const { t } = useTranslation();
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
@@ -175,7 +177,7 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Chapter updated',
+              message: t('entities:chapters.messages.updated'),
               type: 'success',
             })
           );
@@ -188,7 +190,7 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Chapter created',
+              message: t('entities:chapters.messages.created'),
               type: 'success',
             })
           );
@@ -198,7 +200,7 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         console.error('Error saving chapter:', err);
         dispatch(
           showSnackbar({
-            message: err?.error || err?.data?.error || 'Failed to save chapter. Please try again.',
+            message: err?.error || err?.data?.error || t('entities:chapters.messages.saveFailed'),
             type: 'error',
           })
         );
@@ -211,12 +213,12 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
   const handleDeleteChapter = useCallback(
     (chapter: Chapter) => {
       Alert.alert(
-        'Delete Chapter',
-        `Are you sure you want to delete "${chapter.title}"? This action cannot be undone.`,
+        t('entities:chapters.delete.confirmTitle'),
+        t('entities:chapters.delete.confirmMessage', { title: chapter.title }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common:buttons.cancel'), style: 'cancel' },
           {
-            text: 'Delete',
+            text: t('entities:chapters.buttons.delete'),
             style: 'destructive',
             onPress: async () => {
               try {
@@ -226,7 +228,7 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
                 }).unwrap();
                 dispatch(
                   showSnackbar({
-                    message: 'Chapter deleted',
+                    message: t('entities:chapters.delete.deleted'),
                     type: 'success',
                   })
                 );
@@ -234,7 +236,7 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
                 console.error('Error deleting chapter:', error);
                 dispatch(
                   showSnackbar({
-                    message: error?.data?.error || 'Failed to delete chapter. Please try again.',
+                    message: error?.data?.error || t('entities:chapters.delete.deleteFailed'),
                     type: 'error',
                   })
                 );
@@ -268,20 +270,20 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         }).unwrap();
         dispatch(
           showSnackbar({
-            message: 'Chapter order updated',
+            message: t('entities:chapters.messages.orderUpdated') || 'Chapter order updated',
             type: 'success',
           })
         );
       } catch (error: any) {
         dispatch(
           showSnackbar({
-            message: error?.data?.error || 'Failed to reorder chapters',
+            message: error?.data?.error || t('entities:chapters.messages.orderFailed') || 'Failed to reorder chapters',
             type: 'error',
           })
         );
       }
     },
-    [chapters, reorderChaptersMutation, storyId, dispatch, user]
+    [chapters, reorderChaptersMutation, storyId, dispatch, user, t]
   );
 
   // Handle move chapter down
@@ -305,27 +307,27 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         }).unwrap();
         dispatch(
           showSnackbar({
-            message: 'Chapter order updated',
+            message: t('entities:chapters.messages.orderUpdated') || 'Chapter order updated',
             type: 'success',
           })
         );
       } catch (error: any) {
         dispatch(
           showSnackbar({
-            message: error?.data?.error || 'Failed to reorder chapters',
+            message: error?.data?.error || t('entities:chapters.messages.orderFailed') || 'Failed to reorder chapters',
             type: 'error',
           })
         );
       }
     },
-    [chapters, reorderChaptersMutation, storyId, dispatch, user]
+    [chapters, reorderChaptersMutation, storyId, dispatch, user, t]
   );
 
   // FAB options
   const fabOptions: FABOption[] = [
     {
       id: 'create-chapter',
-      label: 'Create Chapter',
+      label: t('entities:chapters.addChapter'),
       icon: <Ionicons name="add" size={24} color={colors.textInverse} />,
       onPress: handleCreateChapter,
       color: colors.primary,
@@ -365,8 +367,8 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
     }
     return (
       <EmptyState
-        title="No Chapters Yet"
-        message="Add your first chapter to get started!"
+        title={t('entities:chapters.emptyTitle')}
+        message={t('entities:chapters.emptyMessage')}
         icon={<FontAwesome6 name="book" size={64} color={colors.textTertiary} />}
       />
     );
@@ -389,7 +391,7 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContent}>
           <MainBookActivityIndicator size={80} />
           <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
-            Loading chapters...
+            {t('entities:chapters.loading')}
           </Animated.Text>
         </Animated.View>
       </GradientBackground>

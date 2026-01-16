@@ -35,6 +35,7 @@ import { typography } from '../../constants/typography';
 import { formatBlurbCategory } from '../../utils/formatting';
 import type { IdeaBlurb } from '../../types';
 import type { BlurbFormData } from '../../hooks/useBlurbForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type BlurbsScreenRouteProp = RouteProp<StoryTabParamList, 'Blurbs'>;
 
@@ -54,6 +55,7 @@ const checkedUsersForBlurbForm = new Set<string>();
  * Blurbs Screen Component
  */
 export default function BlurbsScreen({ route }: BlurbsScreenProps) {
+  const { t } = useTranslation();
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
@@ -164,12 +166,12 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
   const handleDeleteBlurb = useCallback(
     (blurb: IdeaBlurb) => {
       Alert.alert(
-        'Delete Blurb',
-        `Are you sure you want to delete "${blurb.title}"? This action cannot be undone.`,
+        t('entities:blurbs.delete.confirmTitle'),
+        t('entities:blurbs.delete.confirmMessage', { title: blurb.title }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common:buttons.cancel'), style: 'cancel' },
           {
-            text: 'Delete',
+            text: t('entities:blurbs.buttons.delete'),
             style: 'destructive',
             onPress: async () => {
               try {
@@ -180,7 +182,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
                 }).unwrap();
                 dispatch(
                   showSnackbar({
-                    message: 'Blurb deleted',
+                    message: t('entities:blurbs.delete.deleted'),
                     type: 'success',
                     undoAction: {
                       type: 'undo-blurb-delete',
@@ -193,7 +195,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
                 dispatch(clearDeletedBlurb());
                 dispatch(
                   showSnackbar({
-                    message: err?.error || err?.data?.error || 'Failed to delete blurb. Please try again.',
+                    message: err?.error || err?.data?.error || t('entities:blurbs.delete.deleteFailed'),
                     type: 'error',
                   })
                 );
@@ -232,7 +234,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Blurb updated',
+              message: t('entities:blurbs.messages.updated'),
               type: 'success',
             })
           );
@@ -245,7 +247,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
           }).unwrap();
           dispatch(
             showSnackbar({
-              message: 'Blurb created',
+              message: t('entities:blurbs.messages.created'),
               type: 'success',
             })
           );
@@ -255,7 +257,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
         console.error('Error saving blurb:', err);
         dispatch(
           showSnackbar({
-            message: err?.error || err?.data?.error || 'Failed to save blurb. Please try again.',
+            message: err?.error || err?.data?.error || t('entities:blurbs.messages.saveFailed'),
             type: 'error',
           })
         );
@@ -293,7 +295,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
   const fabOptions: FABOption[] = [
     {
       id: 'create-blurb',
-      label: 'Create Blurb',
+      label: t('entities:blurbs.addBlurb'),
       icon: <Ionicons name="add" size={24} color={colors.textInverse} />,
       onPress: handleCreateBlurb,
       color: colors.primary,
@@ -326,8 +328,8 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
     }
     return (
       <EmptyState
-        title="No Blurbs Yet"
-        message="Add your first blurb to get started!"
+        title={t('entities:blurbs.emptyTitle')}
+        message={t('entities:blurbs.emptyMessage')}
         icon={<FontAwesome5 name="pen-fancy" size={64} color={colors.textTertiary} />}
       />
     );
@@ -349,7 +351,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
       <Animated.View entering={FadeIn.duration(300)} style={styles.loadingContainer}>
         <MainBookActivityIndicator size={80} />
         <Animated.Text entering={FadeInDown.delay(200).duration(400)} style={styles.loadingText}>
-          Loading blurbs...
+          {t('entities:blurbs.loading')}
         </Animated.Text>
       </Animated.View>
     );
@@ -372,7 +374,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
               >
                 <Ionicons name="swap-vertical" size={18} color={colors.text} />
                 <Text style={styles.headerButtonText}>
-                  Sort: {sortBy === 'importance' ? 'Importance' : sortBy === 'title' ? 'Title' : 'Date'}{' '}
+                  {t('entities:blurbs.sort.sort')}: {sortBy === 'importance' ? t('entities:blurbs.sort.byImportance') : sortBy === 'title' ? t('entities:blurbs.sort.byTitle') : t('entities:blurbs.sort.byDate')}{' '}
                   {sortOrder === 'ASC' ? '↑' : '↓'}
                 </Text>
               </TouchableOpacity>
@@ -380,17 +382,17 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
           >
             <Menu.Item
               onPress={() => handleSortChange('importance')}
-              title="Importance"
+              title={t('entities:blurbs.sort.byImportance')}
               leadingIcon={sortBy === 'importance' ? 'check' : undefined}
             />
             <Menu.Item
               onPress={() => handleSortChange('title')}
-              title="Title"
+              title={t('entities:blurbs.sort.byTitle')}
               leadingIcon={sortBy === 'title' ? 'check' : undefined}
             />
             <Menu.Item
               onPress={() => handleSortChange('createdAt')}
-              title="Date Created"
+              title={t('entities:blurbs.sort.byDate')}
               leadingIcon={sortBy === 'createdAt' ? 'check' : undefined}
             />
           </Menu>
@@ -407,14 +409,14 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
               >
                 <Ionicons name="filter" size={18} color={colors.text} />
                 <Text style={styles.headerButtonText}>
-                  Filter: {categoryFilter === 'all' ? 'All' : formatBlurbCategory(categoryFilter)}
+                  {t('entities:blurbs.filter.filter')}: {categoryFilter === 'all' ? t('entities:blurbs.filter.allCategories') : formatBlurbCategory(categoryFilter)}
                 </Text>
               </TouchableOpacity>
             }
           >
             <Menu.Item
               onPress={() => handleFilterChange('all')}
-              title="All Categories"
+              title={t('entities:blurbs.filter.allCategories')}
               leadingIcon={categoryFilter === 'all' ? 'check' : undefined}
             />
             {availableCategories.length > 0 && (

@@ -30,8 +30,33 @@
       "generate": "צור"
     }
   },
+  "overview": {
+    "title": "ערוך סיפור",
+    "loading": "טוען סקירת סיפור...",
+    "errorTitle": "שגיאה בטעינת הסיפור",
+    "errorMessage": "הסיפור לא נמצא",
+    "storyDetails": "פרטי סיפור",
+    "description": "תיאור",
+    "metadata": {
+      "theme": "נושא",
+      "length": "אורך",
+      "tone": "טון",
+      "pov": "נקודת מבט",
+      "targetAudience": "קהל יעד",
+      "setting": "הגדרה",
+      "timePeriod": "תקופה",
+      "wordCount": "מספר מילים"
+    },
+    "messages": {
+      "updated": "הסיפור עודכן בהצלחה",
+      "updateFailed": "עדכון הסיפור נכשל. אנא נסה שוב."
+    }
+  },
   "create": {
     "title": "צור סיפור חדש",
+    "sectionBasic": "מידע בסיסי",
+    "sectionAttributes": "תכונות סיפור",
+    "sectionAdditional": "פרטים נוספים",
     "fields": {
       "title": "כותרת",
       "titlePlaceholder": "הכנס כותרת סיפור",
@@ -62,12 +87,84 @@
       "cancel": "ביטול"
     }
   },
+  "card": {
+    "completed": "הושלם",
+    "draft": "טיוטה"
+  },
   "delete": {
     "confirmTitle": "מחק סיפור",
-    "confirmMessage": "האם אתה בטוח שברצונך למחוק את הסיפור הזה? פעולה זו לא ניתנת לביטול.",
+    "confirmMessage": "האם אתה בטוח שברצונך למחוק את \"{{title}}\"? פעולה זו לא ניתנת לביטול.",
     "deleteButton": "מחק",
     "cancelButton": "ביטול",
     "deleted": "הסיפור נמחק בהצלחה",
     "deleteFailed": "מחיקת הסיפור נכשלה"
+  },
+  "export": {
+    "title": "ייצא סיפור",
+    "close": "סגור",
+    "exportType": "סוג ייצוא",
+    "types": {
+      "full": {
+        "label": "סיפור מלא",
+        "description": "ייצא הכל: אלמנטי סיפור ותוכן שנוצר"
+      },
+      "elementsOnly": {
+        "label": "רק אלמנטים",
+        "description": "ייצא רק אלמנטי סיפור (דמויות, תיאורים קצרים)"
+      },
+      "generatedOnly": {
+        "label": "רק תוכן שנוצר",
+        "description": "ייצא רק את התוכן שנוצר של הסיפור"
+      }
+    },
+    "format": {
+      "pdf": "PDF"
+    },
+    "buttons": {
+      "cancel": "ביטול",
+      "export": "ייצא"
+    },
+    "progress": {
+      "exporting": "מייצא...",
+      "preparing": "מכין ייצוא...",
+      "generating": "יוצר PDF...",
+      "subtext": "אנא המתן בזמן שאנו מכינים את הייצוא שלך"
+    },
+    "success": {
+      "title": "ייצוא הצליח",
+      "message": "הסיפור שלך יוצא בהצלחה!",
+      "subtext": "הקובץ מוכן לשיתוף. השתמש בגיליון השיתוף כדי לשמור או לשתף אותו.",
+      "ok": "אישור"
+    },
+    "error": {
+      "title": "ייצוא נכשל",
+      "defaultMessage": "ייצוא הסיפור נכשל",
+      "ok": "אישור"
+    },
+    "shareDialogTitle": "שתף סיפור"
+  },
+  "completed": {
+    "emptyTitle": "אין סיפור שנוצר",
+    "emptyMessage": "הסיפור הזה עדיין לא נוצר. עבור לטאב 'צור' כדי ליצור את הסיפור שלך.",
+    "generatedOn": "נוצר ב",
+    "storyTitle": "סיפור",
+    "formatFormatted": "מעוצב",
+    "formatRaw": "טקסט גולמי",
+    "incompleteSections": "{{count}} סעיף{{plural}} לא שלם",
+    "incompleteBadge": "לא שלם",
+    "cutOffWarning": "הסעיף הזה נחתך באמצע היצירה עקב מגבלות טוקנים. התוכן עשוי להיות לא שלם."
+  },
+  "player": {
+    "title": "נגן שמע",
+    "initializing": "מאתחל נגן...",
+    "voice": "קול:",
+    "defaultVoice": "קול ברירת מחדל",
+    "noVoicesAvailable": "אין קולות זמינים",
+    "speed": "מהירות:",
+    "status": {
+      "playing": "מנגן...",
+      "stopped": "הופסק",
+      "ready": "מוכן"
+    }
   }
 }

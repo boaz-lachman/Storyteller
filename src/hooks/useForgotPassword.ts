@@ -5,11 +5,13 @@
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAppDispatch } from './redux';
+import { useAppDispatch, useAppSelector } from './redux';
 import { setError, clearError } from '../store/slices/authSlice';
 import { showSnackbar } from '../store/slices/uiSlice';
 import { resetPassword } from '../services/firebase/auth';
 import { isValidEmail } from '../utils/validation';
+import { selectLanguage } from '../store/slices/languageSlice';
+import { translate } from '../services/translation/translationService';
 
 type AuthStackParamList = {
   Login: undefined;
@@ -20,6 +22,7 @@ type ForgotPasswordNavigationProp = NativeStackNavigationProp<AuthStackParamList
 export const useForgotPassword = () => {
   const navigation = useNavigation<ForgotPasswordNavigationProp>();
   const dispatch = useAppDispatch();
+  const language = useAppSelector(selectLanguage);
 
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -31,10 +34,10 @@ export const useForgotPassword = () => {
    */
   const validateEmail = (): boolean => {
     if (!email.trim()) {
-      setEmailError('Email is required');
+      setEmailError(translate(language, 'auth:forgotPassword.emailRequired'));
       return false;
     } else if (!isValidEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(translate(language, 'auth:forgotPassword.invalidEmail'));
       return false;
     } else {
       setEmailError('');
@@ -58,7 +61,7 @@ export const useForgotPassword = () => {
       await resetPassword(email.trim());
       setIsSuccess(true);
       dispatch(showSnackbar({ 
-        message: 'Password reset email sent! Check your inbox.', 
+        message: translate(language, 'auth:forgotPassword.resetEmailSent'), 
         type: 'success' 
       }));
       
@@ -67,7 +70,8 @@ export const useForgotPassword = () => {
         navigation.goBack();
       }, 2000);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send password reset email. Please try again.';
+      const defaultError = translate(language, 'auth:forgotPassword.resetFailed');
+      const errorMessage = error instanceof Error ? error.message : defaultError;
       dispatch(setError(errorMessage));
       dispatch(showSnackbar({ message: errorMessage, type: 'error' }));
       setIsSuccess(false);
