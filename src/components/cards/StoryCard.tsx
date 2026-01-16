@@ -240,7 +240,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                 ]}
               >
                 <Text style={styles.themeText}>
-                  {formatStoryTheme(story.theme)}
+                  {formatStoryTheme(story.theme, t)}
                 </Text>
               </View>
 
@@ -252,7 +252,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                   color={colors.textSecondary}
                 />
                 <Text style={styles.lengthText}>
-                  {formatStoryLength(story.length)}
+                  {formatStoryLength(story.length, t)}
                 </Text>
               </View>
             </View>

@@ -14,6 +14,8 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Story } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useMemo } from 'react';
+import { formatStoryLength, formatStoryTheme, formatStoryTone, formatStoryPOV, formatStoryTargetAudience } from '../../utils/formatting';
 
 export interface EditStoryFormProps {
   story: Story | null;
@@ -32,6 +34,31 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
   isLoading = false,
 }) => {
   const { t } = useTranslation();
+  
+  // Translate picker options
+  const translatedOptions = useMemo(() => ({
+    LENGTH: EDIT_FORM_OPTIONS.LENGTH.map(opt => ({
+      ...opt,
+      label: formatStoryLength(opt.value, t),
+    })),
+    THEME: EDIT_FORM_OPTIONS.THEME.map(opt => ({
+      ...opt,
+      label: formatStoryTheme(opt.value, t),
+    })),
+    TONE: EDIT_FORM_OPTIONS.TONE.map(opt => ({
+      ...opt,
+      label: formatStoryTone(opt.value, t),
+    })),
+    POV: EDIT_FORM_OPTIONS.POV.map(opt => ({
+      ...opt,
+      label: formatStoryPOV(opt.value, t),
+    })),
+    AUDIENCE: EDIT_FORM_OPTIONS.AUDIENCE.map(opt => ({
+      ...opt,
+      label: formatStoryTargetAudience(opt.value, t),
+    })),
+  }), [t]);
+  
   // Use custom hook for form logic
   const {
     title,
@@ -104,7 +131,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {EDIT_FORM_OPTIONS.LENGTH.map((option) => (
+            {translatedOptions.LENGTH.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -125,7 +152,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {EDIT_FORM_OPTIONS.THEME.map((option) => (
+            {translatedOptions.THEME.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -146,7 +173,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {EDIT_FORM_OPTIONS.TONE.map((option) => (
+            {translatedOptions.TONE.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -167,7 +194,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {EDIT_FORM_OPTIONS.POV.map((option) => (
+            {translatedOptions.POV.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -188,7 +215,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {EDIT_FORM_OPTIONS.AUDIENCE.map((option) => (
+            {translatedOptions.AUDIENCE.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}

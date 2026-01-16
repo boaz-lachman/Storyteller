@@ -18,7 +18,8 @@ import MainBookActivityIndicator from '../../components/common/MainBookActivityI
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-import { formatStoryLength, formatStoryTheme } from '../../utils/formatting';
+import { formatStoryLength, formatStoryTheme, formatStoryTone, formatStoryPOV, formatStoryTargetAudience } from '../../utils/formatting';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Ionicons } from '@expo/vector-icons';
 import SyncIndicator from '../../components/common/SyncIndicator';
 import EditStoryModal from '../../components/modals/EditStoryModal';
@@ -30,7 +31,6 @@ import { useAppDispatch } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
 import type { StoryUpdateInput } from '../../types';
 import type { EditStoryFormData } from '../../hooks/useEditStoryForm';
-import { useTranslation } from '../../hooks/useTranslation';
 
 type OverviewScreenRouteProp = RouteProp<StoryTabParamList, 'Overview'>;
 
@@ -281,11 +281,11 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
         <Card style={styles.metadataCard}>
           <Card.Content>
             <Text style={styles.sectionTitle}>{t('stories:overview.storyDetails')}</Text>
-            <MetadataItem label={t('stories:overview.metadata.theme')} value={formatStoryTheme(story.theme)} />
-            <MetadataItem label={t('stories:overview.metadata.length')} value={formatStoryLength(story.length)} />
-            <MetadataItem label={t('stories:overview.metadata.tone')} value={story.tone} />
-            <MetadataItem label={t('stories:overview.metadata.pov')} value={story.pov} />
-            <MetadataItem label={t('stories:overview.metadata.targetAudience')} value={story.targetAudience} />
+            <MetadataItem label={t('stories:overview.metadata.theme')} value={formatStoryTheme(story.theme, t)} />
+            <MetadataItem label={t('stories:overview.metadata.length')} value={formatStoryLength(story.length, t)} />
+            <MetadataItem label={t('stories:overview.metadata.tone')} value={formatStoryTone(story.tone, t)} />
+            <MetadataItem label={t('stories:overview.metadata.pov')} value={formatStoryPOV(story.pov, t)} />
+            <MetadataItem label={t('stories:overview.metadata.targetAudience')} value={formatStoryTargetAudience(story.targetAudience, t)} />
             <MetadataItem label={t('stories:overview.metadata.setting')} value={story.setting} />
             <MetadataItem label={t('stories:overview.metadata.timePeriod')} value={story.timePeriod} />
             {story.wordCount && (

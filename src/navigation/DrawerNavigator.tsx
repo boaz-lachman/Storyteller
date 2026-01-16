@@ -3,8 +3,8 @@
  * Wraps the main app stack with a drawer menu
  */
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { View, StyleSheet, TouchableOpacity, I18nManager } from 'react-native';
+import { createDrawerNavigator, DrawerNavigationProp } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { AppStackParamList } from './types';
 import StoriesListScreen from '../screens/stories/StoriesListScreen';
@@ -16,6 +16,9 @@ import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
 import Logo from '../components/common/Logo';
 import SyncStatusBar from '../components/common/SyncStatusBar';
+import { useAppSelector } from '../hooks/redux';
+import { selectLanguage } from '../store/slices/languageSlice';
+import { Ionicons } from '@expo/vector-icons';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -52,16 +55,46 @@ function AppStack() {
 
 
 /**
+ * Drawer Toggle Button Component
+ * Explicitly shows the drawer toggle button
+ */
+function DrawerToggleButton({ navigation }: { navigation: DrawerNavigationProp<any> }) {
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.toggleDrawer()}
+      style={styles.drawerButton}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Ionicons name="menu" size={24} color={colors.text} />
+    </TouchableOpacity>
+  );
+}
+
+/**
  * Drawer Navigator Component
  * Provides drawer menu with user info and logout
  */
 export default function DrawerNavigator() {
+  const language = useAppSelector(selectLanguage);
+  const isRTL = language === 'he';
+
+  // Update I18nManager when language changes
+  React.useEffect(() => {
+    if (I18nManager.isRTL !== isRTL) {
+      I18nManager.forceRTL(isRTL);
+      I18nManager.allowRTL(isRTL);
+      // Note: I18nManager changes require app restart on Android
+      // On iOS, it works dynamically
+    }
+  }, [isRTL]);
+
   return (
     <Drawer.Navigator
       drawerContent={(props) => <DrawerContent {...props} />}
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
         headerShown: true,
         drawerType: 'front',
+        drawerPosition: isRTL ? 'right' : 'left',
         drawerStyle: {
           backgroundColor: colors.surface,
           width: 280,
@@ -87,8 +120,11 @@ export default function DrawerNavigator() {
           fontWeight: typography.fontWeight.bold,
           color: colors.text,
         },
-        headerTitleAlign: 'left' as const, // Align title to the left, next to drawer button
-      }}
+        headerTitleAlign: isRTL ? 'center' : 'left',
+        // Explicitly set drawer button position based on RTL
+        headerLeft: () => <DrawerToggleButton navigation={navigation} />,
+       
+      })}
     >
       <Drawer.Screen 
         name="AppStack" 
@@ -111,6 +147,11 @@ export default function DrawerNavigator() {
 
 const styles = StyleSheet.create({
   logoContainer: {
-    marginLeft: spacing.xs, // Small margin from drawer button
+    marginLeft: spacing.xs, // Small margin from drawer button (will be marginRight in RTL)
+  },
+  drawerButton: {
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
+    padding: spacing.xs,
   },
 });

@@ -20,15 +20,12 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useSignup } from '../../hooks/useSignup';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useAppSelector } from '../../hooks/redux';
-import { selectIsRTL } from '../../store/slices/languageSlice';
 
 /**
  * Signup Screen Component
  */
 export default function SignupScreen() {
   const { t } = useTranslation();
-  const isRTL = useAppSelector(selectIsRTL);
   const {
     username,
     email,
@@ -62,10 +59,10 @@ export default function SignupScreen() {
           <Logo fontSize="display" style={styles.logo} />
 
           {/* Title */}
-          <Text style={[styles.title, isRTL && styles.titleRTL]}>
+          <Text style={[styles.title]}>
             {t('auth:signup.title')}
           </Text>
-          <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
+          <Text style={[styles.subtitle]}>
             {t('auth:signup.subtitle')}
           </Text>
 
@@ -137,8 +134,8 @@ export default function SignupScreen() {
           </PaperButton>
 
           {/* Login Link */}
-          <View style={[styles.loginContainer, isRTL && styles.loginContainerRTL]}>
-            <Text style={[styles.loginText, isRTL && styles.loginTextRTL]}>
+          <View style={[styles.loginContainer]}>
+            <Text style={[styles.loginText]}>
               {t('auth:signup.signInPrompt')}{' '}
             </Text>
             <PaperButton

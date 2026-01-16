@@ -10,6 +10,8 @@ import { AntDesign } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useAppSelector } from '../../hooks/redux';
+
 
 export interface InputProps extends Omit<TextInputProps, 'theme' | 'selectionColor' | 'cursorColor'> {
   label?: string;
@@ -33,12 +35,12 @@ export const Input: React.FC<InputProps> = ({
   secureTextEntry,
   ...textInputProps
 }) => {
-  const isRTL = I18nManager.isRTL;
+  // Use Redux selector for consistent RTL state across the app
   const hasError = !!error;
   const [showPassword, setShowPassword] = useState(false);
 
   // Determine text alignment based on RTL/LTR
-  const textAlign = isRTL ? 'right' : 'left';
+  const textAlign = 'left';
 
   // Toggle password visibility
   const togglePasswordVisibility = () => {
@@ -63,12 +65,12 @@ export const Input: React.FC<InputProps> = ({
           style={[
             styles.input,
             style,
-            isRTL && styles.inputRTL,
+            
           ]}
           contentStyle={[
             styles.inputContent,
             { textAlign },
-            isRTL && styles.inputContentRTL,
+           
           ]}
           outlineColor={hasError ? colors.error : colors.border}
           activeOutlineColor={hasError ? colors.error : colors.primary}
@@ -109,7 +111,7 @@ export const Input: React.FC<InputProps> = ({
             visible
             style={[
               styles.helperText,
-              isRTL && styles.helperTextRTL,
+            
             ]}
           >
             {error || helperText}

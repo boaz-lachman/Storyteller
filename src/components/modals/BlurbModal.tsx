@@ -13,6 +13,7 @@ import { clearFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import type { BlurbFormData } from '../../hooks/useBlurbForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface BlurbModalProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export const BlurbModal: React.FC<BlurbModalProps> = ({
   isLoading = false,
   storyId,
 }) => {
+  const { t } = useTranslation();
   const prevVisibleRef = useRef(visible);
 
   const handleClose = async () => {
@@ -53,7 +55,7 @@ export const BlurbModal: React.FC<BlurbModalProps> = ({
     prevVisibleRef.current = visible;
   }, [visible, blurb?.id]);
 
-  const modalTitle = blurb ? 'Edit Blurb' : 'Create Blurb';
+  const modalTitle = blurb ? t('entities:blurbs.edit') : t('entities:blurbs.create');
 
   return (
     <Modal

@@ -12,6 +12,7 @@ import { clearFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface CreateStoryModalProps {
   visible: boolean;
@@ -30,6 +31,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   const prevVisibleRef = useRef(visible);
 
   const handleSubmit = (data: CreateStoryFormData) => {
@@ -64,7 +66,7 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
       <SafeAreaView style={styles.container} edges={['top']}>
         <Appbar.Header style={styles.header}>
           <Appbar.Action icon="close" onPress={handleClose} />
-          <Appbar.Content title="Create New Story" titleStyle={styles.headerTitle} />
+          <Appbar.Content title={t('stories:create.title')} titleStyle={styles.headerTitle} />
         </Appbar.Header>
         <View style={styles.content}>
           <CreateStoryForm

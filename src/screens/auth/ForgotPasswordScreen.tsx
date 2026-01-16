@@ -22,14 +22,13 @@ import { theme } from '../../constants/theme';
 import { useForgotPassword } from '../../hooks/useForgotPassword';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAppSelector } from '../../hooks/redux';
-import { selectIsRTL } from '../../store/slices/languageSlice';
+
 
 /**
  * Forgot Password Screen Component
  */
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
-  const isRTL = useAppSelector(selectIsRTL);
   const {
     email,
     emailError,
@@ -55,10 +54,10 @@ export default function ForgotPasswordScreen() {
           <Logo fontSize="display" style={styles.logo} />
 
           {/* Title */}
-          <Text style={[styles.title, isRTL && styles.titleRTL]}>
+          <Text style={[styles.title]}>
             {t('auth:forgotPassword.title')}
           </Text>
-          <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
+          <Text style={[styles.subtitle]}>
             {isSuccess
               ? t('auth:forgotPassword.subtitleSuccess')
               : t('auth:forgotPassword.subtitle')}
@@ -94,15 +93,15 @@ export default function ForgotPasswordScreen() {
             </>
           ) : (
             <View style={styles.successContainer}>
-              <Text style={[styles.successText, isRTL && styles.successTextRTL]}>
+              <Text style={[styles.successText]}>
                 {t('auth:forgotPassword.redirectMessage')}
               </Text>
             </View>
           )}
 
           {/* Back to Login Link */}
-          <View style={[styles.loginContainer, isRTL && styles.loginContainerRTL]}>
-            <Text style={[styles.loginText, isRTL && styles.loginTextRTL]}>
+          <View style={[styles.loginContainer]}>
+            <Text style={[styles.loginText]}>
               {t('auth:forgotPassword.rememberPassword')}{' '}
             </Text>
             <PaperButton

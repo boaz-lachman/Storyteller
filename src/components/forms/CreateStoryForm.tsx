@@ -13,6 +13,8 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useMemo } from 'react';
+import { formatStoryLength, formatStoryTheme, formatStoryTone, formatStoryPOV, formatStoryTargetAudience } from '../../utils/formatting';
 
 // Re-export CreateStoryFormData from hook for backward compatibility
 export type { CreateStoryFormData } from '../../hooks/useCreateStoryForm';
@@ -33,6 +35,31 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
   isLoading = false,
 }) => {
   const { t } = useTranslation();
+  
+  // Translate picker options
+  const translatedOptions = useMemo(() => ({
+    LENGTH: FORM_OPTIONS.LENGTH.map(opt => ({
+      ...opt,
+      label: formatStoryLength(opt.value, t),
+    })),
+    THEME: FORM_OPTIONS.THEME.map(opt => ({
+      ...opt,
+      label: formatStoryTheme(opt.value, t),
+    })),
+    TONE: FORM_OPTIONS.TONE.map(opt => ({
+      ...opt,
+      label: formatStoryTone(opt.value, t),
+    })),
+    POV: FORM_OPTIONS.POV.map(opt => ({
+      ...opt,
+      label: formatStoryPOV(opt.value, t),
+    })),
+    AUDIENCE: FORM_OPTIONS.AUDIENCE.map(opt => ({
+      ...opt,
+      label: formatStoryTargetAudience(opt.value, t),
+    })),
+  }), [t]);
+  
   // Use custom hook for form logic
   const {
     title,
@@ -105,7 +132,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {FORM_OPTIONS.LENGTH.map((option) => (
+            {translatedOptions.LENGTH.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -126,7 +153,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {FORM_OPTIONS.THEME.map((option) => (
+            {translatedOptions.THEME.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -147,7 +174,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {FORM_OPTIONS.TONE.map((option) => (
+            {translatedOptions.TONE.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -168,7 +195,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {FORM_OPTIONS.POV.map((option) => (
+            {translatedOptions.POV.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
@@ -189,7 +216,7 @@ export const CreateStoryForm: React.FC<CreateStoryFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {FORM_OPTIONS.AUDIENCE.map((option) => (
+            {translatedOptions.AUDIENCE.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}

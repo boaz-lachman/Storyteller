@@ -22,7 +22,6 @@ import type { AppStackParamList } from '../../navigation/types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Menu } from 'react-native-paper';
 import { useState } from 'react';
-import { I18nManager } from 'react-native';
 import type { Language } from '../../store/slices/languageSlice';
 
 /**
@@ -62,15 +61,6 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
   const handleLanguageChange = (newLanguage: Language) => {
     // Update Redux state
     dispatch(setLanguage(newLanguage));
-    
-    // Update I18nManager for RTL support
-    const isRTL = newLanguage === 'he';
-    if (I18nManager.isRTL !== isRTL) {
-      I18nManager.forceRTL(isRTL);
-      I18nManager.allowRTL(isRTL);
-      // Note: Full RTL layout changes may require app restart on some platforms
-      // Translations will update immediately, but layout changes may need restart
-    }
     
     setLanguageMenuVisible(false);
     // Close drawer after language change

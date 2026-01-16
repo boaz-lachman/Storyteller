@@ -13,6 +13,7 @@ import { clearFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import type { SceneFormData } from '../../hooks/useSceneForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface SceneModalProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   const prevVisibleRef = useRef(visible);
 
   const handleClose = async () => {
@@ -53,7 +55,7 @@ export const SceneModal: React.FC<SceneModalProps> = ({
     prevVisibleRef.current = visible;
   }, [visible, scene?.id]);
 
-  const modalTitle = scene ? 'Edit Scene' : 'Create Scene';
+  const modalTitle = scene ? t('entities:scenes.edit') : t('entities:scenes.create');
 
   return (
     <Modal

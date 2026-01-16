@@ -17,6 +17,7 @@ export interface PromptBuilderOptions {
 /**
  * Build a comprehensive prompt for AI story generation
  * Combines all story elements with importance weighting
+ * @param language - Language code ('en' or 'he'). If 'he', prompts will include Hebrew instructions.
  */
 export const buildStoryPrompt = (
   story: Story,
@@ -24,7 +25,8 @@ export const buildStoryPrompt = (
   blurbs: IdeaBlurb[],
   scenes: Scene[],
   chapters: Chapter[],
-  options: PromptBuilderOptions = {}
+  options: PromptBuilderOptions = {},
+  language: 'en' | 'he' = 'en'
 ): string => {
   const sections: string[] = [];
 
@@ -185,7 +187,10 @@ export const buildStoryPrompt = (
 
   // Final instruction
   sections.push('# TASK');
-  sections.push('Based on all the information provided above, generate a complete story that incorporates the characters, ideas, scenes, and chapters. Ensure the story follows the specified attributes (theme, tone, POV, target audience) and respects the importance levels of each element.');
+  const taskInstruction = language === 'he'
+    ? 'תבסס על כל המידע שסופק לעיל, צור סיפור מלא המשלב את הדמויות, הרעיונות, הסצנות והפרקים. ודא שהסיפור עוקב אחר המאפיינים שצוינו (נושא, טון, נקודת מבט, קהל יעד) ומכבד את רמות החשיבות של כל אלמנט. כתוב את כל הסיפור בעברית - כל הטקסט הנרטיבי, הדיאלוגים והתיאורים חייבים להיות בעברית.'
+    : 'Based on all the information provided above, generate a complete story that incorporates the characters, ideas, scenes, and chapters. Ensure the story follows the specified attributes (theme, tone, POV, target audience) and respects the importance levels of each element.';
+  sections.push(taskInstruction);
 
   return sections.join('\n');
 };
@@ -280,9 +285,10 @@ export const formatPromptForClaude = (
 
 /**
  * Get default system prompt for story generation
+ * @param language - Language code ('en' or 'he'). If 'he', the story will be generated in Hebrew.
  */
-export const getDefaultSystemPrompt = (): string => {
-  return `You are a creative writing assistant specializing in story generation. 
+export const getDefaultSystemPrompt = (language: 'en' | 'he' = 'en'): string => {
+  const basePrompt = `You are a creative writing assistant specializing in story generation. 
 Your task is to create engaging, well-structured stories based on provided elements including characters, plot ideas, scenes, and story attributes.
 
 Guidelines:
@@ -293,4 +299,13 @@ Guidelines:
 - Respect the specified length requirements
 - Write in a style appropriate for the target audience
 - format it in a way that is easy for text-to-speech to read aloud`;
+
+  // Add language instruction if Hebrew
+  if (language === 'he') {
+    return `${basePrompt}
+
+IMPORTANT: Write the entire story in Hebrew. All narrative text, dialogue, and descriptions must be in Hebrew.`;
+  }
+
+  return basePrompt;
 };

@@ -5,13 +5,14 @@
  * Task 15.8: Polish design (consistent styling, clear text)
  */
 import React from 'react';
-import { View, StyleSheet, I18nManager } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons, Feather, AntDesign } from '@expo/vector-icons';
+import { useAppSelector } from '../../hooks/redux';
 
 export interface OnboardingCardData {
   icon: string; // Icon name from @expo/vector-icons
@@ -29,7 +30,6 @@ export interface OnboardingCardProps {
  * Displays a single onboarding card with icon, title, and description
  */
 export const OnboardingCard: React.FC<OnboardingCardProps> = ({ data }) => {
-  const isRTL = I18nManager.isRTL;
 
   // Get icon component based on family
   const getIconComponent = () => {
@@ -60,13 +60,13 @@ export const OnboardingCard: React.FC<OnboardingCardProps> = ({ data }) => {
       </Animated.View>
       <Animated.Text
         entering={FadeInUp.duration(500).delay(200).springify()}
-        style={[styles.title, isRTL && styles.titleRTL]}
+        style={[styles.title]}
       >
         {data.title}
       </Animated.Text>
       <Animated.Text
         entering={FadeInUp.duration(500).delay(300).springify()}
-        style={[styles.description, isRTL && styles.descriptionRTL]}
+        style={[styles.description]}
       >
         {data.description}
       </Animated.Text>

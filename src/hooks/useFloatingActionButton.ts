@@ -107,14 +107,13 @@ export const useFloatingActionButton = ({
     const isBottom = position.includes('bottom');
     const isRight = position.includes('right');
     
-    // In RTL, flip left/right
-    const actualIsRight = isRTL ? !isRight : isRight;
+
 
     return {
       // bottom will be handled by animated style if it's a bottom position
       top: !isBottom ? spacing.lg : undefined,
-      right: actualIsRight ? spacing.lg : undefined,
-      left: !actualIsRight ? spacing.lg : undefined,
+      right: isRight ? spacing.lg : undefined,
+      left: !isRight ? spacing.lg : undefined,
     };
   };
 

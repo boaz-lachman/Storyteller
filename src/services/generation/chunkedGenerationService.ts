@@ -10,6 +10,7 @@ import { claudeApi } from '../../store/api/claudeApi';
 import { buildStoryPrompt, formatPromptForClaude, getDefaultSystemPrompt, type PromptBuilderOptions } from '../../utils/promptBuilder';
 import { countWords } from '../../utils/helpers';
 import { CLAUDE_API } from '../../constants/apiConstants';
+import { selectLanguage } from '../../store/slices/languageSlice';
 
 /**
  * Progress information for chunked generation
@@ -77,7 +78,8 @@ function buildChapterContext(
   chapters: Chapter[],
   currentChapter: Chapter,
   previousChaptersContent: string[],
-  options: PromptBuilderOptions
+  options: PromptBuilderOptions,
+  language: 'en' | 'he' = 'en'
 ): string {
   const sections: string[] = [];
 
@@ -241,7 +243,10 @@ function buildChapterContext(
 
   // Final instruction
   sections.push('# TASK');
-  sections.push(`Generate Chapter ${currentChapter.order}: "${currentChapter.title}" based on the information above. The chapter should be complete, well-written, and seamlessly continue from the previous chapters.`);
+  const taskInstruction = language === 'he'
+    ? `צור פרק ${currentChapter.order}: "${currentChapter.title}" בהתבסס על המידע לעיל. הפרק צריך להיות מלא, כתוב היטב, ולהמשיך בצורה חלקה מהפרקים הקודמים. כתוב את כל הפרק בעברית - כל הטקסט הנרטיבי, הדיאלוגים והתיאורים חייבים להיות בעברית.`
+    : `Generate Chapter ${currentChapter.order}: "${currentChapter.title}" based on the information above. The chapter should be complete, well-written, and seamlessly continue from the previous chapters.`;
+  sections.push(taskInstruction);
 
   return sections.join('\n');
 }
@@ -256,7 +261,8 @@ function buildSceneChunkContext(
   scenes: Scene[],
   currentChunk: VirtualChunk,
   previousChunksContent: string[],
-  options: PromptBuilderOptions
+  options: PromptBuilderOptions,
+  language: 'en' | 'he' = 'en'
 ): string {
   const sections: string[] = [];
 
@@ -426,7 +432,10 @@ function buildSceneChunkContext(
 
   // Final instruction
   sections.push('# TASK');
-  sections.push(`Generate Section ${currentChunk.order}: "${currentChunk.title}" based on the information above. This section should be a substantial part of the novella, well-written, and seamlessly continue from the previous sections.`);
+  const taskInstruction = language === 'he'
+    ? `צור קטע ${currentChunk.order}: "${currentChunk.title}" בהתבסס על המידע לעיל. הקטע צריך להיות חלק משמעותי מהנובלה, כתוב היטב, ולהמשיך בצורה חלקה מהקטעים הקודמים. כתוב את כל הקטע בעברית - כל הטקסט הנרטיבי, הדיאלוגים והתיאורים חייבים להיות בעברית.`
+    : `Generate Section ${currentChunk.order}: "${currentChunk.title}" based on the information above. This section should be a substantial part of the novella, well-written, and seamlessly continue from the previous sections.`;
+  sections.push(taskInstruction);
 
   return sections.join('\n');
 }
@@ -503,6 +512,11 @@ async function generateChunk(
 ): Promise<{ content: string; usage: { inputTokens: number; outputTokens: number }; wasCutOff: boolean }> {
   let context: string;
   
+  // Get language from store
+  const language = selectLanguage(store.getState());
+
+  
+  
   if (isVirtualChunk) {
     context = buildSceneChunkContext(
       story,
@@ -511,7 +525,8 @@ async function generateChunk(
       scenes,
       currentChunk as VirtualChunk,
       previousChunksContent,
-      options
+      options,
+      language
     );
   } else {
     context = buildChapterContext(
@@ -522,11 +537,11 @@ async function generateChunk(
       chapters,
       currentChunk as Chapter,
       previousChunksContent,
-      options
+      options,
+      language
     );
   }
-
-  const systemPrompt = getDefaultSystemPrompt();
+  const systemPrompt = getDefaultSystemPrompt(language);
   const messages = formatPromptForClaude(context, systemPrompt);
 
   // Use configured limit, but cap at Claude's maximum (16384)

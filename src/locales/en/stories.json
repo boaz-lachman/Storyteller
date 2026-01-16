@@ -190,5 +190,40 @@
       "stopped": "Stopped",
       "ready": "Ready"
     }
+  },
+  "attributes": {
+    "length": {
+      "shortStory": "Short Story",
+      "novella": "Novella",
+      "novel": "Novel"
+    },
+    "theme": {
+      "horror": "Horror",
+      "comedy": "Comedy",
+      "drama": "Drama",
+      "sciFi": "Sci-Fi",
+      "fantasy": "Fantasy",
+      "romance": "Romance",
+      "thriller": "Thriller",
+      "mystery": "Mystery"
+    },
+    "tone": {
+      "light": "Light",
+      "dark": "Dark",
+      "neutral": "Neutral",
+      "satirical": "Satirical",
+      "serious": "Serious"
+    },
+    "pov": {
+      "firstPerson": "First Person",
+      "secondPerson": "Second Person",
+      "thirdPersonLimited": "Third Person Limited",
+      "thirdPersonOmniscient": "Third Person Omniscient"
+    },
+    "targetAudience": {
+      "children": "Children",
+      "youngAdult": "Young Adult",
+      "adult": "Adult"
+    }
   }
 }

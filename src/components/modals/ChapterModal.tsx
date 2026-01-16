@@ -13,6 +13,7 @@ import { clearFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import type { ChapterFormData } from '../../hooks/useChapterForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface ChapterModalProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   const prevVisibleRef = useRef(visible);
 
   const handleClose = async () => {
@@ -53,7 +55,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
     prevVisibleRef.current = visible;
   }, [visible, chapter?.id]);
 
-  const modalTitle = chapter ? 'Edit Chapter' : 'Create Chapter';
+  const modalTitle = chapter ? t('entities:chapters.edit') : t('entities:chapters.create');
 
   return (
     <Modal

@@ -76,6 +76,7 @@ export const materialTopTabOptions = {
     borderBottomColor: colors.borderLight,
     elevation: 0, // Android
     shadowOpacity: 0, // iOS
+    direction: 'ltr',
   },
   tabBarIndicatorStyle: {
     backgroundColor: colors.primary,
@@ -95,6 +96,7 @@ export const materialTopTabOptions = {
   },
   tabBarScrollEnabled: true,
   tabBarGap: spacing.md,
+  
 };
 
 /**

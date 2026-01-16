@@ -98,7 +98,7 @@ export default ({ config }) => {
         
         // ElevenLabs configuration
         elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
-        
+        "supportsRTL": true,
         // Router configuration
         router: {},
         

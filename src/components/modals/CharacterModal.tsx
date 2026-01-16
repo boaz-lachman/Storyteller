@@ -14,6 +14,7 @@ import { clearFormData } from '../../services/autosave/autosaveService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface CharacterModalProps {
   visible: boolean;
@@ -36,6 +37,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   isLoading = false,
   storyId,
 }) => {
+  const { t } = useTranslation();
   const prevVisibleRef = useRef(visible);
 
   const handleSubmit = (data: CharacterFormData) => {
@@ -59,7 +61,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
     prevVisibleRef.current = visible;
   }, [visible, character?.id]);
 
-  const modalTitle = character ? 'Edit Character' : 'Create Character';
+  const modalTitle = character ? t('entities:characters.edit') : t('entities:characters.create');
 
   return (
     <Modal

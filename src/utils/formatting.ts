@@ -54,10 +54,22 @@ export const truncate = (text: string, maxLength: number): string => {
 
 /**
  * Format story length label
+ * @param length - Story length value
+ * @param t - Optional translation function
  */
 export const formatStoryLength = (
-  length: 'short-story' | 'novella' | 'novel'
+  length: 'short-story' | 'novella' | 'novel',
+  t?: (key: string) => string
 ): string => {
+  if (t) {
+    const lengthKey = length === 'short-story' 
+      ? 'stories:attributes.length.shortStory'
+      : length === 'novella'
+      ? 'stories:attributes.length.novella'
+      : 'stories:attributes.length.novel';
+    return t(lengthKey);
+  }
+  // Fallback for when translation is not available
   const labels: Record<string, string> = {
     'short-story': 'Short Story',
     novella: 'Novella',
@@ -68,6 +80,8 @@ export const formatStoryLength = (
 
 /**
  * Format story theme label
+ * @param theme - Story theme value
+ * @param t - Optional translation function
  */
 export const formatStoryTheme = (
   theme:
@@ -78,8 +92,16 @@ export const formatStoryTheme = (
     | 'fantasy'
     | 'romance'
     | 'thriller'
-    | 'mystery'
+    | 'mystery',
+  t?: (key: string) => string
 ): string => {
+  if (t) {
+    const themeKey = theme === 'sci-fi'
+      ? 'stories:attributes.theme.sciFi'
+      : `stories:attributes.theme.${theme}`;
+    return t(themeKey);
+  }
+  // Fallback for when translation is not available
   const labels: Record<string, string> = {
     horror: 'Horror',
     comedy: 'Comedy',
@@ -130,6 +152,82 @@ export const formatBlurbCategory = (
     other: 'Other',
   };
   return labels[category] || category;
+};
+
+/**
+ * Format story tone label
+ * @param tone - Story tone value
+ * @param t - Optional translation function
+ */
+export const formatStoryTone = (
+  tone: 'light' | 'dark' | 'neutral' | 'satirical' | 'serious',
+  t?: (key: string) => string
+): string => {
+  if (t) {
+    return t(`stories:attributes.tone.${tone}`);
+  }
+  // Fallback for when translation is not available
+  const labels: Record<string, string> = {
+    light: 'Light',
+    dark: 'Dark',
+    neutral: 'Neutral',
+    satirical: 'Satirical',
+    serious: 'Serious',
+  };
+  return labels[tone] || tone;
+};
+
+/**
+ * Format story POV (Point of View) label
+ * @param pov - Story POV value
+ * @param t - Optional translation function
+ */
+export const formatStoryPOV = (
+  pov: 'first-person' | 'second-person' | 'third-person-limited' | 'third-person-omniscient',
+  t?: (key: string) => string
+): string => {
+  if (t) {
+    const povKey = pov === 'first-person'
+      ? 'stories:attributes.pov.firstPerson'
+      : pov === 'second-person'
+      ? 'stories:attributes.pov.secondPerson'
+      : pov === 'third-person-limited'
+      ? 'stories:attributes.pov.thirdPersonLimited'
+      : 'stories:attributes.pov.thirdPersonOmniscient';
+    return t(povKey);
+  }
+  // Fallback for when translation is not available
+  const labels: Record<string, string> = {
+    'first-person': 'First Person',
+    'second-person': 'Second Person',
+    'third-person-limited': 'Third Person Limited',
+    'third-person-omniscient': 'Third Person Omniscient',
+  };
+  return labels[pov] || pov;
+};
+
+/**
+ * Format story target audience label
+ * @param targetAudience - Story target audience value
+ * @param t - Optional translation function
+ */
+export const formatStoryTargetAudience = (
+  targetAudience: 'children' | 'young-adult' | 'adult',
+  t?: (key: string) => string
+): string => {
+  if (t) {
+    const audienceKey = targetAudience === 'young-adult'
+      ? 'stories:attributes.targetAudience.youngAdult'
+      : `stories:attributes.targetAudience.${targetAudience}`;
+    return t(audienceKey);
+  }
+  // Fallback for when translation is not available
+  const labels: Record<string, string> = {
+    children: 'Children',
+    'young-adult': 'Young Adult',
+    adult: 'Adult',
+  };
+  return labels[targetAudience] || targetAudience;
 };
 
 /**

@@ -46,6 +46,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatWordCount } from '../../utils/formatting';
 import { countWords } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAppSelector } from '../../hooks/redux';
+import { selectLanguage } from '../../store/slices/languageSlice';
 
 type GenerateStoryScreenRouteProp = RouteProp<StoryTabParamList, 'Generate'>;
 
@@ -61,6 +63,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
+  const language = useAppSelector(selectLanguage);
 
   // Generation state
   const [complexity, setComplexity] = useState<'simple' | 'moderate' | 'complex'>('moderate');
@@ -255,8 +258,8 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         // Use single-call generation for short stories
         setIsChunkedGeneration(false);
         
-        const prompt = buildStoryPrompt(story, characters, blurbs, scenes, chapters, promptOptions);
-        const systemPrompt = getDefaultSystemPrompt();
+        const prompt = buildStoryPrompt(story, characters, blurbs, scenes, chapters, promptOptions, language);
+        const systemPrompt = getDefaultSystemPrompt(language);
         const messages = formatPromptForClaude(prompt, systemPrompt);
 
         // Generate story using RTK Query mutation

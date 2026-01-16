@@ -190,5 +190,40 @@
       "stopped": "הופסק",
       "ready": "מוכן"
     }
+  },
+  "attributes": {
+    "length": {
+      "shortStory": "סיפור קצר",
+      "novella": "נובלה",
+      "novel": "רומן"
+    },
+    "theme": {
+      "horror": "אימה",
+      "comedy": "קומדיה",
+      "drama": "דרמה",
+      "sciFi": "מדע בדיוני",
+      "fantasy": "פנטזיה",
+      "romance": "רומנטיקה",
+      "thriller": "מותחן",
+      "mystery": "מסתורין"
+    },
+    "tone": {
+      "light": "קליל",
+      "dark": "אפל",
+      "neutral": "ניטרלי",
+      "satirical": "סאטירי",
+      "serious": "רציני"
+    },
+    "pov": {
+      "firstPerson": "גוף ראשון",
+      "secondPerson": "גוף שני",
+      "thirdPersonLimited": "גוף שלישי מוגבל",
+      "thirdPersonOmniscient": "גוף שלישי יודע כל"
+    },
+    "targetAudience": {
+      "children": "ילדים",
+      "youngAdult": "צעירים",
+      "adult": "מבוגרים"
+    }
   }
 }

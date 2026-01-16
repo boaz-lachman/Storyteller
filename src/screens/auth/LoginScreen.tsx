@@ -9,7 +9,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  I18nManager,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Input } from '../../components/forms/Input';
@@ -20,15 +19,12 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useLogin } from '../../hooks/useLogin';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useAppSelector } from '../../hooks/redux';
-import { selectIsRTL } from '../../store/slices/languageSlice';
 
 /**
  * Login Screen Component
  */
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const isRTL = useAppSelector(selectIsRTL);
   const {
     email,
     password,
@@ -57,10 +53,10 @@ export default function LoginScreen() {
           <Logo fontSize="display" style={styles.logo} />
 
           {/* Title */}
-          <Text style={[styles.title, isRTL && styles.titleRTL]}>
+          <Text style={[styles.title]}>
             {t('auth:login.title')}
           </Text>
-          <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
+          <Text style={[styles.subtitle]}>
             {t('auth:login.subtitle')}
           </Text>
 
@@ -94,7 +90,7 @@ export default function LoginScreen() {
 
           {/* Forgot Password Link */}
           <PaperButton
-          variant="text"
+            variant="text"
             onPress={handleForgotPassword}
             style={styles.forgotPasswordButton}
             labelStyle={styles.forgotPasswordText}
@@ -114,8 +110,8 @@ export default function LoginScreen() {
           </PaperButton>
 
           {/* Sign Up Link */}
-          <View style={[styles.signupContainer, isRTL && styles.signupContainerRTL]}>
-            <Text style={[styles.signupText, isRTL && styles.signupTextRTL]}>
+          <View style={[styles.signupContainer]}>
+            <Text style={styles.signupText}>
               {t('auth:login.signUpPrompt')}{' '}
             </Text>
             <PaperButton
@@ -159,9 +155,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     textAlign: 'left',
   },
-  titleRTL: {
-    textAlign: 'right',
-  },
   subtitle: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.fontSize.md,
@@ -169,9 +162,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.xl,
     textAlign: 'left',
-  },
-  subtitleRTL: {
-    textAlign: 'right',
   },
   input: {
     marginBottom: spacing.md,
@@ -195,16 +185,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.md,
   },
-  signupContainerRTL: {
-    flexDirection: 'row-reverse',
-  },
   signupText: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.fontSize.md,
     color: colors.textSecondary,
-  },
-  signupTextRTL: {
-    textAlign: 'right',
   },
   signupLink: {
     color: colors.primary,

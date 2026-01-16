@@ -10,7 +10,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  I18nManager,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,11 +21,13 @@ import Animated, {
 import { useAppDispatch } from '../../hooks/redux';
 import { completeOnboarding, skipOnboarding } from '../../store/slices/onboardingSlice';
 import { OnboardingCard } from '../../components/onboarding/OnboardingCard';
-import { onboardingCards } from './onboardingData';
+import { getOnboardingCards } from './onboardingData';
 import { PaperButton } from '../../components/forms/PaperButton';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useAppSelector } from '../../hooks/redux';
 
 /**
  * Onboarding Screen Component
@@ -34,9 +35,10 @@ import { typography } from '../../constants/typography';
  */
 export default function OnboardingScreen() {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(0);
   const pagerRef = useRef<PagerView>(null);
-  const isRTL = I18nManager.isRTL;
+  const onboardingCards = getOnboardingCards(t);
   const totalPages = onboardingCards.length;
   const isLastPage = currentPage === totalPages - 1;
 
@@ -87,7 +89,7 @@ export default function OnboardingScreen() {
         style={styles.header}
       >
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-          <Text style={styles.skipButtonText}>Skip</Text>
+          <Text style={styles.skipButtonText}>{t('onboarding:buttons.skip')}</Text>
         </TouchableOpacity>
       </Animated.View>
 
@@ -138,7 +140,7 @@ export default function OnboardingScreen() {
               onPress={handlePrevious}
               style={styles.navButton}
             >
-              Previous
+              {t('onboarding:buttons.previous')}
             </PaperButton>
             <View style={styles.buttonSpacer} />
           </>
@@ -151,7 +153,7 @@ export default function OnboardingScreen() {
             onPress={handleComplete}
             style={styles.completeButton}
           >
-            Get Started
+            {t('onboarding:buttons.getStarted')}
           </PaperButton>
         ) : (
           <PaperButton
@@ -159,7 +161,7 @@ export default function OnboardingScreen() {
             onPress={handleNext}
             style={styles.navButton}
           >
-            Next
+            {t('onboarding:buttons.next')}
           </PaperButton>
         )}
       </Animated.View>

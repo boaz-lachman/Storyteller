@@ -12,6 +12,7 @@ import type { Story } from '../../types';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface EditStoryModalProps {
   visible: boolean;
@@ -32,6 +33,7 @@ export const EditStoryModal: React.FC<EditStoryModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   const handleSubmit = (data: EditStoryFormData) => {
     onSubmit(data);
   };
@@ -47,7 +49,7 @@ export const EditStoryModal: React.FC<EditStoryModalProps> = ({
       <SafeAreaView style={styles.container} edges={['top']}>
         <Appbar.Header style={styles.header}>
           <Appbar.Action icon="close" onPress={onClose} />
-          <Appbar.Content title="Edit Story" titleStyle={styles.headerTitle} />
+          <Appbar.Content title={t('stories:edit.title')} titleStyle={styles.headerTitle} />
         </Appbar.Header>
         <View style={styles.content}>
           <EditStoryForm
