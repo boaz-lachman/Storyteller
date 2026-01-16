@@ -24,6 +24,8 @@ export interface SpeechOptions {
 
 class SpeechService {
   private isInitialized = false;
+  private isInitializing = false;
+  private initializationPromise: Promise<void> | null = null;
   private availableVoices: Voice[] = [];
   private isSpeaking = false;
   private currentOptions: SpeechOptions | null = null;
@@ -36,25 +38,42 @@ class SpeechService {
   /**
    * Initialize the speech service
    * Loads available voices and checks permissions
+   * Prevents multiple concurrent initialization attempts
    */
   async initialize(): Promise<void> {
+    // If already initialized, return immediately
     if (this.isInitialized) {
       return;
     }
 
-    try {
-      // Configure audio mode for iOS (allow playback in silent mode)
-      // This is handled by the app, but we log it here
-      console.log('Initializing speech service...');
-      
-      // Get available voices
-      await this.loadVoices();
-      this.isInitialized = true;
-      console.log('Speech service initialized successfully');
-    } catch (error) {
-      console.error('Error initializing speech service:', error);
-      throw new Error(`Failed to initialize speech service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // If initialization is in progress, return the existing promise
+    if (this.isInitializing && this.initializationPromise) {
+      return this.initializationPromise;
     }
+
+    // Start new initialization
+    this.isInitializing = true;
+    this.initializationPromise = (async () => {
+      try {
+        // Configure audio mode for iOS (allow playback in silent mode)
+        // This is handled by the app, but we log it here
+        console.log('Initializing speech service...');
+        
+        // Get available voices
+        await this.loadVoices();
+        this.isInitialized = true;
+        this.isInitializing = false;
+        this.initializationPromise = null;
+        console.log('Speech service initialized successfully');
+      } catch (error) {
+        this.isInitializing = false;
+        this.initializationPromise = null;
+        console.error('Error initializing speech service:', error);
+        throw new Error(`Failed to initialize speech service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    })();
+
+    return this.initializationPromise;
   }
 
   /**
@@ -475,6 +494,8 @@ class SpeechService {
       await this.stop();
     }
     this.isInitialized = false;
+    this.isInitializing = false;
+    this.initializationPromise = null;
     this.availableVoices = [];
     this.currentOptions = null;
     this.textChunks = [];

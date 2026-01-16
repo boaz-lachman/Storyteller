@@ -14,11 +14,11 @@ export default ({ config }) => {
       slug: 'Storyteller',
       version: '1.0.0',
       orientation: 'default',
-      icon: './assets/icon.png',
+      icon: './assets/images/icon.png',
       userInterfaceStyle: 'light',
       newArchEnabled: true,
       splash: {
-        image: './assets/splash-icon.png',
+        image: './assets/images/splash-icon.png',
         resizeMode: 'contain',
         backgroundColor: '#ffffff',
       },
@@ -34,7 +34,7 @@ export default ({ config }) => {
       },
       android: {
         adaptiveIcon: {
-          foregroundImage: './assets/adaptive-icon.png',
+          foregroundImage: './assets/images/adaptive-icon.png',
           backgroundColor: '#ffffff',
         },
         edgeToEdgeEnabled: true,
@@ -51,7 +51,7 @@ export default ({ config }) => {
         ],
       },
       web: {
-        favicon: './assets/favicon.png',
+        favicon: './assets/images/favicon.png',
       },
       plugins: [
         'expo-router',
@@ -79,6 +79,10 @@ export default ({ config }) => {
         ],
         '@livekit/react-native-expo-plugin',
         '@config-plugins/react-native-webrtc',
+        ["expo-localization", {
+          "fallbackLocale": "en",
+          "availableLocales": ["en", "he"]
+        }],
       ],
       extra: {
         // Firebase configuration

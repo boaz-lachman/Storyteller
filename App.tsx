@@ -3,7 +3,7 @@
  * Handles font loading and initializes navigation
  * Includes Redux PersistGate for state persistence
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, I18nManager } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -13,12 +13,11 @@ import { PaperProvider } from 'react-native-paper';
 import { store, persistor } from './src/store';
 import { useLoadFonts } from './src/utils/fonts';
 import AppNavigator from './src/navigation/AppNavigator';
-import { colors } from './src/constants/colors';
-import MainBookActivityIndicator from './src/components/common/MainBookActivityIndicator';
 import Snackbar from './src/components/common/Snackbar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAppSelector } from './src/hooks/redux';
 import { selectIsRTL } from './src/store/slices/languageSlice';
+import AppSplashScreen, { hideSplashScreen } from './src/components/common/SplashScreen';
 
 /**
  * Inner App Component
@@ -27,6 +26,7 @@ import { selectIsRTL } from './src/store/slices/languageSlice';
 function InnerApp() {
   const fontsLoaded = useLoadFonts();
   const isRTL = useAppSelector(selectIsRTL);
+  const [appIsReady, setAppIsReady] = useState(false);
 
   // Initialize RTL on app start and when language changes
   useEffect(() => {
@@ -37,13 +37,22 @@ function InnerApp() {
     }
   }, [isRTL]);
 
-  // Show loading indicator while fonts are loading
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <MainBookActivityIndicator size={80} />
-      </View>
-    );
+  // Hide splash screen when fonts are loaded
+  useEffect(() => {
+    if (fontsLoaded && !appIsReady) {
+      // Small delay to show splash screen
+      const timer = setTimeout(async () => {
+        await hideSplashScreen();
+        setAppIsReady(true);
+      }, 1000); // Show splash for at least 1 second
+
+      return () => clearTimeout(timer);
+    }
+  }, [fontsLoaded, appIsReady]);
+
+  // Show splash screen while loading
+  if (!appIsReady) {
+    return <AppSplashScreen />;
   }
 
   return (
@@ -66,48 +75,10 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Provider store={store}>
           <PersistGate 
-            loading={
-              <View style={styles.loadingContainer}>
-                <MainBookActivityIndicator size={80} />
-              </View>
-            }
+            loading={<AppSplashScreen />}
             persistor={persistor}
           >
             <InnerApp />
-          </PersistGate>
-        </Provider>
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
-  );
-
-  // Show loading indicator while fonts are loading
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <MainBookActivityIndicator size={80} />
-      </View>
-    );
-  }
-
-  return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <Provider store={store}>
-          <PersistGate 
-            loading={
-              <View style={styles.loadingContainer}>
-                <MainBookActivityIndicator size={80} />
-              </View>
-            }
-            persistor={persistor}
-          >
-            <PaperProvider>
-              <View style={styles.container}>
-                <AppNavigator />
-                <Snackbar />
-              </View>
-              <StatusBar style="auto" />
-            </PaperProvider>
           </PersistGate>
         </Provider>
       </GestureHandlerRootView>
@@ -118,11 +89,5 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
