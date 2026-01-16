@@ -336,8 +336,8 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 160,
-      offset: 160 * index,
+      length: 190,
+      offset: 190 * index,
       index,
     }),
     []
@@ -448,7 +448,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
             tintColor={colors.primary}
           />
         }
-        itemHeight={140}
+        itemHeight={190}
         getItemLayout={getItemLayout}
         renderHeader={() => null}
         renderFooter={() => null}

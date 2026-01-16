@@ -1,11 +1,25 @@
 {
   "list": {
-    "title": "הסיפורים שלי",
+    "title": "הסיפורים שלך",
     "emptyTitle": "אין סיפורים עדיין",
-    "emptyMessage": "צור את הסיפור הראשון שלך כדי להתחיל",
-    "createStory": "צור סיפור"
+    "emptyMessage": "צור את הסיפור הראשון שלך כדי להתחיל!",
+    "emptySearchTitle": "לא נמצאו סיפורים",
+    "emptySearchMessage": "נסה להתאים את החיפוש או המסננים שלך",
+    "searchPlaceholder": "חפש סיפורים לפי כותרת או תיאור...",
+    "filters": "מסננים",
+    "clear": "נקה",
+    "clearAllFilters": "נקה את כל המסננים",
+    "allThemes": "כל הנושאים",
+    "allLengths": "כל האורכים",
+    "allStatuses": "כל הסטטוסים",
+    "createStory": "צור סיפור",
+    "created": "הסיפור נוצר בהצלחה",
+    "createFailed": "יצירת הסיפור נכשלה"
   },
   "detail": {
+    "loading": "טוען סיפור...",
+    "errorTitle": "שגיאה בטעינת הסיפור",
+    "errorMessage": "הסיפור לא נמצא",
     "tabs": {
       "overview": "סקירה",
       "characters": "דמויות",
@@ -27,7 +41,11 @@
       "theme": "נושא",
       "tone": "טון",
       "pov": "נקודת מבט",
-      "targetAudience": "קהל יעד"
+      "targetAudience": "קהל יעד",
+      "setting": "הגדרה",
+      "settingPlaceholder": "הכנס הגדרת סיפור (אופציונלי)",
+      "timePeriod": "תקופה",
+      "timePeriodPlaceholder": "הכנס תקופה (אופציונלי)"
     },
     "buttons": {
       "create": "צור",

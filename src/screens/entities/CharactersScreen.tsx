@@ -333,8 +333,8 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 160,
-      offset: 160 * index,
+      length: 190,
+      offset: 190 * index,
       index,
     }),
     []
@@ -455,7 +455,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
             tintColor={colors.primary}
           />
         }
-        itemHeight={130}
+        itemHeight={190}
         getItemLayout={getItemLayout}
         renderHeader={() => null}
         renderFooter={() => null}

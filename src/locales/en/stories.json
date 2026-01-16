@@ -1,11 +1,25 @@
 {
   "list": {
-    "title": "My Stories",
+    "title": "Your Stories",
     "emptyTitle": "No Stories Yet",
-    "emptyMessage": "Create your first story to get started",
-    "createStory": "Create Story"
+    "emptyMessage": "Create your first story to get started!",
+    "emptySearchTitle": "No Stories Found",
+    "emptySearchMessage": "Try adjusting your search or filters",
+    "searchPlaceholder": "Search stories by title or description...",
+    "filters": "Filters",
+    "clear": "Clear",
+    "clearAllFilters": "Clear All Filters",
+    "allThemes": "All Themes",
+    "allLengths": "All Lengths",
+    "allStatuses": "All Statuses",
+    "createStory": "Create Story",
+    "created": "Story created successfully",
+    "createFailed": "Failed to create story"
   },
   "detail": {
+    "loading": "Loading story...",
+    "errorTitle": "Error Loading Story",
+    "errorMessage": "Story not found",
     "tabs": {
       "overview": "Overview",
       "characters": "Characters",
@@ -27,7 +41,11 @@
       "theme": "Theme",
       "tone": "Tone",
       "pov": "Point of View",
-      "targetAudience": "Target Audience"
+      "targetAudience": "Target Audience",
+      "setting": "Setting",
+      "settingPlaceholder": "Enter story setting (optional)",
+      "timePeriod": "Time Period",
+      "timePeriodPlaceholder": "Enter time period (optional)"
     },
     "buttons": {
       "create": "Create",

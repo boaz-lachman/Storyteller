@@ -1,17 +1,37 @@
 {
   "characters": {
     "title": "דמויות",
-    "emptyTitle": "אין דמויות",
-    "emptyMessage": "הוסף דמויות לסיפור שלך",
+    "emptyTitle": "אין דמויות עדיין",
+    "emptyMessage": "הוסף את הדמות הראשונה שלך כדי להתחיל!",
+    "loading": "טוען דמויות...",
     "create": "צור דמות",
     "edit": "ערוך דמות",
+    "addCharacter": "הוסף דמות",
     "fields": {
       "name": "שם",
       "namePlaceholder": "הכנס שם דמות",
       "description": "תיאור",
       "descriptionPlaceholder": "הכנס תיאור דמות",
       "role": "תפקיד",
-      "importance": "חשיבות"
+      "importance": "חשיבות",
+      "traits": "תכונות",
+      "traitsPlaceholder": "הכנס תכונות מופרדות בפסיקים (למשל: אמיץ, טוב לב, מסתורי)",
+      "backstory": "רקע",
+      "backstoryPlaceholder": "הכנס רקע דמות (אופציונלי)"
+    },
+    "sections": {
+      "basicInfo": "מידע בסיסי",
+      "attributes": "תכונות דמות"
+    },
+    "sort": {
+      "sort": "מיין",
+      "byImportance": "חשיבות",
+      "byName": "שם",
+      "byDate": "תאריך יצירה"
+    },
+    "filter": {
+      "filter": "סנן",
+      "allRoles": "כל התפקידים"
     },
     "buttons": {
       "create": "צור",
@@ -22,15 +42,23 @@
     "delete": {
       "confirmTitle": "מחק דמות",
       "confirmMessage": "האם אתה בטוח שברצונך למחוק את הדמות הזו?",
-      "deleted": "הדמות נמחקה בהצלחה"
+      "deleted": "הדמות נמחקה בהצלחה",
+      "deleteFailed": "מחיקת הדמות נכשלה"
+    },
+    "messages": {
+      "created": "הדמות נוצרה",
+      "updated": "הדמות עודכנה",
+      "saveFailed": "שמירת הדמות נכשלה. אנא נסה שוב."
     }
   },
   "blurbs": {
     "title": "תיאורים קצרים",
-    "emptyTitle": "אין תיאורים קצרים",
-    "emptyMessage": "הוסף תיאורים קצרים לסיפור שלך",
+    "emptyTitle": "אין תיאורים קצרים עדיין",
+    "emptyMessage": "הוסף את התיאור הקצר הראשון שלך כדי להתחיל!",
+    "loading": "טוען תיאורים קצרים...",
     "create": "צור תיאור קצר",
     "edit": "ערוך תיאור קצר",
+    "addBlurb": "הוסף תיאור קצר",
     "fields": {
       "title": "כותרת",
       "titlePlaceholder": "הכנס כותרת תיאור קצר",
@@ -38,6 +66,16 @@
       "descriptionPlaceholder": "הכנס תיאור קצר",
       "category": "קטגוריה",
       "importance": "חשיבות"
+    },
+    "sort": {
+      "sort": "מיין",
+      "byImportance": "חשיבות",
+      "byTitle": "כותרת",
+      "byDate": "תאריך יצירה"
+    },
+    "filter": {
+      "filter": "סנן",
+      "allCategories": "כל הקטגוריות"
     },
     "buttons": {
       "create": "צור",
@@ -48,21 +86,49 @@
     "delete": {
       "confirmTitle": "מחק תיאור קצר",
       "confirmMessage": "האם אתה בטוח שברצונך למחוק את התיאור הקצר הזה?",
-      "deleted": "התיאור הקצר נמחק בהצלחה"
+      "deleted": "התיאור הקצר נמחק בהצלחה",
+      "deleteFailed": "מחיקת התיאור הקצר נכשלה"
+    },
+    "messages": {
+      "created": "התיאור הקצר נוצר",
+      "updated": "התיאור הקצר עודכן",
+      "saveFailed": "שמירת התיאור הקצר נכשלה. אנא נסה שוב."
     }
   },
   "scenes": {
     "title": "סצנות",
-    "emptyTitle": "אין סצנות",
-    "emptyMessage": "הוסף סצנות לסיפור שלך",
+    "emptyTitle": "אין סצנות עדיין",
+    "emptyMessage": "הוסף את הסצנה הראשונה שלך כדי להתחיל!",
+    "loading": "טוען סצנות...",
     "create": "צור סצנה",
     "edit": "ערוך סצנה",
+    "addScene": "הוסף סצנה",
     "fields": {
       "title": "כותרת",
       "titlePlaceholder": "הכנס כותרת סצנה",
       "description": "תיאור",
       "descriptionPlaceholder": "הכנס תיאור סצנה",
-      "importance": "חשיבות"
+      "setting": "הגדרה",
+      "settingPlaceholder": "הכנס הגדרת סצנה",
+      "mood": "מצב רוח",
+      "moodPlaceholder": "הכנס מצב רוח סצנה (אופציונלי)",
+      "conflictLevel": "רמת קונפליקט",
+      "importance": "חשיבות",
+      "characters": "דמויות"
+    },
+    "sections": {
+      "basicInfo": "מידע בסיסי",
+      "sceneDetails": "פרטי סצנה"
+    },
+    "sort": {
+      "sort": "מיין",
+      "byImportance": "חשיבות",
+      "byTitle": "כותרת",
+      "byDate": "תאריך יצירה"
+    },
+    "filter": {
+      "filter": "סנן",
+      "allSettings": "כל ההגדרות"
     },
     "buttons": {
       "create": "צור",
@@ -73,21 +139,30 @@
     "delete": {
       "confirmTitle": "מחק סצנה",
       "confirmMessage": "האם אתה בטוח שברצונך למחוק את הסצנה הזו?",
-      "deleted": "הסצנה נמחקה בהצלחה"
+      "deleted": "הסצנה נמחקה בהצלחה",
+      "deleteFailed": "מחיקת הסצנה נכשלה"
+    },
+    "messages": {
+      "created": "הסצנה נוצרה",
+      "updated": "הסצנה עודכנה",
+      "saveFailed": "שמירת הסצנה נכשלה. אנא נסה שוב."
     }
   },
   "chapters": {
     "title": "פרקים",
-    "emptyTitle": "אין פרקים",
-    "emptyMessage": "הוסף פרקים לסיפור שלך",
+    "emptyTitle": "אין פרקים עדיין",
+    "emptyMessage": "הוסף את הפרק הראשון שלך כדי להתחיל!",
+    "loading": "טוען פרקים...",
     "create": "צור פרק",
     "edit": "ערוך פרק",
+    "addChapter": "הוסף פרק",
     "fields": {
       "title": "כותרת",
       "titlePlaceholder": "הכנס כותרת פרק",
       "description": "תיאור",
       "descriptionPlaceholder": "הכנס תיאור פרק",
-      "importance": "חשיבות"
+      "importance": "חשיבות",
+      "order": "סדר"
     },
     "buttons": {
       "create": "צור",
@@ -98,7 +173,13 @@
     "delete": {
       "confirmTitle": "מחק פרק",
       "confirmMessage": "האם אתה בטוח שברצונך למחוק את הפרק הזה?",
-      "deleted": "הפרק נמחק בהצלחה"
+      "deleted": "הפרק נמחק בהצלחה",
+      "deleteFailed": "מחיקת הפרק נכשלה"
+    },
+    "messages": {
+      "created": "הפרק נוצר",
+      "updated": "הפרק עודכן",
+      "saveFailed": "שמירת הפרק נכשלה. אנא נסה שוב."
     }
   },
   "common": {
@@ -115,9 +196,72 @@
       "setting": "הגדרה",
       "other": "אחר"
     },
+    "sortOrder": {
+      "asc": "עולה",
+      "desc": "יורד"
+    },
     "validation": {
       "nameRequired": "שם נדרש",
-      "titleRequired": "כותרת נדרשת"
+      "titleRequired": "כותרת נדרשת",
+      "descriptionRequired": "תיאור נדרש",
+      "settingRequired": "הגדרה נדרשת",
+      "importanceRequired": "חשיבות נדרשת",
+      "importanceRange": "חשיבות חייבת להיות בין 1 ל-10",
+      "orderRequired": "סדר נדרש"
+    },
+    "created": "נוצר",
+    "loading": "טוען...",
+    "refresh": "משוך לרענון"
+  },
+  "generation": {
+    "title": "צור סיפור",
+    "previewTitle": "תצוגה מקדימה של אלמנטי סיפור",
+    "previewEmpty": "הוסף לפחות אלמנט אחד (דמות, תיאור קצר, סצנה או פרק) כדי ליצור סיפור.",
+    "optionsTitle": "אפשרויות יצירה",
+    "complexity": "מורכבות",
+    "complexitySimple": "פשוט",
+    "complexityModerate": "בינוני",
+    "complexityComplex": "מורכב",
+    "styleLabel": "סגנון כתיבה (אופציונלי)",
+    "stylePlaceholder": "למשל: \"ספרותי\", \"שיחה\", \"פואטי\", \"דרמטי\" וכו'",
+    "styleHelper": "ציין את סגנון הכתיבה שאתה רוצה לסיפור שנוצר",
+    "instructionsLabel": "הוראות נוספות (אופציונלי)",
+    "instructionsPlaceholder": "כל דרישות או העדפות ספציפיות לסיפור",
+    "instructionsHelper": "הוסף כל דרישות או העדפות ספציפיות ליצירת הסיפור",
+    "generateButton": "צור סיפור",
+    "generating": "יוצר...",
+    "resultTitle": "סיפור שנוצר",
+    "formatFormatted": "מעוצב",
+    "formatRaw": "טקסט גולמי",
+    "save": "שמור",
+    "retry": "נסה שוב",
+    "saving": "שומר...",
+    "saveConfirmTitle": "שמור סיפור שנוצר",
+    "saveConfirmMessage": "זה יעדכן את הסיפור עם התוכן שנוצר. להמשיך?",
+    "saveCancel": "ביטול",
+    "saveConfirm": "שמור",
+    "saveSuccess": "הסיפור נשמר בהצלחה!",
+    "saveFailed": "שמירת הסיפור נכשלה. אנא נסה שוב.",
+    "apiKeyWarning": "מפתח API של Claude לא מוגדר. אנא הגדר CLAUDE_API_KEY במשתני הסביבה שלך.",
+    "noElementsError": "אנא הוסף לפחות דמות אחת, תיאור קצר, סצנה או פרק לפני יצירת סיפור.",
+    "tooManyChaptersError": "יותר מדי פרקים. מקסימום {{max}} פרקים מותר ליצירה אחת כדי לשלוט בעלויות.",
+    "generatingOverlay": "יוצר את הסיפור שלך...",
+    "generatingChunked": "יוצר {{type}} {{current}} מתוך {{total}}...",
+    "generatingSubtext": "זה עשוי להימשך כמה דקות",
+    "generatingChunkedSubtext": "{{completed}} מתוך {{total}} {{type}} הושלמו",
+    "chunkComplete": "{{type}} {{number}} נוצר בהצלחה!",
+    "tokenWarning": "אזהרה: מתקרבים למגבלת הטוקנים ({{tokens}} טוקנים בשימוש). היצירה עשויה להיות לא שלמה.",
+    "generationSuccess": "הסיפור נוצר בהצלחה!",
+    "generationChunkedSuccess": "הסיפור נוצר בהצלחה! {{completed}} {{type}} הושלמו.",
+    "generationStoppedEarly": "יצירת הסיפור נעצרה מוקדם: {{error}}. {{completed}} {{type}} נוצרו.",
+    "generationIncomplete": "יצירת הסיפור הושלמה עם {{completed}} מתוך {{total}} {{type}}.",
+    "generationPartialSaved": "היצירה נעצרה מוקדם, אבל {{completed}} סעיפים נשמרו. אתה יכול לשמור את התוכן החלקי הזה.",
+    "generationFailed": "יצירת הסיפור נכשלה. אנא נסה שוב.",
+    "chunkTypes": {
+      "chapter": "פרק",
+      "chapters": "פרקים",
+      "section": "סעיף",
+      "sections": "סעיפים"
     }
   }
 }

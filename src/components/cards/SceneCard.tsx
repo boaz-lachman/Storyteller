@@ -17,7 +17,7 @@ import type { Scene } from '../../types';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-import { truncate } from '../../utils/formatting';
+import { truncate, formatDateTime } from '../../utils/formatting';
 
 const AnimatedTouchableOpacity = Reanimated.createAnimatedComponent(TouchableOpacity);
 
@@ -139,6 +139,14 @@ export const SceneCard: React.FC<SceneCardProps> = ({
               {descriptionPreview}
             </Text>
           )}
+
+          {/* Creation Date */}
+          <View style={styles.dateRow}>
+            <Ionicons name="time-outline" size={12} color={colors.textTertiary} />
+            <Text style={styles.dateText}>
+              Created: {formatDateTime(scene.createdAt)}
+            </Text>
+          </View>
 
           {/* Footer Row: Setting Badge, Character Count, Importance, and Conflict Level */}
           <View style={styles.footerRow}>
@@ -318,6 +326,19 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.semibold,
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  dateText: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.regular,
+    color: colors.textTertiary,
   },
 });
 

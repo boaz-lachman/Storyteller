@@ -322,8 +322,8 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 156,
-      offset: 156 * index,
+      length: 190,
+      offset: 190 * index,
       index,
     }),
     []
@@ -397,7 +397,7 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
             tintColor={colors.primary}
           />
         }
-        itemHeight={156}
+        itemHeight={190}
         getItemLayout={getItemLayout}
         renderHeader={() => null}
         renderFooter={() => null}

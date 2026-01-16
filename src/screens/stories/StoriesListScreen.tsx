@@ -375,8 +375,8 @@ export default function StoriesListScreen() {
 
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: 195,
-      offset: 195 * index,
+      length: 200,
+      offset: 200 * index,
       index,
     }),
     []
@@ -531,7 +531,7 @@ export default function StoriesListScreen() {
             tintColor={colors.primary}
           />
         }
-        itemHeight={155}
+        itemHeight={200}
         getItemLayout={getItemLayout}
         renderHeader={() => null}
         renderFooter={() => null}

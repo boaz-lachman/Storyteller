@@ -21,7 +21,7 @@ import type { Story } from '../../types';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
-import { formatDate, formatStoryLength, formatStoryTheme } from '../../utils/formatting';
+import { formatDateTime, formatStoryLength, formatStoryTheme } from '../../utils/formatting';
 
 const AnimatedTouchableOpacity = Reanimated.createAnimatedComponent(TouchableOpacity);
 
@@ -263,7 +263,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                 color={colors.textTertiary}
               />
               <Text style={styles.dateText}>
-                {formatDate(story.createdAt)}
+                {formatDateTime(story.createdAt)}
               </Text>
             </View>
           </Card.Content>

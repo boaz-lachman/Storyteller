@@ -1,17 +1,37 @@
 {
   "characters": {
     "title": "Characters",
-    "emptyTitle": "No Characters",
-    "emptyMessage": "Add characters to your story",
+    "emptyTitle": "No Characters Yet",
+    "emptyMessage": "Add your first character to get started!",
+    "loading": "Loading characters...",
     "create": "Create Character",
     "edit": "Edit Character",
+    "addCharacter": "Add Character",
     "fields": {
       "name": "Name",
       "namePlaceholder": "Enter character name",
       "description": "Description",
       "descriptionPlaceholder": "Enter character description",
       "role": "Role",
-      "importance": "Importance"
+      "importance": "Importance",
+      "traits": "Traits",
+      "traitsPlaceholder": "Enter traits separated by commas (e.g., brave, kind, mysterious)",
+      "backstory": "Backstory",
+      "backstoryPlaceholder": "Enter character backstory (optional)"
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "attributes": "Character Attributes"
+    },
+    "sort": {
+      "sort": "Sort",
+      "byImportance": "Importance",
+      "byName": "Name",
+      "byDate": "Date Created"
+    },
+    "filter": {
+      "filter": "Filter",
+      "allRoles": "All Roles"
     },
     "buttons": {
       "create": "Create",
@@ -22,15 +42,23 @@
     "delete": {
       "confirmTitle": "Delete Character",
       "confirmMessage": "Are you sure you want to delete this character?",
-      "deleted": "Character deleted successfully"
+      "deleted": "Character deleted successfully",
+      "deleteFailed": "Failed to delete character"
+    },
+    "messages": {
+      "created": "Character created",
+      "updated": "Character updated",
+      "saveFailed": "Failed to save character. Please try again."
     }
   },
   "blurbs": {
     "title": "Blurbs",
-    "emptyTitle": "No Blurbs",
-    "emptyMessage": "Add blurbs to your story",
+    "emptyTitle": "No Blurbs Yet",
+    "emptyMessage": "Add your first blurb to get started!",
+    "loading": "Loading blurbs...",
     "create": "Create Blurb",
     "edit": "Edit Blurb",
+    "addBlurb": "Add Blurb",
     "fields": {
       "title": "Title",
       "titlePlaceholder": "Enter blurb title",
@@ -38,6 +66,16 @@
       "descriptionPlaceholder": "Enter blurb description",
       "category": "Category",
       "importance": "Importance"
+    },
+    "sort": {
+      "sort": "Sort",
+      "byImportance": "Importance",
+      "byTitle": "Title",
+      "byDate": "Date Created"
+    },
+    "filter": {
+      "filter": "Filter",
+      "allCategories": "All Categories"
     },
     "buttons": {
       "create": "Create",
@@ -48,21 +86,49 @@
     "delete": {
       "confirmTitle": "Delete Blurb",
       "confirmMessage": "Are you sure you want to delete this blurb?",
-      "deleted": "Blurb deleted successfully"
+      "deleted": "Blurb deleted successfully",
+      "deleteFailed": "Failed to delete blurb"
+    },
+    "messages": {
+      "created": "Blurb created",
+      "updated": "Blurb updated",
+      "saveFailed": "Failed to save blurb. Please try again."
     }
   },
   "scenes": {
     "title": "Scenes",
-    "emptyTitle": "No Scenes",
-    "emptyMessage": "Add scenes to your story",
+    "emptyTitle": "No Scenes Yet",
+    "emptyMessage": "Add your first scene to get started!",
+    "loading": "Loading scenes...",
     "create": "Create Scene",
     "edit": "Edit Scene",
+    "addScene": "Add Scene",
     "fields": {
       "title": "Title",
       "titlePlaceholder": "Enter scene title",
       "description": "Description",
       "descriptionPlaceholder": "Enter scene description",
-      "importance": "Importance"
+      "setting": "Setting",
+      "settingPlaceholder": "Enter scene setting",
+      "mood": "Mood",
+      "moodPlaceholder": "Enter scene mood (optional)",
+      "conflictLevel": "Conflict Level",
+      "importance": "Importance",
+      "characters": "Characters"
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "sceneDetails": "Scene Details"
+    },
+    "sort": {
+      "sort": "Sort",
+      "byImportance": "Importance",
+      "byTitle": "Title",
+      "byDate": "Date Created"
+    },
+    "filter": {
+      "filter": "Filter",
+      "allSettings": "All Settings"
     },
     "buttons": {
       "create": "Create",
@@ -73,21 +139,30 @@
     "delete": {
       "confirmTitle": "Delete Scene",
       "confirmMessage": "Are you sure you want to delete this scene?",
-      "deleted": "Scene deleted successfully"
+      "deleted": "Scene deleted successfully",
+      "deleteFailed": "Failed to delete scene"
+    },
+    "messages": {
+      "created": "Scene created",
+      "updated": "Scene updated",
+      "saveFailed": "Failed to save scene. Please try again."
     }
   },
   "chapters": {
     "title": "Chapters",
-    "emptyTitle": "No Chapters",
-    "emptyMessage": "Add chapters to your story",
+    "emptyTitle": "No Chapters Yet",
+    "emptyMessage": "Add your first chapter to get started!",
+    "loading": "Loading chapters...",
     "create": "Create Chapter",
     "edit": "Edit Chapter",
+    "addChapter": "Add Chapter",
     "fields": {
       "title": "Title",
       "titlePlaceholder": "Enter chapter title",
       "description": "Description",
       "descriptionPlaceholder": "Enter chapter description",
-      "importance": "Importance"
+      "importance": "Importance",
+      "order": "Order"
     },
     "buttons": {
       "create": "Create",
@@ -98,7 +173,13 @@
     "delete": {
       "confirmTitle": "Delete Chapter",
       "confirmMessage": "Are you sure you want to delete this chapter?",
-      "deleted": "Chapter deleted successfully"
+      "deleted": "Chapter deleted successfully",
+      "deleteFailed": "Failed to delete chapter"
+    },
+    "messages": {
+      "created": "Chapter created",
+      "updated": "Chapter updated",
+      "saveFailed": "Failed to save chapter. Please try again."
     }
   },
   "common": {
@@ -115,9 +196,72 @@
       "setting": "Setting",
       "other": "Other"
     },
+    "sortOrder": {
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
     "validation": {
       "nameRequired": "Name is required",
-      "titleRequired": "Title is required"
+      "titleRequired": "Title is required",
+      "descriptionRequired": "Description is required",
+      "settingRequired": "Setting is required",
+      "importanceRequired": "Importance is required",
+      "importanceRange": "Importance must be between 1 and 10",
+      "orderRequired": "Order is required"
+    },
+    "created": "Created",
+    "loading": "Loading...",
+    "refresh": "Pull to refresh"
+  },
+  "generation": {
+    "title": "Generate Story",
+    "previewTitle": "Story Elements Preview",
+    "previewEmpty": "Add at least one element (character, blurb, scene, or chapter) to generate a story.",
+    "optionsTitle": "Generation Options",
+    "complexity": "Complexity",
+    "complexitySimple": "Simple",
+    "complexityModerate": "Moderate",
+    "complexityComplex": "Complex",
+    "styleLabel": "Writing Style (Optional)",
+    "stylePlaceholder": "e.g., \"literary\", \"conversational\", \"poetic\", \"dramatic\", etc.",
+    "styleHelper": "Specify the writing style you want for the generated story",
+    "instructionsLabel": "Additional Instructions (Optional)",
+    "instructionsPlaceholder": "Any specific requirements or preferences for the story",
+    "instructionsHelper": "Add any specific requirements or preferences for the story generation",
+    "generateButton": "Generate Story",
+    "generating": "Generating...",
+    "resultTitle": "Generated Story",
+    "formatFormatted": "Formatted",
+    "formatRaw": "Raw Text",
+    "save": "Save",
+    "retry": "Retry",
+    "saving": "Saving...",
+    "saveConfirmTitle": "Save Generated Story",
+    "saveConfirmMessage": "This will update the story with the generated content. Continue?",
+    "saveCancel": "Cancel",
+    "saveConfirm": "Save",
+    "saveSuccess": "Story saved successfully!",
+    "saveFailed": "Failed to save story. Please try again.",
+    "apiKeyWarning": "Claude API key is not configured. Please set CLAUDE_API_KEY in your environment variables.",
+    "noElementsError": "Please add at least one character, blurb, scene, or chapter before generating a story.",
+    "tooManyChaptersError": "Too many chapters. Maximum {{max}} chapters allowed per generation to control costs.",
+    "generatingOverlay": "Generating your story...",
+    "generatingChunked": "Generating {{type}} {{current}} of {{total}}...",
+    "generatingSubtext": "This may take a few minutes",
+    "generatingChunkedSubtext": "{{completed}} of {{total}} {{type}} completed",
+    "chunkComplete": "{{type}} {{number}} generated successfully!",
+    "tokenWarning": "Warning: Approaching token limit ({{tokens}} tokens used). Generation may be incomplete.",
+    "generationSuccess": "Story generated successfully!",
+    "generationChunkedSuccess": "Story generated successfully! {{completed}} {{type}} completed.",
+    "generationStoppedEarly": "Story generation stopped early: {{error}}. {{completed}} {{type}} were generated.",
+    "generationIncomplete": "Story generation completed with {{completed}} of {{total}} {{type}}.",
+    "generationPartialSaved": "Generation stopped early, but {{completed}} sections were saved. You can save this partial content.",
+    "generationFailed": "Failed to generate story. Please try again.",
+    "chunkTypes": {
+      "chapter": "Chapter",
+      "chapters": "chapters",
+      "section": "Section",
+      "sections": "sections"
     }
   }
 }
