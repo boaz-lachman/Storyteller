@@ -14,6 +14,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Scene } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface SceneFormProps {
   scene?: Scene | null;
@@ -33,6 +34,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   // Fetch characters for this story
   const { data: availableCharacters = [] } = useGetCharactersQuery(
     { storyId, sortBy: 'name', order: 'ASC' },
@@ -81,48 +83,48 @@ export const SceneForm: React.FC<SceneFormProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Basic Information</Text>
+      <Text style={styles.sectionTitle}>{t('entities:scenes.sections.basicInfo')}</Text>
       
       <Input
-        label="Title"
+        label={t('entities:scenes.fields.title')}
         value={title}
         onChangeText={setTitle}
         error={errors.title}
         required
-        placeholder="Enter scene title"
+        placeholder={t('entities:scenes.fields.titlePlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Description"
+        label={t('entities:scenes.fields.description')}
         value={description}
         onChangeText={setDescription}
         error={errors.description}
         required
-        placeholder="Enter scene description"
+        placeholder={t('entities:scenes.fields.descriptionPlaceholder')}
         multiline
         numberOfLines={6}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Setting"
+        label={t('entities:scenes.fields.setting')}
         value={setting}
         onChangeText={setSetting}
         error={errors.setting}
         required
-        placeholder="Enter scene setting"
+        placeholder={t('entities:scenes.fields.settingPlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
-      <Text style={styles.sectionTitle}>Scene Attributes</Text>
+      <Text style={styles.sectionTitle}>{t('entities:scenes.sections.sceneDetails')}</Text>
 
       {/* Character Selection */}
       <View style={styles.characterSelectionContainer}>
-        <Text style={styles.characterSelectionLabel}>Characters</Text>
+        <Text style={styles.characterSelectionLabel}>{t('entities:scenes.fields.characters')}</Text>
         {availableCharacters.length === 0 ? (
           <Text style={styles.noCharactersText}>
-            No characters available. Create characters first.
+            {t('entities:scenes.fields.noCharactersAvailable')}
           </Text>
         ) : (
           <View style={styles.characterList}>
@@ -147,7 +149,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
       {/* Importance Slider */}
       <View style={styles.sliderContainer}>
         <View style={styles.sliderHeader}>
-          <Text style={styles.sliderLabel}>Importance *</Text>
+          <Text style={styles.sliderLabel}>{t('entities:scenes.fields.importance')} *</Text>
           <Text style={styles.sliderValue}>{importance}/10</Text>
         </View>
         <Slider
@@ -173,9 +175,9 @@ export const SceneForm: React.FC<SceneFormProps> = ({
       {/* Conflict Level Slider */}
       <View style={styles.sliderContainer}>
         <View style={styles.sliderHeader}>
-          <Text style={styles.sliderLabel}>Conflict Level</Text>
+          <Text style={styles.sliderLabel}>{t('entities:scenes.fields.conflictLevel')}</Text>
           <Text style={styles.sliderValue}>
-            {conflictLevel !== undefined ? `${conflictLevel}/10` : 'Not set'}
+            {conflictLevel !== undefined ? `${conflictLevel}/10` : t('entities:scenes.fields.conflictLevelNotSet')}
           </Text>
         </View>
         <Slider
@@ -197,22 +199,22 @@ export const SceneForm: React.FC<SceneFormProps> = ({
           style={styles.clearButton}
           onPress={() => setConflictLevel(undefined)}
         >
-          <Text style={styles.clearButtonText}>Clear conflict level</Text>
+          <Text style={styles.clearButtonText}>{t('entities:scenes.fields.clearConflictLevel')}</Text>
         </TouchableOpacity>
         {errors.conflictLevel && (
           <Text style={styles.errorText}>{errors.conflictLevel}</Text>
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>Additional Details</Text>
+      <Text style={styles.sectionTitle}>{t('entities:scenes.sections.additionalDetails')}</Text>
 
       {/* Mood Input */}
       <Input
-        label="Mood"
+        label={t('entities:scenes.fields.mood')}
         value={mood}
         onChangeText={setMood}
         error={errors.mood}
-        placeholder="Enter scene mood (e.g., tense, peaceful, mysterious)"
+        placeholder={t('entities:scenes.fields.moodPlaceholderExample')}
         multiline
         numberOfLines={2}
         containerStyle={styles.inputContainer}
@@ -225,7 +227,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
           disabled={isLoading}
           style={[styles.button, styles.cancelButton]}
         >
-          Cancel
+          {t('entities:scenes.buttons.cancel')}
         </PaperButton>
         <PaperButton
           variant="primary"
@@ -234,7 +236,7 @@ export const SceneForm: React.FC<SceneFormProps> = ({
           disabled={isLoading || !hasChanges}
           style={[styles.button, styles.submitButton]}
         >
-          {scene ? 'Save' : 'Create'}
+          {scene ? t('entities:scenes.buttons.save') : t('entities:scenes.buttons.create')}
         </PaperButton>
       </View>
     </ScrollView>

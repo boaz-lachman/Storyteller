@@ -16,12 +16,15 @@
       "importance": "חשיבות",
       "traits": "תכונות",
       "traitsPlaceholder": "הכנס תכונות מופרדות בפסיקים (למשל: אמיץ, טוב לב, מסתורי)",
+      "traitsPlaceholderExample": "הכנס תכונות מופרדות בפסיקים (למשל, אמיץ, חכם, טוב לב)",
+      "traitsHelper": "הפרד תכונות מרובות בפסיקים",
       "backstory": "רקע",
       "backstoryPlaceholder": "הכנס רקע דמות (אופציונלי)"
     },
     "sections": {
       "basicInfo": "מידע בסיסי",
-      "attributes": "תכונות דמות"
+      "attributes": "תכונות דמות",
+      "additionalDetails": "פרטים נוספים"
     },
     "sort": {
       "sort": "מיין",
@@ -52,20 +55,24 @@
     }
   },
   "blurbs": {
-    "title": "תיאורים קצרים",
-    "emptyTitle": "אין תיאורים קצרים עדיין",
-    "emptyMessage": "הוסף את התיאור הקצר הראשון שלך כדי להתחיל!",
-    "loading": "טוען תיאורים קצרים...",
-    "create": "צור תיאור קצר",
-    "edit": "ערוך תיאור קצר",
-    "addBlurb": "הוסף תיאור קצר",
+    "title": "רעיונות",
+    "emptyTitle": "אין רעיונות עדיין",
+    "emptyMessage": "הוסף את הרעיון הראשון שלך כדי להתחיל!",
+    "loading": "טוען רעיונות...",
+    "create": "צור רעיון",
+    "edit": "ערוך רעיון",
+    "addBlurb": "הוסף רעיון",
     "fields": {
       "title": "כותרת",
-      "titlePlaceholder": "הכנס כותרת תיאור קצר",
+      "titlePlaceholder": "הכנס כותרת לרעיון",
       "description": "תיאור",
       "descriptionPlaceholder": "הכנס תיאור קצר",
       "category": "קטגוריה",
       "importance": "חשיבות"
+    },
+    "sections": {
+      "basicInfo": "מידע בסיסי",
+      "attributes": "תכונות רעיון"
     },
     "sort": {
       "sort": "מיין",
@@ -112,13 +119,18 @@
       "settingPlaceholder": "הכנס הגדרת סצנה",
       "mood": "מצב רוח",
       "moodPlaceholder": "הכנס מצב רוח סצנה (אופציונלי)",
+      "moodPlaceholderExample": "הכנס מצב רוח סצנה (למשל, מתוח, שליו, מסתורי)",
       "conflictLevel": "רמת קונפליקט",
+      "conflictLevelNotSet": "לא הוגדר",
+      "clearConflictLevel": "נקה רמת קונפליקט",
       "importance": "חשיבות",
-      "characters": "דמויות"
+      "characters": "דמויות",
+      "noCharactersAvailable": "אין דמויות זמינות. צור דמויות תחילה."
     },
     "sections": {
       "basicInfo": "מידע בסיסי",
-      "sceneDetails": "פרטי סצנה"
+      "sceneDetails": "פרטי סצנה",
+      "additionalDetails": "פרטים נוספים"
     },
     "sort": {
       "sort": "מיין",
@@ -161,8 +173,19 @@
       "titlePlaceholder": "הכנס כותרת פרק",
       "description": "תיאור",
       "descriptionPlaceholder": "הכנס תיאור פרק",
+      "summary": "סיכום",
+      "summaryPlaceholder": "הכנס סיכום/תיאור פרק",
       "importance": "חשיבות",
-      "order": "סדר"
+      "order": "סדר",
+      "chapter": "פרק",
+      "chapterOrder": "סדר פרק",
+      "orderHint": "שנה סדר כדי לסדר מחדש פרקים",
+      "orderHintNew": "השאר ריק להקצאה אוטומטית כפרק {{number}}, או ציין סדר להכנסה במיקום זה (פרקים קיימים יוזזו)",
+      "orderPlaceholder": "הקצאה אוטומטית ({{number}})"
+    },
+    "sections": {
+      "basicInfo": "מידע בסיסי",
+      "attributes": "תכונות פרק"
     },
     "buttons": {
       "create": "צור",
@@ -259,6 +282,11 @@
     "generationIncomplete": "יצירת הסיפור הושלמה עם {{completed}} מתוך {{total}} {{type}}.",
     "generationPartialSaved": "היצירה נעצרה מוקדם, אבל {{completed}} סעיפים נשמרו. אתה יכול לשמור את התוכן החלקי הזה.",
     "generationFailed": "יצירת הסיפור נכשלה. אנא נסה שוב.",
+    "wordCount": {
+      "word": "מילה",
+      "words": "מילים"
+    },
+    "tokens": "טוקנים",
     "chunkTypes": {
       "chapter": "פרק",
       "chapters": "פרקים",

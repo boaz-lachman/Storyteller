@@ -13,6 +13,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Story } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface EditStoryFormProps {
   story: Story | null;
@@ -30,6 +31,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   // Use custom hook for form logic
   const {
     title,
@@ -67,34 +69,34 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Basic Information</Text>
+      <Text style={styles.sectionTitle}>{t('stories:edit.sectionBasic')}</Text>
       
       <Input
-        label="Title"
+        label={t('stories:edit.fields.title')}
         value={title}
         onChangeText={setTitle}
         error={errors.title}
         required
-        placeholder="Enter story title"
+        placeholder={t('stories:edit.fields.titlePlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Description"
+        label={t('stories:edit.fields.description')}
         value={description}
         onChangeText={setDescription}
         error={errors.description}
-        placeholder="Enter story description (optional)"
+        placeholder={t('stories:edit.fields.descriptionPlaceholder')}
         multiline
         numberOfLines={4}
         containerStyle={styles.inputContainer}
       />
 
-      <Text style={styles.sectionTitle}>Story Attributes</Text>
+      <Text style={styles.sectionTitle}>{t('stories:edit.sectionAttributes')}</Text>
 
       {/* Length Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Length *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:edit.fields.length')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={length}
@@ -115,7 +117,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
 
       {/* Theme Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Theme *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:edit.fields.theme')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={theme}
@@ -136,7 +138,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
 
       {/* Tone Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Tone *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:edit.fields.tone')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={tone}
@@ -157,7 +159,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
 
       {/* POV Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Point of View *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:edit.fields.pov')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={pov}
@@ -178,7 +180,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
 
       {/* Target Audience Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Target Audience *</Text>
+        <Text style={styles.pickerLabel}>{t('stories:edit.fields.targetAudience')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={targetAudience}
@@ -197,21 +199,21 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Additional Details</Text>
+      <Text style={styles.sectionTitle}>{t('stories:edit.sectionAdditional')}</Text>
 
       <Input
-        label="Setting"
+        label={t('stories:edit.fields.setting')}
         value={setting}
         onChangeText={setSetting}
-        placeholder="Enter story setting (optional)"
+        placeholder={t('stories:edit.fields.settingPlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Time Period"
+        label={t('stories:edit.fields.timePeriod')}
         value={timePeriod}
         onChangeText={setTimePeriod}
-        placeholder="Enter time period (optional)"
+        placeholder={t('stories:edit.fields.timePeriodPlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
@@ -222,7 +224,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
           disabled={isLoading}
           style={[styles.button, styles.cancelButton]}
         >
-          Cancel
+          {t('stories:edit.buttons.cancel')}
         </PaperButton>
         <PaperButton
           variant="primary"
@@ -231,7 +233,7 @@ export const EditStoryForm: React.FC<EditStoryFormProps> = ({
           disabled={isLoading || !hasChanges}
           style={[styles.button, styles.submitButton]}
         >
-          Save
+          {t('stories:edit.buttons.save')}
         </PaperButton>
       </View>
     </ScrollView>

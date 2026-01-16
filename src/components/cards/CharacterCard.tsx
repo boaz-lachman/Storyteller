@@ -18,6 +18,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatCharacterRole, truncate, formatDateTime } from '../../utils/formatting';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const AnimatedTouchableOpacity = Reanimated.createAnimatedComponent(TouchableOpacity);
 
@@ -63,6 +64,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
   onPress,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   const isRTL = I18nManager.isRTL;
   
   // Animation values
@@ -150,7 +152,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
           <View style={styles.dateRow}>
             <Ionicons name="time-outline" size={12} color={colors.textTertiary} />
             <Text style={styles.dateText}>
-              Created: {formatDateTime(character.createdAt)}
+              {t('entities:common.created')}: {formatDateTime(character.createdAt)}
             </Text>
           </View>
 
@@ -164,7 +166,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
               ]}
             >
               <Text style={styles.roleBadgeText}>
-                {formatCharacterRole(character.role)}
+                {formatCharacterRole(character.role, t)}
               </Text>
             </View>
 

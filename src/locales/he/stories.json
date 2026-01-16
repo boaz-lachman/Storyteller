@@ -82,6 +82,24 @@
   },
   "edit": {
     "title": "ערוך סיפור",
+    "sectionBasic": "מידע בסיסי",
+    "sectionAttributes": "תכונות סיפור",
+    "sectionAdditional": "פרטים נוספים",
+    "fields": {
+      "title": "כותרת",
+      "titlePlaceholder": "הזן כותרת סיפור",
+      "description": "תיאור",
+      "descriptionPlaceholder": "הזן תיאור סיפור (אופציונלי)",
+      "length": "אורך",
+      "theme": "נושא",
+      "tone": "טון",
+      "pov": "נקודת מבט",
+      "targetAudience": "קהל יעד",
+      "setting": "מקום",
+      "settingPlaceholder": "הזן מקום סיפור (אופציונלי)",
+      "timePeriod": "תקופה",
+      "timePeriodPlaceholder": "הזן תקופה (אופציונלי)"
+    },
     "buttons": {
       "save": "שמור",
       "cancel": "ביטול"
@@ -144,6 +162,7 @@
     "shareDialogTitle": "שתף סיפור"
   },
   "completed": {
+    "loading": "טוען סיפור...",
     "emptyTitle": "אין סיפור שנוצר",
     "emptyMessage": "הסיפור הזה עדיין לא נוצר. עבור לטאב 'צור' כדי ליצור את הסיפור שלך.",
     "generatedOn": "נוצר ב",
@@ -152,7 +171,12 @@
     "formatRaw": "טקסט גולמי",
     "incompleteSections": "{{count}} סעיף{{plural}} לא שלם",
     "incompleteBadge": "לא שלם",
-    "cutOffWarning": "הסעיף הזה נחתך באמצע היצירה עקב מגבלות טוקנים. התוכן עשוי להיות לא שלם."
+    "cutOffWarning": "הסעיף הזה נחתך באמצע היצירה עקב מגבלות טוקנים. התוכן עשוי להיות לא שלם.",
+    "wordCount": {
+      "word": "מילה",
+      "words": "מילים"
+    },
+    "tokens": "טוקנים"
   },
   "player": {
     "title": "נגן שמע",

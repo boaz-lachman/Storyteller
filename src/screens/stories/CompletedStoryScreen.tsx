@@ -23,6 +23,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatWordCount } from '../../utils/formatting';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type CompletedStoryScreenRouteProp = RouteProp<StoryTabParamList, 'CompletedStory'>;
 
@@ -34,6 +35,7 @@ interface CompletedStoryScreenProps {
  * Completed Story Screen Component
  */
 export default function CompletedStoryScreen({ route }: CompletedStoryScreenProps) {
+  const { t } = useTranslation();
   const { storyId } = route.params;
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [formatMenuVisible, setFormatMenuVisible] = useState(false);
@@ -110,7 +112,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
       <GradientBackground>
         <View style={styles.loadingContainer}>
           <MainBookActivityIndicator size={80} />
-          <Text style={styles.loadingText}>Loading story...</Text>
+          <Text style={styles.loadingText}>{t('stories:completed.loading')}</Text>
         </View>
       </GradientBackground>
     );
@@ -121,8 +123,8 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
     return (
       <GradientBackground style={styles.container}>
         <EmptyState
-          title="No Generated Story"
-          message="This story hasn't been generated yet. Go to the Generate tab to create your story."
+          title={t('stories:completed.emptyTitle')}
+          message={t('stories:completed.emptyMessage')}
           icon={<Feather name="book-open" size={64} color={colors.textSecondary} />}
         />
       </GradientBackground>
@@ -142,7 +144,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
             <Text style={styles.title}>{story.title}</Text>
             {story.generatedAt && (
               <Text style={styles.subtitle}>
-                Generated on {new Date(story.generatedAt).toLocaleDateString()}
+                {t('stories:completed.generatedOn')} {new Date(story.generatedAt).toLocaleDateString()}
               </Text>
             )}
           </View>
@@ -163,13 +165,16 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Feather name="file-text" size={16} color={colors.textSecondary} />
-                  <Text style={styles.statText}>{formatWordCount(story.wordCount)}</Text>
+                  <Text style={styles.statText}>{formatWordCount(story.wordCount, t)}</Text>
                 </View>
                 {story.cutOffChunks && story.cutOffChunks.length > 0 && (
                   <View style={styles.statItem}>
                     <Ionicons name="warning" size={16} color={colors.warning} />
                     <Text style={[styles.statText, styles.warningText]}>
-                      {story.cutOffChunks.length} section{story.cutOffChunks.length > 1 ? 's' : ''} incomplete
+                      {t('stories:completed.incompleteSections', { 
+                        count: story.cutOffChunks.length, 
+                        plural: story.cutOffChunks.length > 1 ? 's' : '' 
+                      })}
                     </Text>
                   </View>
                 )}
@@ -189,7 +194,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
         <Card style={styles.card}>
           <Card.Content>
             <View style={styles.resultHeader}>
-              <Text style={styles.sectionTitle}>Story</Text>
+              <Text style={styles.sectionTitle}>{t('stories:completed.storyTitle')}</Text>
               <Menu
                 key={String(formatMenuVisible)+"3"}
                 visible={formatMenuVisible}
@@ -208,14 +213,14 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
                     setFormatOption('formatted');
                     setFormatMenuVisible(false);
                   }}
-                  title="Formatted"
+                  title={t('stories:completed.formatFormatted')}
                 />
                 <Menu.Item
                   onPress={() => {
                     setFormatOption('raw');
                     setFormatMenuVisible(false);
                   }}
-                  title="Raw Text"
+                  title={t('stories:completed.formatRaw')}
                 />
               </Menu>
             </View>
@@ -250,7 +255,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
                           {section.isCutOff && (
                             <View style={styles.cutOffBadge}>
                               <Ionicons name="warning" size={16} color={colors.error} />
-                              <Text style={styles.cutOffText}>Incomplete</Text>
+                              <Text style={styles.cutOffText}>{t('stories:completed.incompleteBadge')}</Text>
                             </View>
                           )}
                         </View>
@@ -268,7 +273,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
                         <View style={styles.cutOffWarning}>
                           <Ionicons name="alert-circle" size={14} color={colors.warning} />
                           <Text style={styles.cutOffWarningText}>
-                            This section was cut off mid-generation due to token limits. Content may be incomplete.
+                            {t('stories:completed.cutOffWarning')}
                           </Text>
                         </View>
                       )}

@@ -82,6 +82,24 @@
   },
   "edit": {
     "title": "Edit Story",
+    "sectionBasic": "Basic Information",
+    "sectionAttributes": "Story Attributes",
+    "sectionAdditional": "Additional Details",
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter story title",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter story description (optional)",
+      "length": "Length",
+      "theme": "Theme",
+      "tone": "Tone",
+      "pov": "Point of View",
+      "targetAudience": "Target Audience",
+      "setting": "Setting",
+      "settingPlaceholder": "Enter story setting (optional)",
+      "timePeriod": "Time Period",
+      "timePeriodPlaceholder": "Enter time period (optional)"
+    },
     "buttons": {
       "save": "Save",
       "cancel": "Cancel"
@@ -144,6 +162,7 @@
     "shareDialogTitle": "Share Story"
   },
   "completed": {
+    "loading": "Loading story...",
     "emptyTitle": "No Generated Story",
     "emptyMessage": "This story hasn't been generated yet. Go to the Generate tab to create your story.",
     "generatedOn": "Generated on",
@@ -152,7 +171,12 @@
     "formatRaw": "Raw Text",
     "incompleteSections": "{{count}} section{{plural}} incomplete",
     "incompleteBadge": "Incomplete",
-    "cutOffWarning": "This section was cut off mid-generation due to token limits. Content may be incomplete."
+    "cutOffWarning": "This section was cut off mid-generation due to token limits. Content may be incomplete.",
+    "wordCount": {
+      "word": "word",
+      "words": "words"
+    },
+    "tokens": "tokens"
   },
   "player": {
     "title": "Audio Player",

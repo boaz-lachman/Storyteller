@@ -16,12 +16,15 @@
       "importance": "Importance",
       "traits": "Traits",
       "traitsPlaceholder": "Enter traits separated by commas (e.g., brave, kind, mysterious)",
+      "traitsPlaceholderExample": "Enter traits separated by commas (e.g., brave, intelligent, kind)",
+      "traitsHelper": "Separate multiple traits with commas",
       "backstory": "Backstory",
       "backstoryPlaceholder": "Enter character backstory (optional)"
     },
     "sections": {
       "basicInfo": "Basic Information",
-      "attributes": "Character Attributes"
+      "attributes": "Character Attributes",
+      "additionalDetails": "Additional Details"
     },
     "sort": {
       "sort": "Sort",
@@ -66,6 +69,10 @@
       "descriptionPlaceholder": "Enter blurb description",
       "category": "Category",
       "importance": "Importance"
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "attributes": "Blurb Attributes"
     },
     "sort": {
       "sort": "Sort",
@@ -112,13 +119,18 @@
       "settingPlaceholder": "Enter scene setting",
       "mood": "Mood",
       "moodPlaceholder": "Enter scene mood (optional)",
+      "moodPlaceholderExample": "Enter scene mood (e.g., tense, peaceful, mysterious)",
       "conflictLevel": "Conflict Level",
+      "conflictLevelNotSet": "Not set",
+      "clearConflictLevel": "Clear conflict level",
       "importance": "Importance",
-      "characters": "Characters"
+      "characters": "Characters",
+      "noCharactersAvailable": "No characters available. Create characters first."
     },
     "sections": {
       "basicInfo": "Basic Information",
-      "sceneDetails": "Scene Details"
+      "sceneDetails": "Scene Details",
+      "additionalDetails": "Additional Details"
     },
     "sort": {
       "sort": "Sort",
@@ -161,8 +173,19 @@
       "titlePlaceholder": "Enter chapter title",
       "description": "Description",
       "descriptionPlaceholder": "Enter chapter description",
+      "summary": "Summary",
+      "summaryPlaceholder": "Enter chapter summary/description",
       "importance": "Importance",
-      "order": "Order"
+      "order": "Order",
+      "chapter": "Chapter",
+      "chapterOrder": "Chapter Order",
+      "orderHint": "Change order to reorder chapters",
+      "orderHintNew": "Leave empty to auto-assign as Chapter {{number}}, or specify an order to insert at that position (existing chapters will shift)",
+      "orderPlaceholder": "Auto-assign ({{number}})"
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "attributes": "Chapter Attributes"
     },
     "buttons": {
       "create": "Create",
@@ -259,6 +282,11 @@
     "generationIncomplete": "Story generation completed with {{completed}} of {{total}} {{type}}.",
     "generationPartialSaved": "Generation stopped early, but {{completed}} sections were saved. You can save this partial content.",
     "generationFailed": "Failed to generate story. Please try again.",
+    "wordCount": {
+      "word": "word",
+      "words": "words"
+    },
+    "tokens": "tokens",
     "chunkTypes": {
       "chapter": "Chapter",
       "chapters": "chapters",

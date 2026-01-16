@@ -2,7 +2,7 @@
  * Export Modal Component
  * UI for exporting stories with format and type options
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, Modal, ScrollView } from 'react-native';
 import { Text, Button, Card, RadioButton, Portal, Dialog } from 'react-native-paper';
 import { Entypo, Feather } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Story, Character, IdeaBlurb, Scene } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface ExportModalProps {
   visible: boolean;
@@ -33,6 +34,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   story,
   entities,
 }) => {
+  const { t } = useTranslation();
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   const [exportType, setExportType] = useState<ExportType>('full');
   const [isExporting, setIsExporting] = useState(false);
@@ -43,11 +45,40 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const formatOptions = getFormatOptions();
   const typeOptions = getExportTypeOptions();
+  
+  // Map export type options to translations (memoized)
+  const translatedTypeOptions = useMemo(() => {
+    return typeOptions.map((option) => {
+      let label = option.label;
+      let description = option.description;
+      
+      switch (option.value) {
+        case 'full':
+          label = t('stories:export.types.full.label');
+          description = t('stories:export.types.full.description');
+          break;
+        case 'elements-only':
+          label = t('stories:export.types.elementsOnly.label');
+          description = t('stories:export.types.elementsOnly.description');
+          break;
+        case 'generated-only':
+          label = t('stories:export.types.generatedOnly.label');
+          description = t('stories:export.types.generatedOnly.description');
+          break;
+      }
+      
+      return {
+        ...option,
+        label,
+        description,
+      };
+    });
+  }, [typeOptions, t]);
 
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      setExportProgress('Preparing export...');
+      setExportProgress(t('stories:export.progress.preparing'));
 
       const options: ExportOptions = {
         format: exportFormat,
@@ -55,7 +86,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         includeCharacters: exportType === 'full' || exportType === 'elements-only',
       };
 
-      setExportProgress('Generating PDF...');
+      setExportProgress(t('stories:export.progress.generating'));
       await exportAndShareStory(story, entities, options);
 
       setExportProgress('');
@@ -63,7 +94,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       setShowSuccessDialog(true);
     } catch (error) {
       console.error('Export error:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to export story');
+      setErrorMessage(error instanceof Error ? error.message : t('stories:export.error.defaultMessage'));
       setIsExporting(false);
       setExportProgress('');
       setShowErrorDialog(true);
@@ -92,7 +123,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             <Card.Content>
               {/* Header */}
               <View style={styles.header}>
-                <Text style={styles.title}>Export Story</Text>
+                <Text style={styles.title}>{t('stories:export.title')}</Text>
                 <Button
                   mode="text"
                   onPress={onDismiss}
@@ -105,12 +136,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
                 {/* Export Type Selection */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Export Type</Text>
+                  <Text style={styles.sectionTitle}>{t('stories:export.exportType')}</Text>
                   <RadioButton.Group
                     onValueChange={(value) => setExportType(value as ExportType)}
                     value={exportType}
                   >
-                    {typeOptions.map((option) => (
+                    {translatedTypeOptions.map((option) => (
                       <View key={option.value} style={styles.radioOption}>
                         <RadioButton value={option.value} color={colors.primary} />
                         <View style={styles.radioContent}>
@@ -131,7 +162,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   style={styles.cancelButton}
                   disabled={isExporting}
                 >
-                  Cancel
+                  {t('stories:export.buttons.cancel')}
                 </Button>
                 <Button
                   mode="contained"
@@ -140,7 +171,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   disabled={isExporting}
                   icon={() => <Entypo name="export" size={20} color={colors.textInverse} />}
                 >
-                  Export
+                  {t('stories:export.buttons.export')}
                 </Button>
               </View>
             </Card.Content>
@@ -158,8 +189,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <Card style={styles.progressCard}>
             <Card.Content>
               <MainBookActivityIndicator size={80} style={styles.progressIndicator} />
-              <Text style={styles.progressText}>{exportProgress || 'Exporting...'}</Text>
-              <Text style={styles.progressSubtext}>Please wait while we prepare your export</Text>
+              <Text style={styles.progressText}>{exportProgress || t('stories:export.progress.exporting')}</Text>
+              <Text style={styles.progressSubtext}>{t('stories:export.progress.subtext')}</Text>
             </Card.Content>
           </Card>
         </View>
@@ -169,15 +200,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       <Portal>
         <Dialog visible={showSuccessDialog} onDismiss={handleDismissSuccess}>
           <Dialog.Icon icon="check-circle" size={48} color={colors.success} />
-          <Dialog.Title>Export Successful</Dialog.Title>
+          <Dialog.Title>{t('stories:export.success.title')}</Dialog.Title>
           <Dialog.Content>
-            <Text>Your story has been exported successfully!</Text>
+            <Text>{t('stories:export.success.message')}</Text>
             <Text style={styles.dialogSubtext}>
-              The file is ready to share. Use the share sheet to save or share it.
+              {t('stories:export.success.subtext')}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={handleDismissSuccess}>OK</Button>
+            <Button onPress={handleDismissSuccess}>{t('stories:export.success.ok')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -186,12 +217,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       <Portal>
         <Dialog visible={showErrorDialog} onDismiss={handleDismissError}>
           <Dialog.Icon icon="alert-circle" size={48} color={colors.error} />
-          <Dialog.Title>Export Failed</Dialog.Title>
+          <Dialog.Title>{t('stories:export.error.title')}</Dialog.Title>
           <Dialog.Content>
             <Text>{errorMessage}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={handleDismissError}>OK</Button>
+            <Button onPress={handleDismissError}>{t('stories:export.error.ok')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

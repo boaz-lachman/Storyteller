@@ -18,6 +18,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { truncate, formatDateTime } from '../../utils/formatting';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const AnimatedTouchableOpacity = Reanimated.createAnimatedComponent(TouchableOpacity);
 
@@ -56,6 +57,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
   onPress,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   const isRTL = I18nManager.isRTL;
   
   // Animation values
@@ -144,7 +146,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           <View style={styles.dateRow}>
             <Ionicons name="time-outline" size={12} color={colors.textTertiary} />
             <Text style={styles.dateText}>
-              Created: {formatDateTime(scene.createdAt)}
+              {t('entities:common.created')}: {formatDateTime(scene.createdAt)}
             </Text>
           </View>
 

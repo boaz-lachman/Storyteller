@@ -30,6 +30,7 @@ import { useAppDispatch } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
 import type { StoryUpdateInput } from '../../types';
 import type { EditStoryFormData } from '../../hooks/useEditStoryForm';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type OverviewScreenRouteProp = RouteProp<StoryTabParamList, 'Overview'>;
 
@@ -57,6 +58,7 @@ const MetadataItem: React.FC<{
  * Overview Screen Component
  */
 export default function OverviewScreen({ route }: OverviewScreenProps) {
+  const { t } = useTranslation();
   const { storyId } = route.params;
   const [statistics, setStatistics] = useState<StoryStatistics | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -150,7 +152,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
       setIsEditModalVisible(false);
       dispatch(
         showSnackbar({
-          message: 'Story updated successfully',
+          message: t('stories:overview.messages.updated'),
           type: 'success',
         })
       );
@@ -160,7 +162,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
       dispatch(
         showSnackbar({
           message:
-            err?.error || err?.data?.error || 'Failed to update story. Please try again.',
+            err?.error || err?.data?.error || t('stories:overview.messages.updateFailed'),
           type: 'error',
         })
       );
@@ -190,7 +192,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
             entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
             style={styles.loadingText}
           >
-            Loading story overview...
+            {t('stories:overview.loading')}
           </Animated.Text>
         </Animated.View>
       </GradientBackground>
@@ -209,13 +211,13 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
             entering={!hasAnimated.current ? FadeInDown.delay(100).duration(400) : undefined}
             style={styles.errorTitle}
           >
-            Error Loading Story
+            {t('stories:overview.errorTitle')}
           </Animated.Text>
           <Animated.Text 
             entering={!hasAnimated.current ? FadeInDown.delay(200).duration(400) : undefined}
             style={styles.errorText}
           >
-            {error && 'error' in error ? error.error : 'Story not found'}
+            {error && 'error' in error ? error.error : t('stories:overview.errorMessage')}
           </Animated.Text>
         </Animated.View>
       </GradientBackground>
@@ -234,7 +236,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
           entering={!hasAnimated.current ? FadeInDown.delay(100).duration(500) : undefined}
           style={styles.header}
         >
-          <Text style={styles.title}>Edit Story</Text>
+          <Text style={styles.title}>{t('stories:overview.title')}</Text>
           <View style={styles.headerBadges}>
             {/* Edit Button */}
             <PaperIconButton
@@ -255,7 +257,9 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
                 { backgroundColor: story.status === 'completed' ? colors.success : colors.primary }
               ]}
             >
-              <Text style={styles.statusBadgeLabel}>{story.status}</Text>
+              <Text style={styles.statusBadgeLabel}>
+                {story.status === 'completed' ? t('stories:card.completed') : t('stories:card.draft')}
+              </Text>
             </View>
           </View>
         </Animated.View>
@@ -276,16 +280,16 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
       <Animated.View entering={!hasAnimated.current ? FadeInDown.delay(450).duration(500) : undefined}>
         <Card style={styles.metadataCard}>
           <Card.Content>
-            <Text style={styles.sectionTitle}>Story Details</Text>
-            <MetadataItem label="Theme" value={formatStoryTheme(story.theme)} />
-            <MetadataItem label="Length" value={formatStoryLength(story.length)} />
-            <MetadataItem label="Tone" value={story.tone} />
-            <MetadataItem label="Point of View" value={story.pov} />
-            <MetadataItem label="Target Audience" value={story.targetAudience} />
-            <MetadataItem label="Setting" value={story.setting} />
-            <MetadataItem label="Time Period" value={story.timePeriod} />
+            <Text style={styles.sectionTitle}>{t('stories:overview.storyDetails')}</Text>
+            <MetadataItem label={t('stories:overview.metadata.theme')} value={formatStoryTheme(story.theme)} />
+            <MetadataItem label={t('stories:overview.metadata.length')} value={formatStoryLength(story.length)} />
+            <MetadataItem label={t('stories:overview.metadata.tone')} value={story.tone} />
+            <MetadataItem label={t('stories:overview.metadata.pov')} value={story.pov} />
+            <MetadataItem label={t('stories:overview.metadata.targetAudience')} value={story.targetAudience} />
+            <MetadataItem label={t('stories:overview.metadata.setting')} value={story.setting} />
+            <MetadataItem label={t('stories:overview.metadata.timePeriod')} value={story.timePeriod} />
             {story.wordCount && (
-              <MetadataItem label="Word Count" value={story.wordCount.toLocaleString()} />
+              <MetadataItem label={t('stories:overview.metadata.wordCount')} value={story.wordCount.toLocaleString()} />
             )}
           </Card.Content>
         </Card>
@@ -296,7 +300,7 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
         <Animated.View entering={!hasAnimated.current ? FadeInDown.delay(500).duration(500) : undefined}>
           <Card style={styles.descriptionCard}>
             <Card.Content>
-              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={styles.sectionTitle}>{t('stories:overview.description')}</Text>
               <Text style={styles.descriptionText}>{story.description}</Text>
             </Card.Content>
           </Card>

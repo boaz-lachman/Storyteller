@@ -220,6 +220,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
           wordCount: result.totalWordCount,
           prompt: `Chunked generation for ${completedChunks} ${chunkType}`,
           usage: result.totalUsage,
+          wasCutOff: result.cutOffChunks && result.cutOffChunks.length > 0,
         };
 
         setGeneratedStory(response);
@@ -596,12 +597,12 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Ionicons name="document-text" size={16} color={colors.textSecondary} />
-                  <Text style={styles.statText}>{formatWordCount(generatedStory.wordCount)}</Text>
+                  <Text style={styles.statText}>{formatWordCount(generatedStory.wordCount, t)}</Text>
                 </View>
                 <View style={styles.statItem}>
                   <Ionicons name="flash" size={16} color={colors.textSecondary} />
                   <Text style={styles.statText}>
-                    {generatedStory.usage.inputTokens + generatedStory.usage.outputTokens} tokens
+                    {generatedStory.usage.inputTokens + generatedStory.usage.outputTokens} {t('entities:generation.tokens')}
                   </Text>
                 </View>
               </View>

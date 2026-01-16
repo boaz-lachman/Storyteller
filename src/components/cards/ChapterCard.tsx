@@ -18,6 +18,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { truncate, formatDateTime } from '../../utils/formatting';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const AnimatedTouchableOpacity = Reanimated.createAnimatedComponent(TouchableOpacity);
 
@@ -53,6 +54,7 @@ export const ChapterCard: React.FC<ChapterCardProps> = ({
   isFirst = false,
   isLast = false,
 }) => {
+  const { t } = useTranslation();
   const isRTL = I18nManager.isRTL;
   
   // Animation values
@@ -107,7 +109,7 @@ export const ChapterCard: React.FC<ChapterCardProps> = ({
           <View style={styles.headerRow}>
             <View style={styles.titleContainer}>
               <View style={styles.chapterNumberContainer}>
-                <Text style={styles.chapterNumber}>Chapter {chapter.order}</Text>
+                <Text style={styles.chapterNumber}>{t('entities:chapters.fields.chapter')} {chapter.order}</Text>
               </View>
               <Text style={styles.title} numberOfLines={1}>
                 {chapter.title}
@@ -142,7 +144,7 @@ export const ChapterCard: React.FC<ChapterCardProps> = ({
           <View style={styles.dateRow}>
             <Ionicons name="time-outline" size={12} color={colors.textTertiary} />
             <Text style={styles.dateText}>
-              Created: {formatDateTime(chapter.createdAt)}
+              {t('entities:common.created')}: {formatDateTime(chapter.createdAt)}
             </Text>
           </View>
 

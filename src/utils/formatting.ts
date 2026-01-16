@@ -95,10 +95,18 @@ export const formatStoryTheme = (
 
 /**
  * Format character role label
+ * Note: This function now requires a translation function to be passed
+ * Use formatCharacterRoleWithTranslation instead for components with access to useTranslation
  */
 export const formatCharacterRole = (
-  role: 'protagonist' | 'antagonist' | 'supporting' | 'minor'
+  role: 'protagonist' | 'antagonist' | 'supporting' | 'minor',
+  t?: (key: string) => string
 ): string => {
+  if (t) {
+    const roleKey = `entities:common.roles.${role}`;
+    return t(roleKey);
+  }
+  // Fallback for when translation is not available
   const labels: Record<string, string> = {
     protagonist: 'Protagonist',
     antagonist: 'Antagonist',
@@ -127,8 +135,15 @@ export const formatBlurbCategory = (
 /**
  * Format word count
  * Example: "1,234 words"
+ * Note: This function now requires a translation function to be passed
+ * Use formatWordCountWithTranslation instead for components with access to useTranslation
  */
-export const formatWordCount = (count: number): string => {
+export const formatWordCount = (count: number, t?: (key: string) => string): string => {
+  if (t) {
+    const wordKey = count === 1 ? 'stories:completed.wordCount.word' : 'stories:completed.wordCount.words';
+    return `${count.toLocaleString()} ${t(wordKey)}`;
+  }
+  // Fallback for when translation is not available
   return `${count.toLocaleString()} ${count === 1 ? 'word' : 'words'}`;
 };
 

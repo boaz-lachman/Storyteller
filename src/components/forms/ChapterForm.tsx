@@ -14,6 +14,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Chapter } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface ChapterFormProps {
   chapter?: Chapter | null;
@@ -33,6 +34,7 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   // Fetch existing chapters to determine next order number
   const { data: existingChapters = [] } = useGetChaptersQuery(
     { storyId, sortBy: 'order', order: 'ASC' },
@@ -76,35 +78,35 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Basic Information</Text>
+      <Text style={styles.sectionTitle}>{t('entities:chapters.sections.basicInfo')}</Text>
       
       <Input
-        label="Title"
+        label={t('entities:chapters.fields.title')}
         value={title}
         onChangeText={setTitle}
         error={errors.title}
         required
-        placeholder="Enter chapter title"
+        placeholder={t('entities:chapters.fields.titlePlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Summary"
+        label={t('entities:chapters.fields.summary')}
         value={description}
         onChangeText={setDescription}
         error={errors.description}
         required
-        placeholder="Enter chapter summary/description"
+        placeholder={t('entities:chapters.fields.summaryPlaceholder')}
         multiline
         numberOfLines={6}
         containerStyle={styles.inputContainer}
       />
 
-      <Text style={styles.sectionTitle}>Chapter Attributes</Text>
+      <Text style={styles.sectionTitle}>{t('entities:chapters.sections.attributes')}</Text>
 
       {/* Order Input */}
       <View style={styles.orderContainer}>
-        <Text style={styles.orderLabel}>Chapter Order</Text>
+        <Text style={styles.orderLabel}>{t('entities:chapters.fields.chapterOrder')}</Text>
         <View style={styles.orderInputContainer}>
           <Input
             label=""
@@ -114,14 +116,14 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
               setOrder(isNaN(num) ? undefined : num);
             }}
             error={errors.order}
-            placeholder={`Auto-assign (${nextOrderNumber})`}
+            placeholder={t('entities:chapters.fields.orderPlaceholder', { number: nextOrderNumber })}
             keyboardType="numeric"
             containerStyle={styles.orderInput}
           />
           <Text style={styles.orderHint}>
             {chapter 
-              ? 'Change order to reorder chapters'
-              : `Leave empty to auto-assign as Chapter ${nextOrderNumber}, or specify an order to insert at that position (existing chapters will shift)`}
+              ? t('entities:chapters.fields.orderHint')
+              : t('entities:chapters.fields.orderHintNew', { number: nextOrderNumber })}
           </Text>
         </View>
       </View>
@@ -129,7 +131,7 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
       {/* Importance Slider */}
       <View style={styles.sliderContainer}>
         <View style={styles.sliderHeader}>
-          <Text style={styles.sliderLabel}>Importance *</Text>
+          <Text style={styles.sliderLabel}>{t('entities:chapters.fields.importance')} *</Text>
           <Text style={styles.sliderValue}>{importance}/10</Text>
         </View>
         <Slider
@@ -159,7 +161,7 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
           disabled={isLoading}
           style={[styles.button, styles.cancelButton]}
         >
-          Cancel
+          {t('entities:chapters.buttons.cancel')}
         </PaperButton>
         <PaperButton
           variant="primary"
@@ -168,7 +170,7 @@ export const ChapterForm: React.FC<ChapterFormProps> = ({
           disabled={isLoading || !hasChanges}
           style={[styles.button, styles.submitButton]}
         >
-          {chapter ? 'Save' : 'Create'}
+          {chapter ? t('entities:chapters.buttons.save') : t('entities:chapters.buttons.create')}
         </PaperButton>
       </View>
     </ScrollView>

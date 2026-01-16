@@ -14,6 +14,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { IdeaBlurb } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface BlurbFormProps {
   blurb?: IdeaBlurb | null;
@@ -33,6 +34,7 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
   isLoading = false,
   storyId,
 }) => {
+  const { t } = useTranslation();
   // Use custom hook for form logic
   const {
     title,
@@ -60,35 +62,35 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Basic Information</Text>
+      <Text style={styles.sectionTitle}>{t('entities:blurbs.sections.basicInfo')}</Text>
       
       <Input
-        label="Title"
+        label={t('entities:blurbs.fields.title')}
         value={title}
         onChangeText={setTitle}
         error={errors.title}
         required
-        placeholder="Enter blurb title"
+        placeholder={t('entities:blurbs.fields.titlePlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Description"
+        label={t('entities:blurbs.fields.description')}
         value={description}
         onChangeText={setDescription}
         error={errors.description}
         required
-        placeholder="Enter blurb description"
+        placeholder={t('entities:blurbs.fields.descriptionPlaceholder')}
         multiline
         numberOfLines={6}
         containerStyle={styles.inputContainer}
       />
 
-      <Text style={styles.sectionTitle}>Blurb Attributes</Text>
+      <Text style={styles.sectionTitle}>{t('entities:blurbs.sections.attributes')}</Text>
 
       {/* Category Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Category</Text>
+        <Text style={styles.pickerLabel}>{t('entities:blurbs.fields.category')}</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={category}
@@ -96,13 +98,36 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {BLURB_FORM_OPTIONS.CATEGORY.map((option) => (
-              <Picker.Item
-                key={option.value || 'none'}
-                label={option.label}
-                value={option.value}
-              />
-            ))}
+            {BLURB_FORM_OPTIONS.CATEGORY.map((option) => {
+              let translatedLabel = option.label;
+              // Translate category labels
+              switch (option.value) {
+                case 'plot-point':
+                  translatedLabel = t('entities:common.categories.plotPoint');
+                  break;
+                case 'conflict':
+                  translatedLabel = t('entities:common.categories.conflict');
+                  break;
+                case 'theme':
+                  translatedLabel = t('entities:common.categories.theme');
+                  break;
+                case 'setting':
+                  translatedLabel = t('entities:common.categories.setting');
+                  break;
+                case 'other':
+                  translatedLabel = t('entities:common.categories.other');
+                  break;
+                default:
+                  translatedLabel = option.label;
+              }
+              return (
+                <Picker.Item
+                  key={option.value || 'none'}
+                  label={translatedLabel}
+                  value={option.value}
+                />
+              );
+            })}
           </Picker>
         </View>
       </View>
@@ -110,7 +135,7 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
       {/* Importance Slider */}
       <View style={styles.sliderContainer}>
         <View style={styles.sliderHeader}>
-          <Text style={styles.sliderLabel}>Importance *</Text>
+          <Text style={styles.sliderLabel}>{t('entities:blurbs.fields.importance')} *</Text>
           <Text style={styles.sliderValue}>{importance}/10</Text>
         </View>
         <Slider
@@ -140,7 +165,7 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
           disabled={isLoading}
           style={[styles.button, styles.cancelButton]}
         >
-          Cancel
+          {t('entities:blurbs.buttons.cancel')}
         </PaperButton>
         <PaperButton
           variant="primary"
@@ -149,7 +174,7 @@ export const BlurbForm: React.FC<BlurbFormProps> = ({
           disabled={isLoading || !hasChanges}
           style={[styles.button, styles.submitButton]}
         >
-          {blurb ? 'Save' : 'Create'}
+          {blurb ? t('entities:blurbs.buttons.save') : t('entities:blurbs.buttons.create')}
         </PaperButton>
       </View>
     </ScrollView>

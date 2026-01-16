@@ -10,6 +10,7 @@ import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { StatCard } from './StatCard';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Statistics Cards Grid Component
@@ -29,32 +30,34 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
   statistics, 
   animated = false 
 }) => {
+  const { t } = useTranslation();
+  
   return (
     <View style={styles.statsContainer}>
       <StatCard
         icon={<Ionicons name="people" size={32} color={colors.primary} />}
-        label="Characters"
+        label={t('entities:characters.title')}
         value={statistics.characterCount}
         animated={animated}
         animationDelay={250}
       />
       <StatCard
         icon={<FontAwesome6 name="paragraph" size={32} color={colors.info} />}
-        label="Scenes"
+        label={t('entities:scenes.title')}
         value={statistics.sceneCount}
         animated={animated}
         animationDelay={300}
       />
       <StatCard
         icon={<Ionicons name="reader" size={32} color={colors.warning} />}
-        label="Chapters"
+        label={t('entities:chapters.title')}
         value={statistics.chapterCount}
         animated={animated}
         animationDelay={350}
       />
       <StatCard
         icon={<FontAwesome5 name="pen-fancy" size={32} color={colors.secondary} />}
-        label="Blurbs"
+        label={t('entities:blurbs.title')}
         value={statistics.blurbCount}
         animated={animated}
         animationDelay={400}

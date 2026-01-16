@@ -416,7 +416,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
               >
                 <Ionicons name="filter" size={18} color={colors.text} />
                 <Text style={styles.headerButtonText}>
-                  {t('entities:characters.filter.filter')}: {roleFilter === 'all' ? t('entities:characters.filter.allRoles') : formatCharacterRole(roleFilter)}
+                  {t('entities:characters.filter.filter')}: {roleFilter === 'all' ? t('entities:characters.filter.allRoles') : formatCharacterRole(roleFilter, t)}
                 </Text>
               </TouchableOpacity>
             }
@@ -433,7 +433,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
                   <Menu.Item
                     key={role}
                     onPress={() => handleFilterChange(role)}
-                    title={formatCharacterRole(role)}
+                    title={formatCharacterRole(role, t)}
                     leadingIcon={roleFilter === role ? 'check' : undefined}
                   />
                 ))}

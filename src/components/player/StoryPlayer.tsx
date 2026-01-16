@@ -11,6 +11,7 @@ import { speechService, type Voice } from '../../services/speech/speechService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface StoryPlayerProps {
   text: string;
@@ -26,6 +27,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
   text,
   onStateChange,
 }) => {
+  const { t } = useTranslation();
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [isInitialized, setIsInitialized] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
@@ -277,18 +279,18 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
   // Get selected voice name
   const getSelectedVoiceName = (): string => {
-    if (!selectedVoice) return 'Default Voice';
+    if (!selectedVoice) return t('stories:player.defaultVoice');
     // First try to find in available voices, then in all voices
     const voice = availableVoices.find((v) => v.identifier === selectedVoice) ||
                   allVoices.find((v) => v.identifier === selectedVoice);
-    return voice?.name || voice?.identifier || 'Default Voice';
+    return voice?.name || voice?.identifier || t('stories:player.defaultVoice');
   };
 
   if (!isInitialized) {
     return (
       <Card style={styles.card}>
         <Card.Content>
-          <Text style={styles.initializingText}>Initializing player...</Text>
+          <Text style={styles.initializingText}>{t('stories:player.initializing')}</Text>
         </Card.Content>
       </Card>
     );
@@ -303,12 +305,12 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     <Card style={styles.card}>
       <Card.Content>
         <View style={styles.header}>
-          <Text style={styles.title}>Audio Player</Text>
+          <Text style={styles.title}>{t('stories:player.title')}</Text>
         </View>
 
         {/* Voice Selection */}
         <View style={styles.voiceControlRow}>
-          <Text style={[styles.label, playerState === 'playing' && styles.disabledLabel]}>Voice:</Text>
+          <Text style={[styles.label, playerState === 'playing' && styles.disabledLabel]}>{t('stories:player.voice')}</Text>
           <Menu
             key={`voice-menu-${selectedVoice || 'none'}`}
             visible={voiceMenuVisible && playerState !== 'playing'}
@@ -360,7 +362,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
                 onPress={() => {
                   setVoiceMenuVisible(false);
                 }}
-                title="No voices available"
+                title={t('stories:player.noVoicesAvailable')}
                 disabled
               />
             )}
@@ -369,7 +371,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
         {/* Speed Control */}
         <View style={styles.controlRow}>
-          <Text style={[styles.label, playerState === 'playing' && styles.disabledLabel]}>Speed:</Text>
+          <Text style={[styles.label, playerState === 'playing' && styles.disabledLabel]}>{t('stories:player.speed')}</Text>
           <View style={styles.speedControls}>
             <TouchableOpacity
               style={[
@@ -457,10 +459,10 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         <View style={styles.statusRow}>
           <Text style={styles.statusText}>
             {playerState === 'playing'
-              ? 'Playing...'
+              ? t('stories:player.status.playing')
               : playerState === 'stopped'
-              ? 'Stopped'
-              : 'Ready'}
+              ? t('stories:player.status.stopped')
+              : t('stories:player.status.ready')}
           </Text>
         </View>
       </Card.Content>

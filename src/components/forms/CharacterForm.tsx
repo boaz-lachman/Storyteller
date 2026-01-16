@@ -14,6 +14,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Character } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface CharacterFormProps {
   character?: Character | null;
@@ -33,6 +34,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   isLoading = false,
   storyId,
 }) => {
+  const { t } = useTranslation();
   // Use custom hook for form logic
   const {
     name,
@@ -64,35 +66,35 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.sectionTitle}>Basic Information</Text>
+      <Text style={styles.sectionTitle}>{t('entities:characters.sections.basicInfo')}</Text>
       
       <Input
-        label="Name"
+        label={t('entities:characters.fields.name')}
         value={name}
         onChangeText={setName}
         error={errors.name}
         required
-        placeholder="Enter character name"
+        placeholder={t('entities:characters.fields.namePlaceholder')}
         containerStyle={styles.inputContainer}
       />
 
       <Input
-        label="Description"
+        label={t('entities:characters.fields.description')}
         value={description}
         onChangeText={setDescription}
         error={errors.description}
         required
-        placeholder="Enter character description"
+        placeholder={t('entities:characters.fields.descriptionPlaceholder')}
         multiline
         numberOfLines={4}
         containerStyle={styles.inputContainer}
       />
 
-      <Text style={styles.sectionTitle}>Character Attributes</Text>
+      <Text style={styles.sectionTitle}>{t('entities:characters.sections.attributes')}</Text>
 
       {/* Role Picker */}
       <View style={styles.pickerContainer}>
-        <Text style={styles.pickerLabel}>Role *</Text>
+        <Text style={styles.pickerLabel}>{t('entities:characters.fields.role')} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={role}
@@ -100,13 +102,33 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
             style={styles.picker}
             dropdownIconColor={colors.text}
           >
-            {CHARACTER_FORM_OPTIONS.ROLE.map((option) => (
-              <Picker.Item
-                key={option.value}
-                label={option.label}
-                value={option.value}
-              />
-            ))}
+            {CHARACTER_FORM_OPTIONS.ROLE.map((option) => {
+              let translatedLabel = option.label;
+              // Translate role labels
+              switch (option.value) {
+                case 'protagonist':
+                  translatedLabel = t('entities:common.roles.protagonist');
+                  break;
+                case 'antagonist':
+                  translatedLabel = t('entities:common.roles.antagonist');
+                  break;
+                case 'supporting':
+                  translatedLabel = t('entities:common.roles.supporting');
+                  break;
+                case 'minor':
+                  translatedLabel = t('entities:common.roles.minor');
+                  break;
+                default:
+                  translatedLabel = option.label;
+              }
+              return (
+                <Picker.Item
+                  key={option.value}
+                  label={translatedLabel}
+                  value={option.value}
+                />
+              );
+            })}
           </Picker>
         </View>
       </View>
@@ -114,7 +136,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
       {/* Importance Slider */}
       <View style={styles.sliderContainer}>
         <View style={styles.sliderHeader}>
-          <Text style={styles.sliderLabel}>Importance *</Text>
+          <Text style={styles.sliderLabel}>{t('entities:characters.fields.importance')} *</Text>
           <Text style={styles.sliderValue}>{importance}/10</Text>
         </View>
         <Slider
@@ -137,24 +159,24 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>Additional Details</Text>
+      <Text style={styles.sectionTitle}>{t('entities:characters.sections.additionalDetails')}</Text>
 
       {/* Traits Input */}
       <Input
-        label="Traits"
+        label={t('entities:characters.fields.traits')}
         value={traitsInput}
         onChangeText={setTraitsInput}
-        placeholder="Enter traits separated by commas (e.g., brave, intelligent, kind)"
-        helperText="Separate multiple traits with commas"
+        placeholder={t('entities:characters.fields.traitsPlaceholderExample')}
+        helperText={t('entities:characters.fields.traitsHelper')}
         containerStyle={styles.inputContainer}
       />
 
       {/* Backstory Input */}
       <Input
-        label="Backstory"
+        label={t('entities:characters.fields.backstory')}
         value={backstory}
         onChangeText={setBackstory}
-        placeholder="Enter character backstory (optional)"
+        placeholder={t('entities:characters.fields.backstoryPlaceholder')}
         multiline
         numberOfLines={4}
         containerStyle={styles.inputContainer}
@@ -167,7 +189,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           disabled={isLoading}
           style={[styles.button, styles.cancelButton]}
         >
-          Cancel
+          {t('entities:characters.buttons.cancel')}
         </PaperButton>
         <PaperButton
           variant="primary"
@@ -176,7 +198,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           disabled={isLoading || !hasChanges}
           style={[styles.button, styles.submitButton]}
         >
-          {character ? 'Save' : 'Create'}
+          {character ? t('entities:characters.buttons.save') : t('entities:characters.buttons.create')}
         </PaperButton>
       </View>
     </ScrollView>
