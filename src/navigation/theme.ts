@@ -6,6 +6,10 @@ import type { Theme as NavigationTheme } from '@react-navigation/native';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/typography';
 import { spacing } from '../constants/spacing';
+import { I18nManager } from 'react-native';
+
+
+const isRTL = I18nManager.isRTL; 
 
 /**
  * Default navigation theme for React Navigation
@@ -76,16 +80,18 @@ export const materialTopTabOptions = {
     borderBottomColor: colors.borderLight,
     elevation: 0, // Android
     shadowOpacity: 0, // iOS
-    direction: 'ltr',
+    direction: "ltr",
+    transform: isRTL ? [{ scaleX: -1 }] : undefined,
   },
   tabBarIndicatorStyle: {
-    backgroundColor: colors.primary,
+    backgroundColor: isRTL ?  "transparent": colors.primary,
     height: 3,
   },
   tabBarActiveTintColor: colors.primary,
   tabBarInactiveTintColor: colors.textTertiary,
   tabBarLabelStyle: {
     fontFamily: typography.fontFamily.semibold,
+    transform: isRTL ? [{ scaleX: -1 }] : undefined,
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
     textTransform: 'none' as const,
