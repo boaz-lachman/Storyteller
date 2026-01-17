@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS Stories (
   generatedContent TEXT,
   generatedAt INTEGER,
   wordCount INTEGER,
+  cutOffChunks TEXT,
   createdAt INTEGER NOT NULL,
   updatedAt INTEGER NOT NULL,
   synced INTEGER NOT NULL DEFAULT 0

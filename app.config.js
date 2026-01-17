@@ -68,14 +68,12 @@ export default ({ config }) => {
         'expo-secure-store',
         'expo-notifications',
         [
-          'expo-background-fetch',
+          "expo-background-task",
           {
-            backgroundFetchConfig: {
-              minimumInterval: 15,
-              stopOnTerminate: false,
-              startOnBoot: true,
-            },
-          },
+            "backgroundTaskConfig": {
+              "minimumInterval": 15
+            }
+          }
         ],
         '@livekit/react-native-expo-plugin',
         '@config-plugins/react-native-webrtc',

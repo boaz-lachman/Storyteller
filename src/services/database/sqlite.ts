@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { getCurrentTimestamp } from '../../utils/helpers';
 
 const DB_NAME = 'storyteller.db';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 let db: SQLite.SQLiteDatabase | null = null;
 let isInitializing = false;
@@ -163,6 +163,9 @@ async function getMigrationSQL(version: number): Promise<string | null> {
       // For now, return the SQL as a string constant since dynamic import doesn't work
       return getInitialSchemaSQL();
     }
+    if (version === 2) {
+      return getMigration002SQL();
+    }
     return null;
   } catch (error) {
     console.error(`Error loading migration ${version}:`, error);
@@ -202,6 +205,7 @@ function getInitialSchemaSQL(): string {
       generatedContent TEXT,
       generatedAt INTEGER,
       wordCount INTEGER,
+      cutOffChunks TEXT,
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
       synced INTEGER NOT NULL DEFAULT 0
@@ -351,6 +355,16 @@ function getInitialSchemaSQL(): string {
     CREATE INDEX IF NOT EXISTS idx_syncQueue_entityId ON SyncQueue(entityId);
     CREATE INDEX IF NOT EXISTS idx_syncQueue_timestamp ON SyncQueue(timestamp);
     CREATE INDEX IF NOT EXISTS idx_syncQueue_retryCount ON SyncQueue(retryCount);
+  `;
+}
+
+/**
+ * Migration 002: Add cutOffChunks column to Stories table
+ */
+function getMigration002SQL(): string {
+  return `
+    -- Migration 002: Add cutOffChunks column to Stories table
+    ALTER TABLE Stories ADD COLUMN cutOffChunks TEXT;
   `;
 }
 

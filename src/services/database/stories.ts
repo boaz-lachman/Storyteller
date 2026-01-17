@@ -29,6 +29,7 @@ export const createStory = async (story: StoryCreateInput & { userId: string }):
     generatedContent: story.generatedContent,
     generatedAt: story.generatedAt,
     wordCount: story.wordCount,
+    cutOffChunks: story.cutOffChunks,
     createdAt: now,
     updatedAt: now,
     synced: story.synced ?? false,
@@ -37,9 +38,9 @@ export const createStory = async (story: StoryCreateInput & { userId: string }):
   await db.runAsync(
     `INSERT INTO Stories (
       id, userId, title, description, length, theme, tone, pov, targetAudience,
-      setting, timePeriod, status, generatedContent, generatedAt, wordCount,
+      setting, timePeriod, status, generatedContent, generatedAt, wordCount, cutOffChunks,
       createdAt, updatedAt, synced
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       newStory.id,
       newStory.userId,
@@ -56,6 +57,7 @@ export const createStory = async (story: StoryCreateInput & { userId: string }):
       newStory.generatedContent || null,
       newStory.generatedAt || null,
       newStory.wordCount || null,
+      newStory.cutOffChunks ? JSON.stringify(newStory.cutOffChunks) : null,
       newStory.createdAt,
       newStory.updatedAt,
       newStory.synced ? 1 : 0,
@@ -77,8 +79,19 @@ export const getStory = async (id: string): Promise<Story | null> => {
 
   if (!result) return null;
 
+  // Deserialize cutOffChunks from JSON
+  let cutOffChunks: number[] | undefined;
+  if (result.cutOffChunks) {
+    try {
+      cutOffChunks = JSON.parse(result.cutOffChunks as string);
+    } catch (e) {
+      cutOffChunks = undefined;
+    }
+  }
+
   return {
     ...result,
+    cutOffChunks,
     synced: result.synced,
   } as Story;
 };
@@ -93,10 +106,23 @@ export const getAllStories = async (userId: string): Promise<Story[]> => {
     [userId]
   );
 
-  return results.map((story) => ({
-    ...story,
-    synced: !!story.synced,
-  })) as Story[];
+  return results.map((story) => {
+    // Deserialize cutOffChunks from JSON
+    let cutOffChunks: number[] | undefined;
+    if (story.cutOffChunks) {
+      try {
+        cutOffChunks = JSON.parse(story.cutOffChunks as string);
+      } catch (e) {
+        cutOffChunks = undefined;
+      }
+    }
+
+    return {
+      ...story,
+      cutOffChunks,
+      synced: !!story.synced,
+    };
+  }) as Story[];
 };
 
 /**
@@ -116,7 +142,12 @@ export const updateStory = async (
   Object.entries(updates).forEach(([key, value]) => {
     if (value !== undefined && key !== 'id' && key !== 'userId') {
       fields.push(`${key} = ?`);
-      values.push(value);
+      // Serialize cutOffChunks array to JSON string
+      if (key === 'cutOffChunks' && Array.isArray(value)) {
+        values.push(value.length > 0 ? JSON.stringify(value) : null);
+      } else {
+        values.push(value);
+      }
     }
   });
 
@@ -157,10 +188,23 @@ export const getUnsyncedStories = async (userId: string): Promise<Story[]> => {
     [userId]
   );
 
-  return results.map((story) => ({
-    ...story,
-    synced: !!story.synced,
-  })) as Story[];
+  return results.map((story) => {
+    // Deserialize cutOffChunks from JSON
+    let cutOffChunks: number[] | undefined;
+    if (story.cutOffChunks) {
+      try {
+        cutOffChunks = JSON.parse(story.cutOffChunks as string);
+      } catch (e) {
+        cutOffChunks = undefined;
+      }
+    }
+
+    return {
+      ...story,
+      cutOffChunks,
+      synced: !!story.synced,
+    };
+  }) as Story[];
 };
 
 /**

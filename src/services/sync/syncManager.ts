@@ -4,7 +4,6 @@
  * Manages sync triggers: app start, foreground, network changes, entity changes, manual
  */
 import { AppState, AppStateStatus } from 'react-native';
-import { store } from '../../store';
 import {
   setSyncing,
   setLastSyncTime,
@@ -17,6 +16,16 @@ import { getLastIncrementalSyncTime } from '../database/syncMetadata';
 import { syncQueueManager } from './queueManager';
 import { registerBackgroundSync } from './backgroundSync';
 import { getCurrentTimestamp, debounce } from '../../utils/helpers';
+
+/**
+ * Lazy store getter to avoid circular dependencies
+ * The store is only imported when needed, breaking the circular dependency
+ */
+const getStore = () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { store } = require('../../store');
+  return store;
+};
 
 type SyncTriggerReason =
   | 'app-start'
@@ -114,7 +123,7 @@ class SyncManager {
     } = options;
 
     // Check if already syncing
-    const isSyncing = store.getState().sync.isSyncing || this.syncLock;
+    const isSyncing = getStore().getState().sync.isSyncing || this.syncLock;
 
     if (skipIfSyncing && isSyncing) {
       console.log(`Sync skipped (already syncing) - reason: ${reason}`);
@@ -175,11 +184,12 @@ class SyncManager {
       const isOnline = await networkService.isOnline();
       if (!isOnline) {
         console.log('Sync skipped - no network connection');
-        store.dispatch(setSyncError('No network connection'));
+        getStore().dispatch(setSyncError('No network connection'));
         return;
       }
 
       // Update Redux state
+      const store = getStore();
       store.dispatch(setSyncing(true));
       store.dispatch(setSyncError(null));
 
@@ -249,12 +259,12 @@ class SyncManager {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-      store.dispatch(setSyncError(errorMessage));
+      getStore().dispatch(setSyncError(errorMessage));
       console.error('Sync error:', error);
     } finally {
       // Release lock
       this.syncLock = false;
-      store.dispatch(setSyncing(false));
+      getStore().dispatch(setSyncing(false));
 
       // Process pending request if any
       if (this.pendingSyncRequest) {
@@ -273,7 +283,7 @@ class SyncManager {
    * Check if sync is currently in progress
    */
   isSyncing(): boolean {
-    return this.syncLock || store.getState().sync.isSyncing;
+    return this.syncLock || getStore().getState().sync.isSyncing;
   }
 
   /**

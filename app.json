@@ -16,7 +16,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "This app uses speech recognition to read your stories aloud.",
-        "NSSpeechSynthesisUsageDescription": "This app uses text-to-speech to read your stories aloud."
+        "NSSpeechSynthesisUsageDescription": "This app uses text-to-speech to read your stories aloud.",
+        "UIBackgroundModes": ["processing"],
+        "BGTaskSchedulerPermittedIdentifiers": [
+          "com.expo.modules.backgroundtask.processing"
+        ]
       }
     },
     "android": {
@@ -50,12 +54,10 @@
       "expo-secure-store",
       "expo-notifications",
       [
-        "expo-background-fetch",
+        "expo-background-task",
         {
-          "backgroundFetchConfig": {
-            "minimumInterval": 15,
-            "stopOnTerminate": false,
-            "startOnBoot": true
+          "backgroundTaskConfig": {
+            "minimumInterval": 15
           }
         }
       ],
