@@ -32,8 +32,9 @@ export interface SyncIndicatorProps {
  * Sync Indicator Component
  * Displays a circular indicator with cloud-sync icon
  * Green when synced, red when not synced
+ * Memoized to prevent unnecessary re-renders
  */
-export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
+export const SyncIndicator: React.FC<SyncIndicatorProps> = React.memo(({
   synced,
   iconSize = 16,
   containerSize,
@@ -62,7 +63,15 @@ export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
       />
     </View>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if synced status, iconSize, containerSize, or style changes
+  return (
+    prevProps.synced === nextProps.synced &&
+    prevProps.iconSize === nextProps.iconSize &&
+    prevProps.containerSize === nextProps.containerSize &&
+    prevProps.style === nextProps.style
+  );
+});
 
 const styles = StyleSheet.create({
   container: {

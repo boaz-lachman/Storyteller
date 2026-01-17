@@ -30,6 +30,8 @@ export interface SyncStatusBarProps {
 
 /**
  * Sync Status Bar Component
+ * Note: Not fully memoized because it uses useSync hook which needs to react to state changes
+ * But useSync is optimized with shallow equality to reduce re-renders
  */
 export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
   showSyncButton = true,
@@ -64,7 +66,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({
       {/* Sync Status */}
       {isSyncing ? (
         <View style={styles.syncingContainer}>
-          <MainBookActivityIndicator size={24} speed={1.5} />
+          <MainBookActivityIndicator size={24} speed={1} />
         </View>
       ) : syncError ? (
         <View style={styles.errorContainer}>

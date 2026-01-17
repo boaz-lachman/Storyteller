@@ -23,14 +23,17 @@ export interface EmptyStateProps {
 
 /**
  * Empty State Component
+ * Memoized to prevent unnecessary re-renders during sync
+ * Only re-renders when isSyncing changes to true/false
  */
-export const EmptyState: React.FC<EmptyStateProps> = ({
+export const EmptyState: React.FC<EmptyStateProps> = React.memo(({
   title,
   message,
   icon,
 }) => {
   const { t } = useTranslation();
-  const isSyncing = useAppSelector(selectIsSyncing);
+  // Use shallow equality to prevent re-renders when sync state changes but isSyncing stays the same
+  const isSyncing = useAppSelector(selectIsSyncing, (left, right) => left === right);
   
   // Default icon if none provided
   const defaultIcon = <AntDesign name="file-text" size={64} color={colors.textTertiary} />;
@@ -53,7 +56,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if props change
+  return (
+    prevProps.title === nextProps.title &&
+    prevProps.message === nextProps.message &&
+    prevProps.icon === nextProps.icon
+  );
+});
 
 const styles = StyleSheet.create({
   container: {

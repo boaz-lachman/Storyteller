@@ -3,6 +3,7 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
+      'babel-plugin-react-compiler', // React Compiler plugin - auto-optimizes components
       'react-native-reanimated/plugin', // Must be listed last
     ],
   };

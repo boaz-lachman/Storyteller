@@ -44,8 +44,9 @@ const getImportanceColor = (importance: number): string => {
 
 /**
  * Chapter Card Component
+ * Memoized to prevent unnecessary re-renders during sync
  */
-export const ChapterCard: React.FC<ChapterCardProps> = ({
+export const ChapterCard = React.memo<ChapterCardProps>(({
   chapter,
   onPress,
   onDelete,
@@ -200,7 +201,24 @@ export const ChapterCard: React.FC<ChapterCardProps> = ({
       </Card>
     </AnimatedTouchableOpacity>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if chapter, onPress, onDelete, onMoveUp, onMoveDown, or position props change
+  return (
+    prevProps.chapter.id === nextProps.chapter.id &&
+    prevProps.chapter.title === nextProps.chapter.title &&
+    prevProps.chapter.description === nextProps.chapter.description &&
+    prevProps.chapter.order === nextProps.chapter.order &&
+    prevProps.chapter.importance === nextProps.chapter.importance &&
+    prevProps.chapter.createdAt === nextProps.chapter.createdAt &&
+    prevProps.chapter.synced === nextProps.chapter.synced &&
+    prevProps.isFirst === nextProps.isFirst &&
+    prevProps.isLast === nextProps.isLast &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.onDelete === nextProps.onDelete &&
+    prevProps.onMoveUp === nextProps.onMoveUp &&
+    prevProps.onMoveDown === nextProps.onMoveDown
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

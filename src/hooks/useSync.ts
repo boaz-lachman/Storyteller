@@ -19,15 +19,21 @@ import { useAuth } from './useAuth';
 /**
  * Hook for managing sync operations
  * Integrates with syncManager to handle all sync triggers
+ * Optimized with shallow equality to reduce re-renders
  */
 export const useSync = () => {
   const dispatch = useAppDispatch();
   const { user } = useAuth();
-  const isSyncing = useAppSelector(selectIsSyncing);
-  const lastSyncTime = useAppSelector(selectLastSyncTime);
-  const isOnline = useAppSelector(selectIsOnline);
-  const syncError = useAppSelector(selectSyncError);
-  const syncQueue = useAppSelector(selectSyncQueue);
+  // Use shallow equality to prevent re-renders when unrelated sync state changes
+  const isSyncing = useAppSelector(selectIsSyncing, (left, right) => left === right);
+  const lastSyncTime = useAppSelector(selectLastSyncTime, (left, right) => left === right);
+  const isOnline = useAppSelector(selectIsOnline, (left, right) => left === right);
+  const syncError = useAppSelector(selectSyncError, (left, right) => left === right);
+  // For syncQueue, use shallow equality since it's an array
+  const syncQueue = useAppSelector(selectSyncQueue, (left, right) => {
+    if (left.length !== right.length) return false;
+    return left.every((item, index) => item.id === right[index]?.id);
+  });
   const isInitialized = useRef(false);
 
   /**

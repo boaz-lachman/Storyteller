@@ -60,8 +60,9 @@ const getImportanceColor = (importance: number): string => {
 
 /**
  * Blurb Card Component
+ * Memoized to prevent unnecessary re-renders during sync
  */
-export const BlurbCard: React.FC<BlurbCardProps> = ({
+export const BlurbCard: React.FC<BlurbCardProps> = React.memo(({
   blurb,
   onPress,
   onDelete,
@@ -190,7 +191,20 @@ export const BlurbCard: React.FC<BlurbCardProps> = ({
       </Card>
     </AnimatedTouchableOpacity>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if blurb, onPress, or onDelete callback references change
+  return (
+    prevProps.blurb.id === nextProps.blurb.id &&
+    prevProps.blurb.title === nextProps.blurb.title &&
+    prevProps.blurb.description === nextProps.blurb.description &&
+    prevProps.blurb.category === nextProps.blurb.category &&
+    prevProps.blurb.importance === nextProps.blurb.importance &&
+    prevProps.blurb.createdAt === nextProps.blurb.createdAt &&
+    prevProps.blurb.synced === nextProps.blurb.synced &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

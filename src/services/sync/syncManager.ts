@@ -3,7 +3,7 @@
  * Coordinates all sync operations and prevents concurrent syncs
  * Manages sync triggers: app start, foreground, network changes, entity changes, manual
  */
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, InteractionManager } from 'react-native';
 import {
   setSyncing,
   setLastSyncTime,
@@ -227,31 +227,38 @@ class SyncManager {
           `Sync completed: ${syncResult.pushed} pushed, ${syncResult.pulled} pulled - reason: ${reason}`
         );
 
-        // Invalidate RTK Query cache to update sync indicators across all screens
-        // This ensures entities refetch with updated synced status
-        // Use require to avoid circular dependencies (only load when needed)
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { storiesApi } = require('../../store/api/storiesApi');
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { charactersApi } = require('../../store/api/charactersApi');
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { blurbsApi } = require('../../store/api/blurbsApi');
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { scenesApi } = require('../../store/api/scenesApi');
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { chaptersApi } = require('../../store/api/chaptersApi');
-          
-          store.dispatch(storiesApi.util.invalidateTags([{ type: 'Story' }]));
-          store.dispatch(charactersApi.util.invalidateTags([{ type: 'Character' }]));
-          store.dispatch(blurbsApi.util.invalidateTags([{ type: 'Blurb' }]));
-          store.dispatch(scenesApi.util.invalidateTags([{ type: 'Scene' }]));
-          store.dispatch(chaptersApi.util.invalidateTags([{ type: 'Chapter' }]));
-          console.log('RTK Query cache invalidated - sync indicators will update');
-        } catch (error) {
-          console.error('Error invalidating RTK Query cache:', error);
-          // Non-critical error, continue
-        }
+        // Defer cache invalidations until after all interactions complete
+        // This prevents stutters during sync by deferring expensive refetch operations
+        InteractionManager.runAfterInteractions(() => {
+          // Invalidate RTK Query cache to update sync indicators across all screens
+          // This ensures entities refetch with updated synced status
+          // Use require to avoid circular dependencies (only load when needed)
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { storiesApi } = require('../../store/api/storiesApi');
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { charactersApi } = require('../../store/api/charactersApi');
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { blurbsApi } = require('../../store/api/blurbsApi');
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { scenesApi } = require('../../store/api/scenesApi');
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const { chaptersApi } = require('../../store/api/chaptersApi');
+            
+            // RTK Query automatically batches these dispatches, so they're efficient
+            // Even though we invalidate all entity types, memoized components prevent unnecessary re-renders
+            // Deferred to prevent blocking UI thread during sync
+            getStore().dispatch(storiesApi.util.invalidateTags([{ type: 'Story' }]));
+            getStore().dispatch(charactersApi.util.invalidateTags([{ type: 'Character' }]));
+            getStore().dispatch(blurbsApi.util.invalidateTags([{ type: 'Blurb' }]));
+            getStore().dispatch(scenesApi.util.invalidateTags([{ type: 'Scene' }]));
+            getStore().dispatch(chaptersApi.util.invalidateTags([{ type: 'Chapter' }]));
+            console.log('RTK Query cache invalidated - sync indicators will update');
+          } catch (error) {
+            console.error('Error invalidating RTK Query cache:', error);
+            // Non-critical error, continue
+          }
+        });
       } else {
         const errorMessage = syncResult.errors.join(', ') || 'Sync failed';
         store.dispatch(setSyncError(errorMessage));

@@ -51,8 +51,9 @@ const getConflictColor = (conflictLevel?: number): string => {
 
 /**
  * Scene Card Component
+ * Memoized to prevent unnecessary re-renders during sync
  */
-export const SceneCard: React.FC<SceneCardProps> = ({
+export const SceneCard: React.FC<SceneCardProps> = React.memo(({
   scene,
   onPress,
   onDelete,
@@ -206,7 +207,22 @@ export const SceneCard: React.FC<SceneCardProps> = ({
       </Card>
     </AnimatedTouchableOpacity>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if scene, onPress, or onDelete callback references change
+  return (
+    prevProps.scene.id === nextProps.scene.id &&
+    prevProps.scene.title === nextProps.scene.title &&
+    prevProps.scene.description === nextProps.scene.description &&
+    prevProps.scene.setting === nextProps.scene.setting &&
+    prevProps.scene.importance === nextProps.scene.importance &&
+    prevProps.scene.conflictLevel === nextProps.scene.conflictLevel &&
+    prevProps.scene.createdAt === nextProps.scene.createdAt &&
+    prevProps.scene.synced === nextProps.scene.synced &&
+    JSON.stringify(prevProps.scene.characters) === JSON.stringify(nextProps.scene.characters) &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

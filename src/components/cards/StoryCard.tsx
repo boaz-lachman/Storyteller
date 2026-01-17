@@ -35,8 +35,9 @@ export interface StoryCardProps {
 /**
  * Story Card Component
  * Displays story information with swipe-to-delete
+ * Memoized to prevent unnecessary re-renders during sync
  */
-export const StoryCard: React.FC<StoryCardProps> = ({
+export const StoryCard: React.FC<StoryCardProps> = React.memo(({
   story,
   onPress,
   onDelete,
@@ -305,7 +306,21 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       </Portal>
     </Swipeable>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if story, onPress, or onDelete callback references change
+  return (
+    prevProps.story.id === nextProps.story.id &&
+    prevProps.story.title === nextProps.story.title &&
+    prevProps.story.description === nextProps.story.description &&
+    prevProps.story.status === nextProps.story.status &&
+    prevProps.story.theme === nextProps.story.theme &&
+    prevProps.story.length === nextProps.story.length &&
+    prevProps.story.createdAt === nextProps.story.createdAt &&
+    prevProps.story.synced === nextProps.story.synced &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
 
 const styles = StyleSheet.create({
   touchable: {

@@ -58,8 +58,9 @@ const getImportanceColor = (importance: number): string => {
 
 /**
  * Character Card Component
+ * Memoized to prevent unnecessary re-renders during sync
  */
-export const CharacterCard: React.FC<CharacterCardProps> = ({
+export const CharacterCard: React.FC<CharacterCardProps> = React.memo(({
   character,
   onPress,
   onDelete,
@@ -186,7 +187,20 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
       </Card>
     </AnimatedTouchableOpacity>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if character, onPress, or onDelete callback references change
+  return (
+    prevProps.character.id === nextProps.character.id &&
+    prevProps.character.name === nextProps.character.name &&
+    prevProps.character.description === nextProps.character.description &&
+    prevProps.character.role === nextProps.character.role &&
+    prevProps.character.importance === nextProps.character.importance &&
+    prevProps.character.createdAt === nextProps.character.createdAt &&
+    prevProps.character.synced === nextProps.character.synced &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
 
 const styles = StyleSheet.create({
   card: {
