@@ -4,6 +4,7 @@
 import { getDb } from './sqlite';
 import { Chapter, ChapterCreateInput, ChapterUpdateInput } from '../../types';
 import { getCurrentTimestamp, generateId } from '../../utils/helpers';
+import { canEditEntity } from '../../utils/permissions';
 
 /**
  * Create a new chapter
@@ -189,8 +190,21 @@ export const getChaptersByStory = async (
  */
 export const updateChapter = async (
   id: string,
-  updates: ChapterUpdateInput
+  updates: ChapterUpdateInput,
+  userId?: string // Optional: if provided, will check permissions
 ): Promise<Chapter | null> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const chapter = await getChapter(id);
+    if (!chapter) {
+      throw new Error('Chapter not found');
+    }
+    const canEdit = await canEditEntity(userId, chapter);
+    if (!canEdit) {
+      throw new Error('You do not have permission to edit this chapter');
+    }
+  }
+
   const db = await getDb();
   const now = getCurrentTimestamp();
 
@@ -261,7 +275,22 @@ export const reorderChapters = async (
 /**
  * Delete a chapter (hard delete - removes from database)
  */
-export const deleteChapter = async (id: string): Promise<void> => {
+export const deleteChapter = async (
+  id: string,
+  userId?: string // Optional: if provided, will check permissions
+): Promise<void> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const chapter = await getChapter(id);
+    if (!chapter) {
+      throw new Error('Chapter not found');
+    }
+    const canDelete = await canEditEntity(userId, chapter);
+    if (!canDelete) {
+      throw new Error('You do not have permission to delete this chapter');
+    }
+  }
+
   const db = await getDb();
   await db.runAsync('DELETE FROM Chapters WHERE id = ?', [id]);
 };
@@ -317,4 +346,32 @@ export const getUnsyncedChapters = async (userId: string): Promise<Chapter[]> =>
 export const markChapterSynced = async (id: string): Promise<void> => {
   const db = await getDb();
   await db.runAsync('UPDATE Chapters SET synced = 1 WHERE id = ?', [id]);
+};
+
+/**
+ * Get multiple chapters by IDs (batch query for sync performance)
+ * Returns a Map for O(1) lookup
+ */
+export const getChaptersByIds = async (ids: string[]): Promise<Map<string, Chapter>> => {
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const db = await getDb();
+  const placeholders = ids.map(() => '?').join(', ');
+  const results = await db.getAllAsync<Chapter>(
+    `SELECT * FROM Chapters WHERE id IN (${placeholders}) AND deleted = 0`,
+    ids
+  );
+
+  const chaptersMap = new Map<string, Chapter>();
+  results.forEach((chapter) => {
+    chaptersMap.set(chapter.id, {
+      ...chapter,
+      synced: !!chapter.synced,
+      deleted: !!chapter.deleted,
+    } as Chapter);
+  });
+
+  return chaptersMap;
 };

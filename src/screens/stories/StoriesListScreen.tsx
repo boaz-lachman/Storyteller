@@ -21,7 +21,9 @@ import { store } from '../../store';
 import { StoryCard } from '../../components/cards/StoryCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { CreateStoryModal } from '../../components/modals/CreateStoryModal';
+import { ShareStoryModal } from '../../components/modals/ShareStoryModal';
 import { FloatingActionButton, type FABOption } from '../../components/common/FloatingActionButton';
+import { canShareStory } from '../../utils/permissions';
 import { GradientBackground } from '../../components/common/GradientBackground';
 import { Input } from '../../components/forms/Input';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
@@ -54,6 +56,8 @@ export default function StoriesListScreen() {
   const dispatch = useAppDispatch();
   const { user } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
 
   // Clear checked users when user logs out
   useEffect(() => {
@@ -173,6 +177,26 @@ export default function StoriesListScreen() {
       navigation.navigate('StoryDetail', { storyId: story.id });
     },
     [navigation]
+  );
+
+  // Handle share story
+  const handleShareStory = useCallback(
+    async (story: Story) => {
+      if (!user) return;
+      const canShare = await canShareStory(user.uid, story);
+      if (!canShare) {
+        dispatch(
+          showSnackbar({
+            message: t('stories:permissions.noShare'),
+            type: 'error',
+          })
+        );
+        return;
+      }
+      setSelectedStory(story);
+      setShareModalVisible(true);
+    },
+    [user, dispatch, t]
   );
 
 
@@ -345,11 +369,12 @@ export default function StoriesListScreen() {
             story={item}
             onPress={handleStoryPress}
             onDelete={handleStoryDelete}
+            onShare={handleShareStory}
           />
         </View>
       );
     },
-    [handleStoryPress, handleStoryDelete]
+    [handleStoryPress, handleStoryDelete, handleShareStory]
   );
 
   // Render empty state
@@ -548,6 +573,14 @@ export default function StoriesListScreen() {
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreateStory}
         isLoading={isCreating}
+      />
+      <ShareStoryModal
+        visible={shareModalVisible}
+        onClose={() => {
+          setShareModalVisible(false);
+          setSelectedStory(null);
+        }}
+        story={selectedStory}
       />
     </GradientBackground>
   );

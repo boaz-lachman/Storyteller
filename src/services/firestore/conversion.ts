@@ -9,6 +9,7 @@ import type {
   Scene,
   Chapter,
   GeneratedStory,
+  StoryShare,
 } from '../../types';
 import { safeJsonParse, safeJsonStringify } from '../../utils/helpers';
 import { Timestamp } from 'firebase/firestore';
@@ -174,6 +175,19 @@ export interface FirestoreGeneratedStoryData {
   complexity: string;
   prompt: string;
   wordCount: number;
+  createdAt: number;
+  updatedAt: number;
+  synced: boolean;
+}
+
+export interface FirestoreStoryShareData {
+  id: string; // StoryShare ID (also used as document ID, but stored as field for reference)
+  storyId: string;
+  ownerId: string;
+  sharedWithUserId: string;
+  sharedWithEmail: string;
+  permission: 'read' | 'read-write';
+  sharedByUserId: string;
   createdAt: number;
   updatedAt: number;
   synced: boolean;
@@ -513,6 +527,52 @@ export function fromFirestoreGeneratedStory(
     complexity: data.complexity as GeneratedStory['complexity'],
     prompt: data.prompt,
     wordCount: data.wordCount,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
+    synced: true,
+  };
+}
+
+// ============================================================================
+// StoryShare Conversion
+// ============================================================================
+
+/**
+ * Convert StoryShare (SQLite format) to Firestore format
+ */
+export function toFirestoreStoryShare(share: StoryShare): FirestoreStoryShareData {
+  return {
+    id: share.id,
+    storyId: share.storyId,
+    ownerId: share.ownerId,
+    sharedWithUserId: share.sharedWithUserId,
+    sharedWithEmail: share.sharedWithEmail,
+    permission: share.permission,
+    sharedByUserId: share.sharedByUserId,
+    createdAt: share.createdAt,
+    updatedAt: share.updatedAt,
+    synced: true,
+  };
+}
+
+/**
+ * Convert Firestore document to StoryShare (SQLite format)
+ */
+export function fromFirestoreStoryShare(
+  docId: string,
+  data: FirestoreStoryShareData | any // Allow any to handle Timestamp objects
+): StoryShare {
+  // Use id from data if available, otherwise fallback to docId for backwards compatibility
+  const shareId = data.id || docId;
+  
+  return {
+    id: shareId,
+    storyId: data.storyId,
+    ownerId: data.ownerId,
+    sharedWithUserId: data.sharedWithUserId,
+    sharedWithEmail: data.sharedWithEmail,
+    permission: data.permission as 'read' | 'read-write',
+    sharedByUserId: data.sharedByUserId,
     createdAt: convertTimestamp(data.createdAt) || 0,
     updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true,

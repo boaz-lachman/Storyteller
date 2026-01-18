@@ -36,6 +36,8 @@ export interface Story {
   createdAt: number;
   updatedAt: number;
   synced: boolean;
+  // Computed field: permission level for the current user (not stored in DB)
+  permission?: StoryPermission;
 }
 
 export interface Character extends BaseEntity {
@@ -81,6 +83,43 @@ export interface GeneratedStory {
   createdAt: number;
   updatedAt: number;
   synced: boolean;
+}
+
+/**
+ * Story permission type
+ * - 'owner': User owns the story
+ * - 'read-write': User can read and edit the story
+ * - 'read': User can only read the story
+ * - null: User has no access
+ */
+export type StoryPermission = 'owner' | 'read-write' | 'read' | null;
+
+/**
+ * Story share interface
+ * Represents a sharing permission for a story
+ */
+export interface StoryShare {
+  id: string;
+  storyId: string;
+  ownerId: string;
+  sharedWithUserId: string;
+  sharedWithEmail: string;
+  permission: 'read' | 'read-write';
+  sharedByUserId: string;
+  createdAt: number;
+  updatedAt: number;
+  synced: boolean;
+}
+
+/**
+ * Shared story metadata
+ * Used for displaying shared story information in the UI
+ */
+export interface SharedStoryMetadata {
+  isShared: boolean;
+  permission: StoryPermission;
+  ownerName?: string;
+  ownerEmail?: string;
 }
 
 /**
@@ -136,7 +175,7 @@ export type {
  */
 export type StoryCreateInput = Omit<
   Story,
-  'id' | 'userId' | 'createdAt' | 'updatedAt' | 'synced'
+  'id' | 'userId' | 'createdAt' | 'updatedAt' | 'synced' | 'permission'
 >;
 
 export type StoryUpdateInput = Partial<StoryCreateInput>;
@@ -182,6 +221,18 @@ export type ChapterCreateInput = Omit<
 };
 
 export type ChapterUpdateInput = Partial<ChapterCreateInput>;
+
+/**
+ * Story Share Creation/Update Types
+ */
+export type StoryShareCreateInput = Omit<
+  StoryShare,
+  'id' | 'createdAt' | 'updatedAt' | 'synced'
+>;
+
+export type StoryShareUpdateInput = Partial<
+  Omit<StoryShare, 'id' | 'storyId' | 'ownerId' | 'sharedWithUserId' | 'sharedWithEmail' | 'createdAt' | 'synced'>
+>;
 
 /**
  * Story Generation Types

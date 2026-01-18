@@ -4,6 +4,7 @@
 import { getDb } from './sqlite';
 import { Character, CharacterCreateInput, CharacterUpdateInput } from '../../types';
 import { getCurrentTimestamp, generateId, safeJsonStringify, safeJsonParse } from '../../utils/helpers';
+import { canEditEntity } from '../../utils/permissions';
 
 /**
  * Create a new character
@@ -112,8 +113,21 @@ export const getCharactersByStory = async (
  */
 export const updateCharacter = async (
   id: string,
-  updates: CharacterUpdateInput
+  updates: CharacterUpdateInput,
+  userId?: string // Optional: if provided, will check permissions
 ): Promise<Character | null> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const character = await getCharacter(id);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+    const canEdit = await canEditEntity(userId, character);
+    if (!canEdit) {
+      throw new Error('You do not have permission to edit this character');
+    }
+  }
+
   const db = await getDb();
   const now = getCurrentTimestamp();
 
@@ -154,7 +168,22 @@ export const updateCharacter = async (
 /**
  * Delete a character (soft delete)
  */
-export const deleteCharacter = async (id: string): Promise<void> => {
+export const deleteCharacter = async (
+  id: string,
+  userId?: string // Optional: if provided, will check permissions
+): Promise<void> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const character = await getCharacter(id);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+    const canDelete = await canEditEntity(userId, character);
+    if (!canDelete) {
+      throw new Error('You do not have permission to delete this character');
+    }
+  }
+
   const db = await getDb();
   const now = getCurrentTimestamp();
   await db.runAsync(
@@ -187,4 +216,33 @@ export const getUnsyncedCharacters = async (userId: string): Promise<Character[]
 export const markCharacterSynced = async (id: string): Promise<void> => {
   const db = await getDb();
   await db.runAsync('UPDATE Characters SET synced = 1 WHERE id = ?', [id]);
+};
+
+/**
+ * Get multiple characters by IDs (batch query for sync performance)
+ * Returns a Map for O(1) lookup
+ */
+export const getCharactersByIds = async (ids: string[]): Promise<Map<string, Character>> => {
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const db = await getDb();
+  const placeholders = ids.map(() => '?').join(', ');
+  const results = await db.getAllAsync<any>(
+    `SELECT * FROM Characters WHERE id IN (${placeholders}) AND deleted = 0`,
+    ids
+  );
+
+  const charactersMap = new Map<string, Character>();
+  results.forEach((char) => {
+    charactersMap.set(char.id, {
+      ...char,
+      traits: safeJsonParse(char.traits, []),
+      synced: char.synced === 1,
+      deleted: char.deleted === 1,
+    } as Character);
+  });
+
+  return charactersMap;
 };

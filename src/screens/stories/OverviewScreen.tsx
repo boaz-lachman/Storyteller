@@ -26,6 +26,7 @@ import EditStoryModal from '../../components/modals/EditStoryModal';
 import { PaperIconButton } from '../../components/forms/PaperIconButton';
 import { StatisticsCards } from '../../components/common/StatisticsCards';
 import { GradientBackground } from '../../components/common/GradientBackground';
+import { PermissionGuard } from '../../components/common/PermissionGuard';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
@@ -129,6 +130,20 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
   // Handle edit form submission
   const handleEditSubmit = async (formData: EditStoryFormData) => {
     if (!story || !user) return;
+
+    // Check permissions before submitting
+    const { canEditStory } = await import('../../utils/permissions');
+    const canEdit = await canEditStory(user.uid, story);
+    if (!canEdit) {
+      dispatch(
+        showSnackbar({
+          message: t('stories:permissions.noEdit'),
+          type: 'error',
+        })
+      );
+      setIsEditModalVisible(false);
+      return;
+    }
 
     try {
       const updateData: StoryUpdateInput = {
@@ -238,13 +253,15 @@ export default function OverviewScreen({ route }: OverviewScreenProps) {
         >
           <Text style={styles.title}>{t('stories:overview.title')}</Text>
           <View style={styles.headerBadges}>
-            {/* Edit Button */}
-            <PaperIconButton
-              icon="pencil"
-              onPress={handleOpenEditModal}
-              size={20}
-              style={styles.editButton}
-            />
+            {/* Edit Button - Only show if user has edit permission */}
+            <PermissionGuard story={story} permission="edit">
+              <PaperIconButton
+                icon="pencil"
+                onPress={handleOpenEditModal}
+                size={20}
+                style={styles.editButton}
+              />
+            </PermissionGuard>
             {/* Sync Indicator */}
             <SyncIndicator
               synced={story.synced}

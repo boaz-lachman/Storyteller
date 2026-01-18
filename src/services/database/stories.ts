@@ -2,8 +2,9 @@
  * Stories CRUD operations
  */
 import { getDb } from './sqlite';
-import { Story, StoryCreateInput, StoryUpdateInput } from '../../types';
+import { Story, StoryCreateInput, StoryUpdateInput, StoryPermission } from '../../types';
 import { getCurrentTimestamp, generateId } from '../../utils/helpers';
+import { getStoryPermission as getSharePermission } from './storyShares';
 
 /**
  * Create a new story
@@ -97,17 +98,29 @@ export const getStory = async (id: string): Promise<Story | null> => {
 };
 
 /**
- * Get all stories for a user
+ * Get all stories for a user (owned + shared)
  */
 export const getAllStories = async (userId: string): Promise<Story[]> => {
   const db = await getDb();
-  const results = await db.getAllAsync<Story>(
+  
+  // Get owned stories
+  const ownedResults = await db.getAllAsync<Story>(
     'SELECT * FROM Stories WHERE userId = ? ORDER BY updatedAt DESC',
     [userId]
   );
 
-  return results.map((story) => {
-    // Deserialize cutOffChunks from JSON
+  // Get shared stories
+  const sharedResults = await db.getAllAsync<any>(
+    `SELECT s.*, ss.permission as sharePermission, ss.ownerId as shareOwnerId
+     FROM Stories s
+     INNER JOIN StoryShares ss ON s.id = ss.storyId
+     WHERE ss.sharedWithUserId = ?
+     ORDER BY s.updatedAt DESC`,
+    [userId]
+  );
+
+  // Process owned stories (mark as owner)
+  const ownedStories = ownedResults.map((story) => {
     let cutOffChunks: number[] | undefined;
     if (story.cutOffChunks) {
       try {
@@ -121,8 +134,62 @@ export const getAllStories = async (userId: string): Promise<Story[]> => {
       ...story,
       cutOffChunks,
       synced: !!story.synced,
+      permission: 'owner' as StoryPermission,
     };
   }) as Story[];
+
+  // Process shared stories
+  const sharedStories = sharedResults.map((result) => {
+    let cutOffChunks: number[] | undefined;
+    if (result.cutOffChunks) {
+      try {
+        cutOffChunks = JSON.parse(result.cutOffChunks as string);
+      } catch (e) {
+        cutOffChunks = undefined;
+      }
+    }
+
+    return {
+      id: result.id,
+      userId: result.shareOwnerId, // Use owner's userId for shared stories
+      title: result.title,
+      description: result.description,
+      length: result.length,
+      theme: result.theme,
+      tone: result.tone,
+      pov: result.pov,
+      targetAudience: result.targetAudience,
+      setting: result.setting,
+      timePeriod: result.timePeriod,
+      status: result.status,
+      generatedContent: result.generatedContent,
+      generatedAt: result.generatedAt,
+      wordCount: result.wordCount,
+      cutOffChunks,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+      synced: !!result.synced,
+      permission: (result.sharePermission === 'read-write' ? 'read-write' : 'read') as StoryPermission,
+    };
+  }) as Story[];
+
+  // Combine and deduplicate (in case user both owns and has share access)
+  const storyMap = new Map<string, Story>();
+  
+  // Add owned stories first (they take precedence)
+  ownedStories.forEach((story) => {
+    storyMap.set(story.id, story);
+  });
+
+  // Add shared stories only if not already owned
+  sharedStories.forEach((story) => {
+    if (!storyMap.has(story.id)) {
+      storyMap.set(story.id, story);
+    }
+  });
+
+  // Convert back to array and sort by updatedAt
+  return Array.from(storyMap.values()).sort((a, b) => b.updatedAt - a.updatedAt);
 };
 
 /**
@@ -213,4 +280,22 @@ export const getUnsyncedStories = async (userId: string): Promise<Story[]> => {
 export const markStorySynced = async (id: string): Promise<void> => {
   const db = await getDb();
   await db.runAsync('UPDATE Stories SET synced = 1 WHERE id = ?', [id]);
+};
+
+/**
+ * Get story with permission level for a user
+ */
+export const getStoryWithPermission = async (
+  userId: string,
+  storyId: string
+): Promise<(Story & { permission: StoryPermission }) | null> => {
+  const story = await getStory(storyId);
+  if (!story) return null;
+
+  const permission = await getSharePermission(userId, storyId);
+  
+  return {
+    ...story,
+    permission: permission || (story.userId === userId ? 'owner' : null),
+  };
 };

@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { getCurrentTimestamp } from '../../utils/helpers';
 
 const DB_NAME = 'storyteller.db';
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 let db: SQLite.SQLiteDatabase | null = null;
 let isInitializing = false;
@@ -127,6 +127,21 @@ async function applyMigration(
   version: number
 ): Promise<void> {
   try {
+    // Special handling for migration 002 to avoid duplicate column error
+    if (version === 2) {
+      await database.withTransactionAsync(async () => {
+        await applyMigration002Safe(database);
+        
+        // Record migration
+        await database.runAsync(
+          'INSERT INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)',
+          [version, getCurrentTimestamp(), `Migration ${version}`]
+        );
+      });
+      console.log(`Migration ${version} applied successfully`);
+      return;
+    }
+
     // Import migration SQL
     const migrationSQL = await getMigrationSQL(version);
     
@@ -165,6 +180,9 @@ async function getMigrationSQL(version: number): Promise<string | null> {
     }
     if (version === 2) {
       return getMigration002SQL();
+    }
+    if (version === 3) {
+      return getMigration003SQL();
     }
     return null;
   } catch (error) {
@@ -340,7 +358,7 @@ function getInitialSchemaSQL(): string {
     -- Sync Queue Table
     CREATE TABLE IF NOT EXISTS SyncQueue (
       id TEXT PRIMARY KEY,
-      type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory')),
+      type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare')),
       entityId TEXT NOT NULL,
       operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
       timestamp INTEGER NOT NULL,
@@ -360,11 +378,75 @@ function getInitialSchemaSQL(): string {
 
 /**
  * Migration 002: Add cutOffChunks column to Stories table
+ * Note: This migration is idempotent - it checks if the column exists before adding it
  */
 function getMigration002SQL(): string {
   return `
     -- Migration 002: Add cutOffChunks column to Stories table
+    -- Check if column exists before adding (SQLite doesn't support IF NOT EXISTS for ADD COLUMN)
+    -- We'll catch the error if column already exists
     ALTER TABLE Stories ADD COLUMN cutOffChunks TEXT;
+  `;
+}
+
+/**
+ * Safe migration 002: Checks if column exists before adding
+ */
+async function applyMigration002Safe(database: SQLite.SQLiteDatabase): Promise<void> {
+  try {
+    // Check if cutOffChunks column exists
+    const tableInfo = await database.getAllAsync<{ name: string; type: string }>(
+      'PRAGMA table_info(Stories)'
+    );
+    const hasCutOffChunks = tableInfo.some(col => col.name === 'cutOffChunks');
+    
+    if (!hasCutOffChunks) {
+      // Column doesn't exist, add it
+      await database.execAsync('ALTER TABLE Stories ADD COLUMN cutOffChunks TEXT;');
+      console.log('Migration 002: Added cutOffChunks column to Stories table');
+    } else {
+      console.log('Migration 002: cutOffChunks column already exists, skipping');
+    }
+  } catch (error: any) {
+    // If error is about duplicate column, ignore it (column already exists)
+    if (error?.message?.includes('duplicate column name') || 
+        error?.message?.includes('duplicate column')) {
+      console.log('Migration 002: cutOffChunks column already exists (caught duplicate error), skipping');
+      return;
+    }
+    // Re-throw other errors
+    throw error;
+  }
+}
+
+/**
+ * Migration 003: Add StoryShares table for story sharing functionality
+ */
+function getMigration003SQL(): string {
+  return `
+    -- Migration 003: Add StoryShares table for story sharing functionality
+    PRAGMA foreign_keys = ON;
+    
+    CREATE TABLE IF NOT EXISTS StoryShares (
+      id TEXT PRIMARY KEY,
+      storyId TEXT NOT NULL,
+      ownerId TEXT NOT NULL,
+      sharedWithUserId TEXT NOT NULL,
+      sharedWithEmail TEXT NOT NULL,
+      permission TEXT NOT NULL CHECK(permission IN ('read', 'read-write')),
+      sharedByUserId TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      synced INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_storyShares_storyId ON StoryShares(storyId);
+    CREATE INDEX IF NOT EXISTS idx_storyShares_sharedWithUserId ON StoryShares(sharedWithUserId);
+    CREATE INDEX IF NOT EXISTS idx_storyShares_sharedWithEmail ON StoryShares(sharedWithEmail);
+    CREATE INDEX IF NOT EXISTS idx_storyShares_synced ON StoryShares(synced);
+    CREATE INDEX IF NOT EXISTS idx_storyShares_ownerId ON StoryShares(ownerId);
+    CREATE INDEX IF NOT EXISTS idx_storyShares_story_user ON StoryShares(storyId, sharedWithUserId);
   `;
 }
 
@@ -400,6 +482,7 @@ export const clearDatabase = async (): Promise<void> => {
         DELETE FROM Scenes;
         DELETE FROM Blurbs;
         DELETE FROM Characters;
+        DELETE FROM StoryShares;
         DELETE FROM Stories;
       `);
       

@@ -118,6 +118,22 @@ CREATE TABLE IF NOT EXISTS GeneratedStories (
   FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE
 );
 
+-- StoryShares Table
+-- Stores story sharing permissions between users
+CREATE TABLE IF NOT EXISTS StoryShares (
+  id TEXT PRIMARY KEY,
+  storyId TEXT NOT NULL,
+  ownerId TEXT NOT NULL,
+  sharedWithUserId TEXT NOT NULL,
+  sharedWithEmail TEXT NOT NULL,
+  permission TEXT NOT NULL CHECK(permission IN ('read', 'read-write')),
+  sharedByUserId TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  synced INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE
+);
+
 -- Indexes for Stories
 CREATE INDEX IF NOT EXISTS idx_stories_userId ON Stories(userId);
 CREATE INDEX IF NOT EXISTS idx_stories_userId_status ON Stories(userId, status);
@@ -170,11 +186,19 @@ CREATE INDEX IF NOT EXISTS idx_generatedStories_createdAt ON GeneratedStories(cr
 CREATE INDEX IF NOT EXISTS idx_generatedStories_updatedAt ON GeneratedStories(updatedAt);
 CREATE INDEX IF NOT EXISTS idx_generatedStories_synced ON GeneratedStories(synced);
 
+-- Indexes for StoryShares
+CREATE INDEX IF NOT EXISTS idx_storyShares_storyId ON StoryShares(storyId);
+CREATE INDEX IF NOT EXISTS idx_storyShares_sharedWithUserId ON StoryShares(sharedWithUserId);
+CREATE INDEX IF NOT EXISTS idx_storyShares_sharedWithEmail ON StoryShares(sharedWithEmail);
+CREATE INDEX IF NOT EXISTS idx_storyShares_synced ON StoryShares(synced);
+CREATE INDEX IF NOT EXISTS idx_storyShares_ownerId ON StoryShares(ownerId);
+CREATE INDEX IF NOT EXISTS idx_storyShares_story_user ON StoryShares(storyId, sharedWithUserId);
+
 -- Sync Queue Table
 -- Stores operations that need to be synced to Firestore
 CREATE TABLE IF NOT EXISTS SyncQueue (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory')),
+  type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare')),
   entityId TEXT NOT NULL,
   operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
   timestamp INTEGER NOT NULL,

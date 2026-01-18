@@ -4,6 +4,7 @@
 import { getDb } from './sqlite';
 import { Scene, SceneCreateInput, SceneUpdateInput } from '../../types';
 import { getCurrentTimestamp, generateId, safeJsonStringify, safeJsonParse } from '../../utils/helpers';
+import { canEditEntity } from '../../utils/permissions';
 
 /**
  * Create a new scene
@@ -107,8 +108,21 @@ export const getScenesByStory = async (
  */
 export const updateScene = async (
   id: string,
-  updates: SceneUpdateInput
+  updates: SceneUpdateInput,
+  userId?: string // Optional: if provided, will check permissions
 ): Promise<Scene | null> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const scene = await getScene(id);
+    if (!scene) {
+      throw new Error('Scene not found');
+    }
+    const canEdit = await canEditEntity(userId, scene);
+    if (!canEdit) {
+      throw new Error('You do not have permission to edit this scene');
+    }
+  }
+
   const db = await getDb();
   const now = getCurrentTimestamp();
 
@@ -149,7 +163,22 @@ export const updateScene = async (
 /**
  * Delete a scene (soft delete)
  */
-export const deleteScene = async (id: string): Promise<void> => {
+export const deleteScene = async (
+  id: string,
+  userId?: string // Optional: if provided, will check permissions
+): Promise<void> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const scene = await getScene(id);
+    if (!scene) {
+      throw new Error('Scene not found');
+    }
+    const canDelete = await canEditEntity(userId, scene);
+    if (!canDelete) {
+      throw new Error('You do not have permission to delete this scene');
+    }
+  }
+
   const db = await getDb();
   const now = getCurrentTimestamp();
   await db.runAsync(
@@ -182,4 +211,33 @@ export const getUnsyncedScenes = async (userId: string): Promise<Scene[]> => {
 export const markSceneSynced = async (id: string): Promise<void> => {
   const db = await getDb();
   await db.runAsync('UPDATE Scenes SET synced = 1 WHERE id = ?', [id]);
+};
+
+/**
+ * Get multiple scenes by IDs (batch query for sync performance)
+ * Returns a Map for O(1) lookup
+ */
+export const getScenesByIds = async (ids: string[]): Promise<Map<string, Scene>> => {
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const db = await getDb();
+  const placeholders = ids.map(() => '?').join(', ');
+  const results = await db.getAllAsync<any>(
+    `SELECT * FROM Scenes WHERE id IN (${placeholders}) AND deleted = 0`,
+    ids
+  );
+
+  const scenesMap = new Map<string, Scene>();
+  results.forEach((scene) => {
+    scenesMap.set(scene.id, {
+      ...scene,
+      characters: safeJsonParse(scene.characters, []),
+      synced: scene.synced === 1,
+      deleted: scene.deleted === 1,
+    } as Scene);
+  });
+
+  return scenesMap;
 };

@@ -225,5 +225,33 @@
       "youngAdult": "Young Adult",
       "adult": "Adult"
     }
+  },
+  "sharing": {
+    "share": "Share",
+    "shared": "Shared",
+    "sharedWithMe": "Shared with me",
+    "permission": {
+      "read": "Read Only",
+      "readWrite": "Read & Write"
+    },
+    "invite": "Invite",
+    "revoke": "Revoke",
+    "owner": "Owner",
+    "inviteEmail": "Email address",
+    "inviteEmailPlaceholder": "Enter email address",
+    "selectPermission": "Permission",
+    "currentShares": "Current Shares",
+    "noShares": "No one has access to this story yet",
+    "shareAdded": "Story shared successfully",
+    "shareUpdated": "Share permission updated",
+    "shareRevoked": "Share revoked successfully",
+    "shareFailed": "Failed to share story",
+    "userNotFound": "User not found. Please ensure the user has signed up with this email address.",
+    "noPermission": "You do not have permission to share this story"
+  },
+  "permissions": {
+    "noEdit": "You don't have permission to edit this story",
+    "noDelete": "Only the owner can delete this story",
+    "noShare": "You don't have permission to share this story"
   }
 }

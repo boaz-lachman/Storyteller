@@ -23,6 +23,7 @@ import type {
   IdeaBlurb,
   Scene,
   Chapter,
+  StoryShare,
 } from '../../types';
 import {
   toFirestoreStory,
@@ -35,11 +36,14 @@ import {
   fromFirestoreScene,
   toFirestoreChapter,
   fromFirestoreChapter,
+  toFirestoreStoryShare,
+  fromFirestoreStoryShare,
   type FirestoreStoryData,
   type FirestoreCharacterData,
   type FirestoreBlurbData,
   type FirestoreSceneData,
   type FirestoreChapterData,
+  type FirestoreStoryShareData,
 } from './conversion';
 
 /**
@@ -153,6 +157,22 @@ export function getGeneratedStoriesCollection() {
 export function getGeneratedStoryDoc(generatedStoryId: string) {
   const db = getFirestoreInstance();
   return doc(db, 'generatedStories', generatedStoryId);
+}
+
+/**
+ * Get storyShares collection reference
+ */
+export function getStorySharesCollection() {
+  const db = getFirestoreInstance();
+  return collection(db, 'storyShares');
+}
+
+/**
+ * Get a specific story share document reference
+ */
+export function getStoryShareDoc(shareId: string) {
+  const db = getFirestoreInstance();
+  return doc(db, 'storyShares', shareId);
 }
 
 // ============================================================================
@@ -411,6 +431,33 @@ export async function deleteChapterFromFirestore(chapterId: string): Promise<voi
   });
 }
 
+/**
+ * Upload a story share to Firestore
+ */
+export async function uploadStoryShare(share: StoryShare): Promise<StoryShare> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getStoryShareDoc(share.id);
+  const firestoreData = toFirestoreStoryShare(share);
+  await setDoc(docRef, firestoreData);
+
+  return { ...share, synced: true };
+}
+
+/**
+ * Delete a story share from Firestore
+ */
+export async function deleteStoryShareFromFirestore(shareId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getStoryShareDoc(shareId);
+  await deleteDoc(docRef);
+}
+
 // ============================================================================
 // Download Functions (Task 12.6)
 // ============================================================================
@@ -453,6 +500,55 @@ export async function downloadStories(userId: string): Promise<Story[]> {
   });
 
   return stories;
+}
+
+/**
+ * Download all story shares for a user from Firestore
+ * Includes shares where user is owner or shared with user
+ * @param userId - The user ID to fetch shares for
+ * @returns Array of story shares in SQLite format
+ */
+export async function downloadStoryShares(userId: string): Promise<StoryShare[]> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const sharesCollection = getStorySharesCollection();
+  
+  // Download shares where user is owner OR shared with user
+  const q1 = query(sharesCollection, where('ownerId', '==', userId));
+  const q2 = query(sharesCollection, where('sharedWithUserId', '==', userId));
+  
+  const [snapshot1, snapshot2] = await Promise.all([
+    getDocs(q1),
+    getDocs(q2),
+  ]);
+
+  const sharesMap = new Map<string, StoryShare>();
+
+  // Process owner shares
+  snapshot1.forEach((docSnap) => {
+    try {
+      const data = docSnap.data() as FirestoreStoryShareData;
+      const share = fromFirestoreStoryShare(docSnap.id, data);
+      sharesMap.set(share.id, share);
+    } catch (error) {
+      console.error(`Error converting share ${docSnap.id}:`, error);
+    }
+  });
+
+  // Process shared with user
+  snapshot2.forEach((docSnap) => {
+    try {
+      const data = docSnap.data() as FirestoreStoryShareData;
+      const share = fromFirestoreStoryShare(docSnap.id, data);
+      sharesMap.set(share.id, share);
+    } catch (error) {
+      console.error(`Error converting share ${docSnap.id}:`, error);
+    }
+  });
+
+  return Array.from(sharesMap.values());
 }
 
 /**

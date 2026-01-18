@@ -225,5 +225,33 @@
       "youngAdult": "צעירים",
       "adult": "מבוגרים"
     }
+  },
+  "sharing": {
+    "share": "שתף",
+    "shared": "שותף",
+    "sharedWithMe": "שותף איתי",
+    "permission": {
+      "read": "קריאה בלבד",
+      "readWrite": "קריאה וכתיבה"
+    },
+    "invite": "הזמן",
+    "revoke": "הסר",
+    "owner": "בעלים",
+    "inviteEmail": "כתובת דוא\"ל",
+    "inviteEmailPlaceholder": "הכנס כתובת דוא\"ל",
+    "selectPermission": "הרשאה",
+    "currentShares": "שיתופים נוכחיים",
+    "noShares": "לאף אחד אין עדיין גישה לסיפור הזה",
+    "shareAdded": "הסיפור שותף בהצלחה",
+    "shareUpdated": "הרשאת השיתוף עודכנה",
+    "shareRevoked": "השיתוף הוסר בהצלחה",
+    "shareFailed": "שיתוף הסיפור נכשל",
+    "userNotFound": "משתמש לא נמצא. אנא ודא שהמשתמש נרשם עם כתובת הדוא\"ל הזו.",
+    "noPermission": "אין לך הרשאה לשתף את הסיפור הזה"
+  },
+  "permissions": {
+    "noEdit": "אין לך הרשאה לערוך את הסיפור הזה",
+    "noDelete": "רק הבעלים יכול למחוק את הסיפור הזה",
+    "noShare": "אין לך הרשאה לשתף את הסיפור הזה"
   }
 }

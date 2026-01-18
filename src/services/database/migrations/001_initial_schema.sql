@@ -174,7 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_generatedStories_synced ON GeneratedStories(synce
 -- Stores operations that need to be synced to Firestore
 CREATE TABLE IF NOT EXISTS SyncQueue (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory')),
+  type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare')),
   entityId TEXT NOT NULL,
   operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
   timestamp INTEGER NOT NULL,

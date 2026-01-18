@@ -27,6 +27,7 @@ import { chaptersApi } from './api/chaptersApi';
 // Redux slices
 import authReducer from './slices/authSlice';
 import storiesReducer from './slices/storiesSlice';
+import storySharesReducer from './slices/storySharesSlice';
 import charactersReducer from './slices/charactersSlice';
 import blurbsReducer from './slices/blurbsSlice';
 import scenesReducer from './slices/scenesSlice';
@@ -53,6 +54,7 @@ const rootReducer = combineReducers({
   // Redux slices
   auth: authReducer,
   stories: storiesReducer,
+  storyShares: storySharesReducer,
   characters: charactersReducer,
   blurbs: blurbsReducer,
   scenes: scenesReducer,
@@ -81,6 +83,7 @@ const persistConfig = {
     scenesApi.reducerPath,
     chaptersApi.reducerPath,
     'stories',
+    'storyShares', // Story shares state (can be refetched from server)
     'characters',
     'blurbs',
     'scenes',

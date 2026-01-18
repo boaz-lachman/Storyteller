@@ -11,12 +11,15 @@ import {
   uploadBlurb,
   uploadScene,
   uploadChapter,
+  uploadStoryShare,
   deleteStoryFromFirestore,
   deleteCharacterFromFirestore,
   deleteBlurbFromFirestore,
   deleteSceneFromFirestore,
   deleteChapterFromFirestore,
+  deleteStoryShareFromFirestore,
   downloadStories,
+  downloadStoryShares,
   downloadEntitiesForStory,
   isFirebaseConfigured,
 } from '../../services/firestore/firestoreService';
@@ -26,6 +29,7 @@ import type {
   IdeaBlurb,
   Scene,
   Chapter,
+  StoryShare,
 } from '../../types';
 
 // ============================================================================
@@ -34,7 +38,7 @@ import type {
 
 interface FirestoreQueryArgs {
   type: 'upload' | 'download' | 'delete';
-  entityType?: 'story' | 'character' | 'blurb' | 'scene' | 'chapter';
+  entityType?: 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'storyShare';
   operation?: string;
   data?: any;
   entityId?: string;
@@ -130,6 +134,18 @@ const firestoreBaseQuery = (): BaseQueryFn<
             const uploadedChapter = await uploadChapter(data as Chapter);
             return { data: uploadedChapter };
 
+          case 'storyShare':
+            if (!data) {
+              return {
+                error: {
+                  error: 'StoryShare data is required',
+                  status: 400,
+                },
+              };
+            }
+            const uploadedStoryShare = await uploadStoryShare(data as StoryShare);
+            return { data: uploadedStoryShare };
+
           default:
             return {
               error: {
@@ -166,6 +182,18 @@ const firestoreBaseQuery = (): BaseQueryFn<
             }
             const entities = await downloadEntitiesForStory(storyId, localEntities);
             return { data: entities };
+
+          case 'downloadStoryShares':
+            if (!userId) {
+              return {
+                error: {
+                  error: 'User ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const shares = await downloadStoryShares(userId);
+            return { data: shares };
 
           default:
             return {
@@ -207,6 +235,10 @@ const firestoreBaseQuery = (): BaseQueryFn<
 
           case 'chapter':
             await deleteChapterFromFirestore(entityId);
+            return { data: { id: entityId, deleted: true } };
+
+          case 'storyShare':
+            await deleteStoryShareFromFirestore(entityId);
             return { data: { id: entityId, deleted: true } };
 
           default:
@@ -528,6 +560,18 @@ export const firestoreApi = createApi({
       },
       invalidatesTags: [{ type: 'Story', id: 'LIST' }, { type: 'Sync' }],
     }),
+
+    /**
+     * Download story shares for a user from Firestore
+     */
+    downloadStoryShares: builder.query<StoryShare[], string>({
+      query: (userId) => ({
+        type: 'download',
+        operation: 'downloadStoryShares',
+        userId,
+      }),
+      providesTags: [{ type: 'Sync' }],
+    }),
   }),
 });
 
@@ -539,11 +583,21 @@ export const {
   useUploadBlurbMutation,
   useUploadSceneMutation,
   useUploadChapterMutation,
+  useUploadStoryShareMutation,
+  // Delete mutations
+  useDeleteStoryMutation,
+  useDeleteCharacterMutation,
+  useDeleteBlurbMutation,
+  useDeleteSceneMutation,
+  useDeleteChapterMutation,
+  useDeleteStoryShareMutation,
   // Download queries
   useDownloadStoriesQuery,
   useLazyDownloadStoriesQuery,
   useDownloadEntitiesForStoryQuery,
   useLazyDownloadEntitiesForStoryQuery,
+  useDownloadStorySharesQuery,
+  useLazyDownloadStorySharesQuery,
   // Sync mutations
   useSyncStoryMutation,
   useSyncAllStoriesMutation,

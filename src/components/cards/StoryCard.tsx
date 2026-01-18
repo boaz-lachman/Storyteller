@@ -30,6 +30,7 @@ export interface StoryCardProps {
   story: Story;
   onPress?: (story: Story) => void;
   onDelete?: (storyId: string) => void;
+  onShare?: (story: Story) => void;
 }
 
 /**
@@ -41,6 +42,7 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
   story,
   onPress,
   onDelete,
+  onShare,
 }) => {
   const { t } = useTranslation();
   const isRTL = I18nManager.isRTL;
@@ -202,6 +204,23 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
                 {story.title}
               </Text>
               <View style={styles.badgesContainer}>
+                {/* Shared indicator */}
+                {story.permission && story.permission !== 'owner' && (
+                  <View style={styles.sharedBadge}>
+                    <AntDesign name="share-alt" size={12} color={colors.textInverse} />
+                    <Text style={styles.sharedBadgeText}>
+                      {t('stories:sharing.sharedWithMe')}
+                    </Text>
+                  </View>
+                )}
+                {/* Permission badge for read-only */}
+                {story.permission === 'read' && (
+                  <View style={styles.permissionBadge}>
+                    <Text style={styles.permissionBadgeText}>
+                      {t('stories:sharing.permission.read')}
+                    </Text>
+                  </View>
+                )}
                 {/* Sync Indicator */}
                 <SyncIndicator
                   synced={story.synced}
@@ -258,16 +277,27 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
               </View>
             </View>
 
-            {/* Footer: Creation Date */}
+            {/* Footer: Creation Date and Share Button */}
             <View style={[styles.footer, isRTL && styles.footerRTL]}>
-              <AntDesign
-                name="calendar"
-                size={12}
-                color={colors.textTertiary}
-              />
-              <Text style={styles.dateText}>
-                {formatDateTime(story.createdAt)}
-              </Text>
+              <View style={styles.footerLeft}>
+                <AntDesign
+                  name="calendar"
+                  size={12}
+                  color={colors.textTertiary}
+                />
+                <Text style={styles.dateText}>
+                  {formatDateTime(story.createdAt)}
+                </Text>
+              </View>
+              {onShare && (
+                <TouchableOpacity
+                  onPress={() => onShare(story)}
+                  style={styles.shareButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <AntDesign name="share-alt" size={16} color={colors.primary} />
+                </TouchableOpacity>
+              )}
             </View>
           </Card.Content>
         </Card>
@@ -317,8 +347,10 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
     prevProps.story.length === nextProps.story.length &&
     prevProps.story.createdAt === nextProps.story.createdAt &&
     prevProps.story.synced === nextProps.story.synced &&
+    prevProps.story.permission === nextProps.story.permission &&
     prevProps.onPress === nextProps.onPress &&
-    prevProps.onDelete === nextProps.onDelete
+    prevProps.onDelete === nextProps.onDelete &&
+    prevProps.onShare === nextProps.onShare
   );
 });
 
@@ -385,6 +417,39 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
     textTransform: 'capitalize',
   },
+  sharedBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: spacing.xs,
+    backgroundColor: colors.primary,
+    minHeight: 20,
+  },
+  sharedBadgeText: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textInverse,
+  },
+  permissionBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: spacing.xs,
+    backgroundColor: colors.textTertiary,
+    minHeight: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  permissionBadgeText: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textInverse,
+  },
   description: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.fontSize.sm,
@@ -432,17 +497,25 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    justifyContent: 'space-between',
     marginTop: spacing.xs,
   },
   footerRTL: {
     flexDirection: 'row-reverse',
+  },
+  footerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   dateText: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.regular,
     color: colors.textTertiary,
+  },
+  shareButton: {
+    padding: spacing.xs,
   },
   deleteContainer: {
     flex: 1,

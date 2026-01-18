@@ -4,6 +4,7 @@
 import { getDb } from './sqlite';
 import { IdeaBlurb, BlurbCreateInput, BlurbUpdateInput } from '../../types';
 import { getCurrentTimestamp, generateId } from '../../utils/helpers';
+import { canEditEntity } from '../../utils/permissions';
 
 /**
  * Create a new blurb
@@ -99,8 +100,21 @@ export const getBlurbsByStory = async (
  */
 export const updateBlurb = async (
   id: string,
-  updates: BlurbUpdateInput
+  updates: BlurbUpdateInput,
+  userId?: string // Optional: if provided, will check permissions
 ): Promise<IdeaBlurb | null> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const blurb = await getBlurb(id);
+    if (!blurb) {
+      throw new Error('Blurb not found');
+    }
+    const canEdit = await canEditEntity(userId, blurb);
+    if (!canEdit) {
+      throw new Error('You do not have permission to edit this blurb');
+    }
+  }
+
   const db = await getDb();
   const now = getCurrentTimestamp();
 
@@ -136,7 +150,22 @@ export const updateBlurb = async (
 /**
  * Delete a blurb (soft delete)
  */
-export const deleteBlurb = async (id: string): Promise<void> => {
+export const deleteBlurb = async (
+  id: string,
+  userId?: string // Optional: if provided, will check permissions
+): Promise<void> => {
+  // Check permissions if userId is provided
+  if (userId) {
+    const blurb = await getBlurb(id);
+    if (!blurb) {
+      throw new Error('Blurb not found');
+    }
+    const canDelete = await canEditEntity(userId, blurb);
+    if (!canDelete) {
+      throw new Error('You do not have permission to delete this blurb');
+    }
+  }
+
   const db = await getDb();
   const now = getCurrentTimestamp();
   await db.runAsync(
@@ -168,4 +197,32 @@ export const getUnsyncedBlurbs = async (userId: string): Promise<IdeaBlurb[]> =>
 export const markBlurbSynced = async (id: string): Promise<void> => {
   const db = await getDb();
   await db.runAsync('UPDATE Blurbs SET synced = 1 WHERE id = ?', [id]);
+};
+
+/**
+ * Get multiple blurbs by IDs (batch query for sync performance)
+ * Returns a Map for O(1) lookup
+ */
+export const getBlurbsByIds = async (ids: string[]): Promise<Map<string, IdeaBlurb>> => {
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const db = await getDb();
+  const placeholders = ids.map(() => '?').join(', ');
+  const results = await db.getAllAsync<IdeaBlurb>(
+    `SELECT * FROM Blurbs WHERE id IN (${placeholders}) AND deleted = 0`,
+    ids
+  );
+
+  const blurbsMap = new Map<string, IdeaBlurb>();
+  results.forEach((blurb) => {
+    blurbsMap.set(blurb.id, {
+      ...blurb,
+      synced: !!blurb.synced,
+      deleted: !!blurb.deleted,
+    } as IdeaBlurb);
+  });
+
+  return blurbsMap;
 };

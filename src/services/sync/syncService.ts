@@ -21,6 +21,7 @@ import {
   createCharacter,
   updateCharacter,
   getCharacter,
+  getCharactersByIds,
 } from '../database/characters';
 import {
   getUnsyncedBlurbs,
@@ -29,6 +30,7 @@ import {
   createBlurb,
   updateBlurb,
   getBlurb,
+  getBlurbsByIds,
 } from '../database/blurbs';
 import {
   getUnsyncedScenes,
@@ -37,6 +39,7 @@ import {
   createScene,
   updateScene,
   getScene,
+  getScenesByIds,
 } from '../database/scenes';
 import {
   getUnsyncedChapters,
@@ -45,12 +48,26 @@ import {
   createChapter,
   updateChapter,
   getChapter,
+  getChaptersByIds,
 } from '../database/chapters';
+import {
+  getUnsyncedShares,
+  getSharesForStory,
+  markStoryShareSynced,
+  createStoryShare,
+  updateStoryShare,
+  getStoryShare,
+  deleteStoryShare,
+  getSharesForUser,
+} from '../database/storyShares';
 
 // Firestore API imports
 import { store } from '../../store';
 import { firestoreApi } from '../../store/api/firestoreApi';
 import { getLastIncrementalSyncTime, updateLastSyncTime } from '../database/syncMetadata';
+
+// Type imports
+import type { Character, IdeaBlurb, Scene, Chapter, StoryShare } from '../../types';
 
 export interface SyncResult {
   success: boolean;
@@ -60,7 +77,7 @@ export interface SyncResult {
   duration: number;
 }
 
-type EntityType = 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'generatedStory';
+type EntityType = 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'generatedStory' | 'storyShare';
 
 /**
  * Main sync function - orchestrates push and pull phases
@@ -119,6 +136,7 @@ export const pushUnsyncedChanges = async (
   // Sync in dependency order
   const syncOrder: EntityType[] = [
     'story',
+    'storyShare', // Share stories after stories are synced
     'character',
     'blurb',
     'scene',
@@ -163,6 +181,9 @@ const syncEntityType = async (
       break;
     case 'chapter':
       syncedCount = await syncChapters(userId);
+      break;
+    case 'storyShare':
+      syncedCount = await syncStoryShares(userId);
       break;
     case 'generatedStory':
       // Generated stories sync handled separately if needed
@@ -216,6 +237,9 @@ const syncStories = async (userId: string): Promise<number> => {
 
     // Count successful syncs
     syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+
+    // YIELD TO UI THREAD: Allow UI to update between batches
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   return syncedCount;
@@ -259,6 +283,9 @@ const syncCharacters = async (userId: string): Promise<number> => {
     );
 
     syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+
+    // YIELD TO UI THREAD: Allow UI to update between batches
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   return syncedCount;
@@ -300,6 +327,9 @@ const syncBlurbs = async (userId: string): Promise<number> => {
     );
 
     syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+
+    // YIELD TO UI THREAD: Allow UI to update between batches
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   return syncedCount;
@@ -341,6 +371,9 @@ const syncScenes = async (userId: string): Promise<number> => {
     );
 
     syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+
+    // YIELD TO UI THREAD: Allow UI to update between batches
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   return syncedCount;
@@ -382,6 +415,53 @@ const syncChapters = async (userId: string): Promise<number> => {
     );
 
     syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+
+    // YIELD TO UI THREAD: Allow UI to update between batches
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+
+  return syncedCount;
+};
+
+/**
+ * Sync StoryShares - Optimized with batch processing
+ */
+const syncStoryShares = async (userId: string): Promise<number> => {
+  const unsynced = await getUnsyncedShares();
+  if (unsynced.length === 0) {
+    return 0;
+  }
+
+  let syncedCount = 0;
+  const BATCH_SIZE = 20;
+
+  // Process shares in parallel batches
+  for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+    const batch = unsynced.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (share) => {
+        try {
+          const uploadResult = await store.dispatch(
+            firestoreApi.endpoints.uploadStoryShare.initiate(share)
+          );
+          if (!!uploadResult.error) {
+            throw new Error('Failed to upload story share to Firestore');
+          }
+          await markStoryShareSynced(share.id);
+          return { success: true, id: share.id };
+        } catch (error) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { syncQueueManager } = require('./queueManager');
+          syncQueueManager.add('storyShare', share.id, 'update');
+          return { success: false, id: share.id, error };
+        }
+      })
+    );
+
+    syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+
+    // YIELD TO UI THREAD: Allow UI to update between batches
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   return syncedCount;
@@ -442,6 +522,43 @@ export const pullRemoteChanges = async (
           // If local is newer and unsynced, it will be pushed in next sync
         }
       }
+    }
+
+    // Download story shares
+    try {
+      const sharesResult = await store.dispatch(
+        firestoreApi.endpoints.downloadStoryShares.initiate(userId)
+      );
+      if (sharesResult.data) {
+        for (const remoteShare of sharesResult.data) {
+          const localShare = await getStoryShare(remoteShare.id);
+          
+          // Filter by timestamp if incremental sync
+          if (sinceTimestamp && remoteShare.updatedAt <= sinceTimestamp) {
+            continue;
+          }
+
+          if (!localShare) {
+            // New share from remote, create locally and mark as synced
+            await createStoryShare(remoteShare);
+            await markStoryShareSynced(remoteShare.id);
+            pulledCount++;
+          } else {
+            // Resolve conflict using Last-Write-Wins
+            const shouldUseRemote = localShare.synced
+              ? remoteShare.updatedAt > localShare.updatedAt
+              : resolveConflict(localShare, remoteShare) === remoteShare || remoteShare.updatedAt > localShare.updatedAt;
+            
+            if (shouldUseRemote) {
+              await updateStoryShare(remoteShare.id, remoteShare as any);
+              await markStoryShareSynced(remoteShare.id);
+              pulledCount++;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error downloading story shares:', error);
     }
 
     // Pull entities for each story using downloadEntitiesForStory
@@ -513,23 +630,27 @@ export const pullRemoteChanges = async (
 
           let storyPulledCount = 0;
           const entitiesData = entitiesResult.data;
-          
+
           // Track remote entity IDs to detect deletions
           const remoteCharacterIds = new Set<string>();
           const remoteBlurbIds = new Set<string>();
           const remoteSceneIds = new Set<string>();
           const remoteChapterIds = new Set<string>();
-          
+
+          // BATCH QUERY OPTIMIZATION: Fetch all local entities in one query per type
+          const remoteCharIds = (entitiesData.characters || []).map(c => c.id);
+          const localCharsMap = remoteCharIds.length > 0 ? await getCharactersByIds(remoteCharIds) : new Map();
+
           // Process characters
           for (const remoteChar of entitiesData.characters || []) {
             // Always track remote entity IDs to detect deletions, regardless of timestamp
             remoteCharacterIds.add(remoteChar.id);
-            
+
             // Filter by timestamp if incremental sync (skip update but still track for deletion check)
             if (sinceTimestamp && remoteChar.updatedAt <= sinceTimestamp) {
               continue;
             }
-            const localChar = await getCharacter(remoteChar.id);
+            const localChar = localCharsMap.get(remoteChar.id);
             if (!localChar) {
               // New character from remote, create locally and mark as synced
               await createCharacter(remoteChar);
@@ -538,10 +659,10 @@ export const pullRemoteChanges = async (
             } else {
               // Resolve conflict using Last-Write-Wins
               // If local entity is already synced and remote is newer, always use remote
-              const shouldUseRemote = localChar.synced 
+              const shouldUseRemote = localChar.synced
                 ? remoteChar.updatedAt > localChar.updatedAt
                 : resolveConflict(localChar, remoteChar) === remoteChar || remoteChar.updatedAt > localChar.updatedAt;
-              
+
               if (shouldUseRemote) {
                 // Remote is newer or local is synced and remote is newer, update local and mark as synced
                 await updateCharacter(remoteChar.id, remoteChar as any);
@@ -564,16 +685,20 @@ export const pullRemoteChanges = async (
             }
           }
 
+          // BATCH QUERY OPTIMIZATION: Fetch all local blurbs in one query
+          const remoteBlurbIdsList = (entitiesData.blurbs || []).map(b => b.id);
+          const localBlurbsMap = remoteBlurbIdsList.length > 0 ? await getBlurbsByIds(remoteBlurbIdsList) : new Map();
+
           // Process blurbs
           for (const remoteBlurb of entitiesData.blurbs || []) {
             // Always track remote entity IDs to detect deletions, regardless of timestamp
             remoteBlurbIds.add(remoteBlurb.id);
-            
+
             // Filter by timestamp if incremental sync (skip update but still track for deletion check)
             if (sinceTimestamp && remoteBlurb.updatedAt <= sinceTimestamp) {
               continue;
             }
-            const localBlurb = await getBlurb(remoteBlurb.id);
+            const localBlurb = localBlurbsMap.get(remoteBlurb.id);
             if (!localBlurb) {
               // New blurb from remote, create locally and mark as synced
               await createBlurb(remoteBlurb);
@@ -582,10 +707,10 @@ export const pullRemoteChanges = async (
             } else {
               // Resolve conflict using Last-Write-Wins
               // If local entity is already synced and remote is newer, always use remote
-              const shouldUseRemote = localBlurb.synced 
+              const shouldUseRemote = localBlurb.synced
                 ? remoteBlurb.updatedAt > localBlurb.updatedAt
                 : resolveConflict(localBlurb, remoteBlurb) === remoteBlurb || remoteBlurb.updatedAt > localBlurb.updatedAt;
-              
+
               if (shouldUseRemote) {
                 // Remote is newer or local is synced and remote is newer, update local and mark as synced
                 await updateBlurb(remoteBlurb.id, remoteBlurb as any);
@@ -608,16 +733,20 @@ export const pullRemoteChanges = async (
             }
           }
 
+          // BATCH QUERY OPTIMIZATION: Fetch all local scenes in one query
+          const remoteSceneIdsList = (entitiesData.scenes || []).map(s => s.id);
+          const localScenesMap = remoteSceneIdsList.length > 0 ? await getScenesByIds(remoteSceneIdsList) : new Map();
+
           // Process scenes
           for (const remoteScene of entitiesData.scenes || []) {
             // Always track remote entity IDs to detect deletions, regardless of timestamp
             remoteSceneIds.add(remoteScene.id);
-            
+
             // Filter by timestamp if incremental sync (skip update but still track for deletion check)
             if (sinceTimestamp && remoteScene.updatedAt <= sinceTimestamp) {
               continue;
             }
-            const localScene = await getScene(remoteScene.id);
+            const localScene = localScenesMap.get(remoteScene.id);
             if (!localScene) {
               // New scene from remote, create locally and mark as synced
               await createScene(remoteScene);
@@ -626,10 +755,10 @@ export const pullRemoteChanges = async (
             } else {
               // Resolve conflict using Last-Write-Wins
               // If local entity is already synced and remote is newer, always use remote
-              const shouldUseRemote = localScene.synced 
+              const shouldUseRemote = localScene.synced
                 ? remoteScene.updatedAt > localScene.updatedAt
                 : resolveConflict(localScene, remoteScene) === remoteScene || remoteScene.updatedAt > localScene.updatedAt;
-              
+
               if (shouldUseRemote) {
                 // Remote is newer or local is synced and remote is newer, update local and mark as synced
                 await updateScene(remoteScene.id, remoteScene as any);
@@ -652,16 +781,20 @@ export const pullRemoteChanges = async (
             }
           }
 
+          // BATCH QUERY OPTIMIZATION: Fetch all local chapters in one query
+          const remoteChapterIdsList = (entitiesData.chapters || []).map(c => c.id);
+          const localChaptersMap = remoteChapterIdsList.length > 0 ? await getChaptersByIds(remoteChapterIdsList) : new Map();
+
           // Process chapters
           for (const remoteChapter of entitiesData.chapters || []) {
             // Always track remote entity IDs to detect deletions, regardless of timestamp
             remoteChapterIds.add(remoteChapter.id);
-            
+
             // Filter by timestamp if incremental sync (skip update but still track for deletion check)
             if (sinceTimestamp && remoteChapter.updatedAt <= sinceTimestamp) {
               continue;
             }
-            const localChapter = await getChapter(remoteChapter.id);
+            const localChapter = localChaptersMap.get(remoteChapter.id);
             if (!localChapter) {
               // New chapter from remote, create locally and mark as synced
               await createChapter(remoteChapter);
@@ -670,10 +803,10 @@ export const pullRemoteChanges = async (
             } else {
               // Resolve conflict using Last-Write-Wins
               // If local entity is already synced and remote is newer, always use remote
-              const shouldUseRemote = localChapter.synced 
+              const shouldUseRemote = localChapter.synced
                 ? remoteChapter.updatedAt > localChapter.updatedAt
                 : resolveConflict(localChapter, remoteChapter) === remoteChapter || remoteChapter.updatedAt > localChapter.updatedAt;
-              
+
               if (shouldUseRemote) {
                 // Remote is newer or local is synced and remote is newer, update local and mark as synced
                 await updateChapter(remoteChapter.id, remoteChapter as any);
@@ -686,14 +819,17 @@ export const pullRemoteChanges = async (
           
           // Delete local chapters that are marked as deleted in Firestore
           const deletedChapterIds = entitiesData.deletedChapters || [];
-          for (const deletedChapterId of deletedChapterIds) {
-            const localChapter = await getChapter(deletedChapterId);
-            if (localChapter) {
-              // Chapter is marked as deleted in Firestore, hard delete from local DB
-              const { deleteChapter } = require('../database/chapters');
-              await deleteChapter(deletedChapterId);
-              storyPulledCount++;
-              console.log(`Hard deleted local chapter ${deletedChapterId} - marked as deleted in Firestore`);
+          if (deletedChapterIds.length > 0) {
+            // BATCH QUERY OPTIMIZATION: Fetch all deleted chapters in one query
+            const deletedChaptersMap = await getChaptersByIds(deletedChapterIds);
+            const { deleteChapter } = require('../database/chapters');
+            for (const deletedChapterId of deletedChapterIds) {
+              if (deletedChaptersMap.has(deletedChapterId)) {
+                // Chapter is marked as deleted in Firestore, hard delete from local DB
+                await deleteChapter(deletedChapterId);
+                storyPulledCount++;
+                console.log(`Hard deleted local chapter ${deletedChapterId} - marked as deleted in Firestore`);
+              }
             }
           }
           
@@ -719,6 +855,10 @@ export const pullRemoteChanges = async (
           pulledCount += result.value.count;
         }
       });
+
+      // YIELD TO UI THREAD: Allow UI to update between batches
+      // This prevents UI freezing during long sync operations
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
 
   } catch (error) {
