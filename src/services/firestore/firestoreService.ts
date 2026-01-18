@@ -441,7 +441,8 @@ export async function uploadStoryShare(share: StoryShare): Promise<StoryShare> {
 
   const docRef = getStoryShareDoc(share.id);
   const firestoreData = toFirestoreStoryShare(share);
-  await setDoc(docRef, firestoreData);
+  // Use merge: true to handle both create and update operations
+  await setDoc(docRef, firestoreData, { merge: true });
 
   return { ...share, synced: true };
 }

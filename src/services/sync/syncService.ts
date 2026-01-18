@@ -59,11 +59,13 @@ import {
   getStoryShare,
   deleteStoryShare,
   getSharesForUser,
+  getSharesByOwner,
 } from '../database/storyShares';
 
 // Firestore API imports
 import { store } from '../../store';
 import { firestoreApi } from '../../store/api/firestoreApi';
+import { storiesApi } from '../../store/api/storiesApi';
 import { getLastIncrementalSyncTime, updateLastSyncTime } from '../database/syncMetadata';
 
 // Type imports
@@ -524,13 +526,21 @@ export const pullRemoteChanges = async (
       }
     }
 
-    // Download story shares
+    // Download story shares and their associated story documents
+    const sharedStoryIds = new Set<string>();
+    let sharesResult: any = null;
+    const remoteShareIds = new Set<string>();
+    const pendingSharesToCreate = new Array<StoryShare>(); // Shares to create after stories are downloaded
+    const affectedStoryIds = new Set<string>(); // Track story IDs affected by share updates
+    
     try {
-      const sharesResult = await store.dispatch(
+      sharesResult = await store.dispatch(
         firestoreApi.endpoints.downloadStoryShares.initiate(userId)
       );
-      if (sharesResult.data) {
+      if (sharesResult?.data) {
         for (const remoteShare of sharesResult.data) {
+          remoteShareIds.add(remoteShare.id);
+          affectedStoryIds.add(remoteShare.storyId); // Track affected story
           const localShare = await getStoryShare(remoteShare.id);
           
           // Filter by timestamp if incremental sync
@@ -538,8 +548,26 @@ export const pullRemoteChanges = async (
             continue;
           }
 
+          // Track story IDs from shares (for downloading shared stories)
+          if (remoteShare.sharedWithUserId === userId) {
+            sharedStoryIds.add(remoteShare.storyId);
+            storiesToSyncEntities.add(remoteShare.storyId);
+          }
+
+          // Check if the story exists locally before creating the share
+          // If it's a shared story (not owned), we'll create the share after downloading the story
+          const storyExists = await getStory(remoteShare.storyId);
+          const isSharedStory = remoteShare.sharedWithUserId === userId && remoteShare.ownerId !== userId;
+          
+          if (isSharedStory && !storyExists) {
+            // Defer creating this share until after we download the story
+            pendingSharesToCreate.push(remoteShare);
+            continue;
+          }
+
           if (!localShare) {
             // New share from remote, create locally and mark as synced
+            // Story must exist at this point (either owned or already downloaded)
             await createStoryShare(remoteShare);
             await markStoryShareSynced(remoteShare.id);
             pulledCount++;
@@ -550,15 +578,140 @@ export const pullRemoteChanges = async (
               : resolveConflict(localShare, remoteShare) === remoteShare || remoteShare.updatedAt > localShare.updatedAt;
             
             if (shouldUseRemote) {
-              await updateStoryShare(remoteShare.id, remoteShare as any);
+              // Update only the fields that can be updated (permission)
+              await updateStoryShare(remoteShare.id, {
+                permission: remoteShare.permission,
+              });
               await markStoryShareSynced(remoteShare.id);
               pulledCount++;
             }
           }
         }
       }
+      
+      // Delete local storyShares that no longer exist in Firestore
+      // downloadStoryShares returns shares where user is owner OR shared with user
+      // So we need to check both types of local shares
+      const sharesSharedWithUser = await getSharesForUser(userId);
+      const sharesOwnedByUser = await getSharesByOwner(userId);
+      
+      // Combine and deduplicate by share ID
+      const allLocalShares = new Map<string, StoryShare>();
+      sharesSharedWithUser.forEach(share => allLocalShares.set(share.id, share));
+      sharesOwnedByUser.forEach(share => allLocalShares.set(share.id, share));
+      
+      // Delete local shares that no longer exist in Firestore
+      for (const localShare of allLocalShares.values()) {
+        // Only delete if the share is synced (meaning it came from Firestore)
+        // If it's unsynced, it might be a pending local change
+        if (localShare.synced && !remoteShareIds.has(localShare.id)) {
+          affectedStoryIds.add(localShare.storyId); // Track affected story
+          await deleteStoryShare(localShare.id);
+          pulledCount++;
+        }
+      }
     } catch (error) {
       console.error('Error downloading story shares:', error);
+    }
+    
+    // Invalidate stories cache if we downloaded any story shares
+    // This ensures the stories list and individual story queries are refreshed with updated share information
+    if (affectedStoryIds.size > 0 || (sharesResult?.data && sharesResult.data.length > 0)) {
+      const tagsToInvalidate = [
+        { type: 'Story' as const, id: 'LIST' },
+        ...Array.from(affectedStoryIds).map((storyId) => ({ type: 'Story' as const, id: storyId })),
+      ];
+      store.dispatch(storiesApi.util.invalidateTags(tagsToInvalidate));
+    }
+
+    // Download shared story documents (stories shared with this user)
+    // After downloading shares, we need to download the actual story documents
+    if (sharedStoryIds.size > 0) {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../../config/firebase');
+        const { fromFirestoreStory } = await import('../firestore/conversion');
+        
+        // Download each shared story document
+        for (const storyId of sharedStoryIds) {
+          try {
+            // Check if story already exists locally (might be owned by user)
+            const localStory = await getStory(storyId);
+            if (localStory && localStory.userId === userId) {
+              // User owns this story, skip (already downloaded above)
+              continue;
+            }
+
+            // Download story document from Firestore
+            const storyDocRef = doc(db, 'stories', storyId);
+            const storyDocSnap = await getDoc(storyDocRef);
+            
+            if (storyDocSnap.exists()) {
+              const firestoreData = storyDocSnap.data();
+              const remoteStory = fromFirestoreStory(storyId, firestoreData);
+              
+              // Filter by timestamp if incremental sync
+              if (sinceTimestamp && remoteStory.updatedAt <= sinceTimestamp) {
+                continue;
+              }
+
+              if (!localStory) {
+                // New shared story, create locally and mark as synced
+                await createStory(remoteStory);
+                await markStorySynced(remoteStory.id);
+                pulledCount++;
+              } else {
+                // Update existing shared story if remote is newer
+                const shouldUseRemote = localStory.synced
+                  ? remoteStory.updatedAt > localStory.updatedAt
+                  : resolveConflict(localStory, remoteStory) === remoteStory || remoteStory.updatedAt > localStory.updatedAt;
+                
+                if (shouldUseRemote) {
+                  await updateStory(remoteStory.id, remoteStory as any);
+                  await markStorySynced(remoteStory.id);
+                  pulledCount++;
+                }
+              }
+            }
+          } catch (storyError) {
+            console.error(`Error downloading shared story ${storyId}:`, storyError);
+          }
+        }
+      } catch (error) {
+        console.error('Error downloading shared story documents:', error);
+      }
+      
+      // Now create any pending StoryShare records that we deferred earlier
+      // (they were deferred because the story didn't exist yet)
+      for (const pendingShare of pendingSharesToCreate) {
+        try {
+          // Verify the story now exists before creating the share
+          const storyExists = await getStory(pendingShare.storyId);
+          if (storyExists) {
+            const localShare = await getStoryShare(pendingShare.id);
+            if (!localShare) {
+              await createStoryShare(pendingShare);
+              await markStoryShareSynced(pendingShare.id);
+              affectedStoryIds.add(pendingShare.storyId); // Track affected story
+              pulledCount++;
+            }
+          } else {
+            console.warn(`Skipping share ${pendingShare.id} - story ${pendingShare.storyId} still doesn't exist after download`);
+          }
+        } catch (shareError) {
+          console.error(`Error creating deferred share ${pendingShare.id}:`, shareError);
+        }
+      }
+      
+      // Invalidate stories cache after downloading shared story documents and creating pending shares
+      // This ensures the stories list and individual story queries are refreshed
+      if (sharedStoryIds.size > 0 || pendingSharesToCreate.length > 0) {
+        const tagsToInvalidate = [
+          { type: 'Story' as const, id: 'LIST' },
+          ...Array.from(affectedStoryIds).map((storyId) => ({ type: 'Story' as const, id: storyId })),
+        ];
+        store.dispatch(storiesApi.util.invalidateTags(tagsToInvalidate));
+      }
     }
 
     // Pull entities for each story using downloadEntitiesForStory

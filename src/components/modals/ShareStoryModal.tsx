@@ -31,6 +31,7 @@ import { typography } from '../../constants/typography';
 import { getSharesForStory } from '../../services/database/storyShares';
 import { useAppDispatch } from '../../hooks/redux';
 import { setShares, addShare, updateShare, removeShare } from '../../store/slices/storySharesSlice';
+import { storiesApi } from '../../store/api/storiesApi';
 
 export interface ShareStoryModalProps {
   visible: boolean;
@@ -128,6 +129,12 @@ export const ShareStoryModal: React.FC<ShareStoryModalProps> = ({
 
       dispatch(addShare(share));
       
+      // Invalidate story queries to refresh StoryCard and StoryDetailScreen
+      dispatch(storiesApi.util.invalidateTags([
+        { type: 'Story', id: 'LIST' },
+        { type: 'Story', id: story.id },
+      ]));
+      
       // Clear form
       setEmail('');
       setPermission('read');
@@ -168,6 +175,12 @@ export const ShareStoryModal: React.FC<ShareStoryModalProps> = ({
               setSharesList((prev) => prev.filter((s) => s.id !== shareId));
               dispatch(removeShare({ storyId: story.id, shareId }));
               
+              // Invalidate story queries to refresh StoryCard and StoryDetailScreen
+              dispatch(storiesApi.util.invalidateTags([
+                { type: 'Story', id: 'LIST' },
+                { type: 'Story', id: story.id },
+              ]));
+              
               Alert.alert(
                 t('stories:sharing.shareRevoked'),
                 '',
@@ -207,6 +220,12 @@ export const ShareStoryModal: React.FC<ShareStoryModalProps> = ({
       );
       
       dispatch(updateShare(updatedShare));
+      
+      // Invalidate story queries to refresh StoryCard and StoryDetailScreen
+      dispatch(storiesApi.util.invalidateTags([
+        { type: 'Story', id: 'LIST' },
+        { type: 'Story', id: story.id },
+      ]));
       
       Alert.alert(
         t('stories:sharing.shareUpdated'),

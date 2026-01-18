@@ -20,6 +20,7 @@ import {
   useDeleteCharacterMutation,
   charactersApi,
 } from '../../store/api/charactersApi';
+import { useGetStoryQuery } from '../../store/api/storiesApi';
 import { deletionManager } from '../../services/deletion/deletionManager';
 import { firestoreApi } from '../../store/api/firestoreApi';
 import { networkService } from '../../services/network/networkService';
@@ -43,6 +44,7 @@ import { formatCharacterRole } from '../../utils/formatting';
 import type { Character } from '../../types';
 import type { CharacterFormData } from '../../hooks/useCharacterForm';
 import { useTranslation } from '../../hooks/useTranslation';
+import { canEditStory } from '../../utils/permissions';
 
 type CharactersScreenRouteProp = RouteProp<StoryTabParamList, 'Characters'>;
 
@@ -66,6 +68,23 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
+
+  // Fetch story to check permission
+  const { data: story } = useGetStoryQuery(storyId);
+  const [canEdit, setCanEdit] = useState(false);
+  
+  // Check if user has edit permission (not read-only)
+  useEffect(() => {
+    const checkCanEdit = async () => {
+      if (!user || !story) {
+        setCanEdit(false);
+        return;
+      }
+      const canEditResult = await canEditStory(user.uid, story);
+      setCanEdit(canEditResult);
+    };
+    checkCanEdit();
+  }, [user, story]);
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -309,13 +328,13 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
         >
           <CharacterCard
             character={item}
-            onPress={handleCharacterPress}
-            onDelete={handleDeleteCharacter}
+            onPress={canEdit ? handleCharacterPress : undefined}
+            onDelete={canEdit ? handleDeleteCharacter : undefined}
           />
         </Animated.View>
       );
     },
-    [handleCharacterPress, handleDeleteCharacter]
+    [handleCharacterPress, handleDeleteCharacter, canEdit]
   );
 
   // Render empty state
@@ -463,12 +482,14 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
         renderFooter={() => null}
       />
 
-      {/* Floating Action Button */}
-      <FloatingActionButton
-        options={fabOptions}
-        onMainPress={handleCreateCharacter}
-        position="bottom-right"
-      />
+      {/* Floating Action Button - Only show if user can edit */}
+      {canEdit && (
+        <FloatingActionButton
+          options={fabOptions}
+          onMainPress={handleCreateCharacter}
+          position="bottom-right"
+        />
+      )}
 
       {/* Character Modal */}
       <CharacterModal

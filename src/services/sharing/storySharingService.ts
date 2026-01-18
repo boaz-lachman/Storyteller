@@ -2,8 +2,9 @@
  * Story Sharing Service
  * Handles sharing stories with other users via email
  */
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { getStoryPermission, getStoryShare } from '../database/storyShares';
 import { StoryShare, StoryShareCreateInput } from '../../types';
 import {
   createStoryShare,
@@ -11,9 +12,44 @@ import {
   deleteStoryShare,
   getShareByStoryAndUser,
   getSharesForStory,
+  markStoryShareSynced,
 } from '../database/storyShares';
 import { getStory } from '../database/stories';
 import { generateId } from '../../utils/helpers';
+import { uploadStoryShare, deleteStoryShareFromFirestore } from '../firestore/firestoreService';
+
+/**
+ * Register user email in Firestore for email-to-UID lookup
+ * Creates/updates emailToUid document: emailToUid/{normalizedEmail} = { uid, email }
+ * Also creates/updates users document: users/{uid} = { email }
+ * 
+ * Should be called on signup and login to ensure emails are findable
+ */
+export const registerUserEmail = async (uid: string, email: string): Promise<void> => {
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Create/update emailToUid document (document ID = email for fast lookup)
+    const emailToUidRef = doc(db, 'emailToUid', normalizedEmail);
+    await setDoc(emailToUidRef, {
+      uid,
+      email: normalizedEmail,
+    }, { merge: true });
+    
+    // Also create/update users document (document ID = UID)
+    const userRef = doc(db, 'users', uid);
+    await setDoc(userRef, {
+      email: normalizedEmail,
+      uid,
+    }, { merge: true });
+    
+    console.log(`Registered email ${normalizedEmail} for user ${uid}`);
+  } catch (error) {
+    console.error('Error registering user email:', error);
+    // Don't throw - this is a non-critical operation
+    // Sharing will still work if email is already registered
+  }
+};
 
 /**
  * Find user UID by email from Firestore
@@ -108,6 +144,17 @@ export const shareStoryWithEmail = async (
     if (!updated) {
       throw new Error('Failed to update share');
     }
+    
+    // Update in Firestore immediately
+    try {
+      await uploadStoryShare(updated);
+      // Mark as synced after successful upload
+      await markStoryShareSynced(updated.id);
+    } catch (error) {
+      console.error('Failed to update story share in Firestore, will retry during sync:', error);
+      // If Firestore update fails, it will be handled by the sync queue
+    }
+    
     return updated;
   }
 
@@ -119,10 +166,20 @@ export const shareStoryWithEmail = async (
     sharedWithEmail: normalizedEmail,
     permission,
     sharedByUserId: currentUserId,
-    synced: false,
   };
 
   const share = await createStoryShare(shareInput);
+  
+  // Upload to Firestore immediately
+  try {
+    await uploadStoryShare(share);
+    // Mark as synced after successful upload
+    await markStoryShareSynced(share.id);
+  } catch (error) {
+    console.error('Failed to upload story share to Firestore, will retry during sync:', error);
+    // If Firestore upload fails, it will be handled by the sync queue
+  }
+  
   return share;
 };
 
@@ -133,7 +190,6 @@ export const revokeShare = async (
   currentUserId: string,
   shareId: string
 ): Promise<void> => {
-  const { getStoryShare } = await import('../database/storyShares');
   const share = await getStoryShare(shareId);
   if (!share) {
     throw new Error('Share not found');
@@ -181,6 +237,14 @@ export const revokeShareByStoryAndUser = async (
     throw new Error('You do not have permission to revoke this share');
   }
 
+  // Delete from Firestore first, then locally
+  try {
+    await deleteStoryShareFromFirestore(share.id);
+  } catch (error) {
+    console.error('Failed to delete story share from Firestore, will retry during sync:', error);
+    // If Firestore delete fails, still delete locally and let sync handle it
+  }
+  
   await deleteStoryShare(share.id);
 };
 
@@ -192,7 +256,6 @@ export const updateSharePermission = async (
   shareId: string,
   permission: 'read' | 'read-write'
 ): Promise<StoryShare> => {
-  const { getStoryShare } = await import('../database/storyShares');
   const share = await getStoryShare(shareId);
   if (!share) {
     throw new Error('Share not found');
@@ -219,6 +282,16 @@ export const updateSharePermission = async (
 
   if (!updated) {
     throw new Error('Failed to update share');
+  }
+
+  // Update in Firestore immediately
+  try {
+    await uploadStoryShare(updated);
+    // Mark as synced after successful upload
+    await markStoryShareSynced(updated.id);
+  } catch (error) {
+    console.error('Failed to update story share in Firestore, will retry during sync:', error);
+    // If Firestore update fails, it will be handled by the sync queue
   }
 
   return updated;
@@ -254,7 +327,6 @@ const canShareStory = async (
   if (story.userId === userId) return true;
 
   // Check if user has read-write permission
-  const { getStoryPermission } = await import('../database/storyShares');
   const permission = await getStoryPermission(userId, storyId);
   return permission === 'read-write';
 };

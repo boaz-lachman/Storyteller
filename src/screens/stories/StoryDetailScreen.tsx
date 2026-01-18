@@ -3,7 +3,7 @@
  * Container component that fetches story data and sets up tab navigation
  * Displays story title in header and renders StoryNavigator with tabs
  */
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -23,7 +23,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAppDispatch } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
 
@@ -45,6 +45,7 @@ export default function StoryDetailScreen() {
   const { user } = useAuth();
   const { storyId } = route.params;
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [canShare, setCanShare] = useState(false);
 
   // Fetch story data
   const {
@@ -54,10 +55,22 @@ export default function StoryDetailScreen() {
     error,
   } = useGetStoryQuery(storyId);
 
+  // Check if user can share the story
+  useEffect(() => {
+    const checkCanShare = async () => {
+      if (!user || !story) {
+        setCanShare(false);
+        return;
+      }
+      const canShareResult = await canShareStory(user.uid, story);
+      setCanShare(canShareResult);
+    };
+    checkCanShare();
+  }, [user, story]);
+
   // Handle share story
   const handleSharePress = useCallback(async () => {
     if (!user || !story) return;
-    const canShare = await canShareStory(user.uid, story);
     if (!canShare) {
       dispatch(
         showSnackbar({
@@ -68,7 +81,7 @@ export default function StoryDetailScreen() {
       return;
     }
     setShareModalVisible(true);
-  }, [user, story, dispatch, t]);
+  }, [user, story, canShare, dispatch, t]);
 
   // Set header title and configure navigation when story data is loaded
   useEffect(() => {
@@ -77,7 +90,7 @@ export default function StoryDetailScreen() {
         title: story.title,
         headerTitle: story.title.toUpperCase(),
         headerBackVisible: false, // Hide back button
-        headerRight: () => (
+        headerRight: canShare ? () => (
           <TouchableOpacity
             onPress={handleSharePress}
             style={{ marginRight: spacing.md, padding: spacing.xs }}
@@ -85,14 +98,14 @@ export default function StoryDetailScreen() {
           >
             <AntDesign name="share-alt" size={24} color={colors.text} />
           </TouchableOpacity>
-        ),
+        ) : undefined,
       });
     } else {
       navigation.setOptions({
         headerBackVisible: false,
       });
     }
-  }, [story?.title, story, navigation, handleSharePress]);
+  }, [story?.title, canShare, navigation, handleSharePress]);
 
   // Show loading state
   if (isLoading) {

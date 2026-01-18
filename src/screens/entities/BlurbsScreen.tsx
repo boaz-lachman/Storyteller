@@ -19,6 +19,7 @@ import {
   useUpdateBlurbMutation,
   useDeleteBlurbMutation,
 } from '../../store/api/blurbsApi';
+import { useGetStoryQuery } from '../../store/api/storiesApi';
 import { BlurbCard } from '../../components/cards/BlurbCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BlurbModal } from '../../components/modals/BlurbModal';
@@ -36,6 +37,7 @@ import { formatBlurbCategory } from '../../utils/formatting';
 import type { IdeaBlurb } from '../../types';
 import type { BlurbFormData } from '../../hooks/useBlurbForm';
 import { useTranslation } from '../../hooks/useTranslation';
+import { canEditStory } from '../../utils/permissions';
 
 type BlurbsScreenRouteProp = RouteProp<StoryTabParamList, 'Blurbs'>;
 
@@ -59,6 +61,23 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
+
+  // Fetch story to check permission
+  const { data: story } = useGetStoryQuery(storyId);
+  const [canEdit, setCanEdit] = useState(false);
+  
+  // Check if user has edit permission (not read-only)
+  useEffect(() => {
+    const checkCanEdit = async () => {
+      if (!user || !story) {
+        setCanEdit(false);
+        return;
+      }
+      const canEditResult = await canEditStory(user.uid, story);
+      setCanEdit(canEditResult);
+    };
+    checkCanEdit();
+  }, [user, story]);
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -312,13 +331,13 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
         >
           <BlurbCard
             blurb={item}
-            onPress={handleBlurbPress}
-            onDelete={handleDeleteBlurb}
+            onPress={canEdit ? handleBlurbPress : undefined}
+            onDelete={canEdit ? handleDeleteBlurb : undefined}
           />
         </Animated.View>
       );
     },
-    [handleBlurbPress, handleDeleteBlurb]
+    [handleBlurbPress, handleDeleteBlurb, canEdit]
   );
 
   // Render empty state
@@ -455,11 +474,14 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
         renderHeader={() => null}
         renderFooter={() => null}
       />
-      <FloatingActionButton
-        options={fabOptions}
-        onMainPress={handleCreateBlurb}
-        position="bottom-right"
-      />
+      {/* Floating Action Button - Only show if user can edit */}
+      {canEdit && (
+        <FloatingActionButton
+          options={fabOptions}
+          onMainPress={handleCreateBlurb}
+          position="bottom-right"
+        />
+      )}
       <BlurbModal
         visible={isModalVisible}
         blurb={selectedBlurb}

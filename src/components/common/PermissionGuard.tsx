@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Story, StoryPermission } from '../../types';
-import { canEditStory, canDeleteStory, canShareStory } from '../../utils/permissions';
+import { canEditStory, canDeleteStory, canShareStory, getStoryUserPermission } from '../../utils/permissions';
 import { useAuth } from '../../hooks/useAuth';
 
 export interface PermissionGuardProps {
@@ -50,7 +50,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
           result = await canShareStory(user.uid, story);
         } else {
           // If permission is a StoryPermission type, check if user has that level or higher
-          const userPermission = story.permission || (story.userId === user.uid ? 'owner' : null);
+          const userPermission = await getStoryUserPermission(user.uid, story);
           
           if (userPermission === 'owner') {
             result = true; // Owner has all permissions

@@ -12,6 +12,10 @@ import ChaptersScreen from '../screens/entities/ChaptersScreen';
 import GenerateStoryScreen from '../screens/generation/GenerateStoryScreen';
 import { materialTopTabOptions } from './theme';
 import { useTranslation } from '../hooks/useTranslation';
+import { useGetStoryQuery } from '../store/api/storiesApi';
+import { useAuth } from '../hooks/useAuth';
+import { canEditStory } from '../utils/permissions';
+import { useState, useEffect } from 'react';
 
 const Tab = createMaterialTopTabNavigator<StoryTabParamList>();
 
@@ -24,6 +28,7 @@ const Tab = createMaterialTopTabNavigator<StoryTabParamList>();
  * - Tab icons for each screen
  * - Tab labels for each screen
  * - Properly passes storyId to all tab screens
+ * - Conditionally hides Generate tab when permission is 'read'
  */
 const StoryNavigator = ({ 
   route
@@ -32,6 +37,27 @@ const StoryNavigator = ({
 }) => {
   const { t } = useTranslation();
   const { storyId } = route.params;
+  const { user } = useAuth();
+  const [canEdit, setCanEdit] = useState(false);
+  
+  // Fetch story to check permission for Generate tab visibility
+  const { data: story } = useGetStoryQuery(storyId);
+  
+  // Check if user can edit (if not, they are read-only and Generate tab should be hidden)
+  useEffect(() => {
+    const checkCanEdit = async () => {
+      if (!user || !story) {
+        setCanEdit(false);
+        return;
+      }
+      const canEditResult = await canEditStory(user.uid, story);
+      setCanEdit(canEditResult);
+    };
+    checkCanEdit();
+  }, [user, story]);
+  
+  // Hide Generate tab if user cannot edit (read-only)
+  const showGenerateTab = canEdit;
     
   return (
     <Tab.Navigator
@@ -127,21 +153,23 @@ const StoryNavigator = ({
           ),
         }}
       />
-      <Tab.Screen 
-        name="Generate" 
-        component={GenerateStoryScreen}
-        initialParams={{ storyId }}
-        options={{
-          tabBarLabel: t('stories:detail.tabs.generate'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'sparkles' : 'sparkles-outline'} 
-              size={20} 
-              color={color} 
-            />
-          ),
-        }}
-      />
+      {showGenerateTab && (
+        <Tab.Screen 
+          name="Generate" 
+          component={GenerateStoryScreen}
+          initialParams={{ storyId }}
+          options={{
+            tabBarLabel: t('stories:detail.tabs.generate'),
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons 
+                name={focused ? 'sparkles' : 'sparkles-outline'} 
+                size={20} 
+                color={color} 
+              />
+            ),
+          }}
+        />
+      )}
     </Tab.Navigator>
   );
 };

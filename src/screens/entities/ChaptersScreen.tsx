@@ -20,6 +20,7 @@ import {
   useDeleteChapterMutation,
   useReorderChaptersMutation,
 } from '../../store/api/chaptersApi';
+import { useGetStoryQuery } from '../../store/api/storiesApi';
 import { ChapterCard } from '../../components/cards/ChapterCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ChapterModal } from '../../components/modals/ChapterModal';
@@ -36,6 +37,7 @@ import type { Chapter } from '../../types';
 import type { ChapterFormData } from '../../hooks/useChapterForm';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { canEditStory } from '../../utils/permissions';
 
 type ChaptersScreenRouteProp = RouteProp<StoryTabParamList, 'Chapters'>;
 
@@ -55,6 +57,23 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
+
+  // Fetch story to check permission
+  const { data: story } = useGetStoryQuery(storyId);
+  const [canEdit, setCanEdit] = useState(false);
+  
+  // Check if user has edit permission (not read-only)
+  useEffect(() => {
+    const checkCanEdit = async () => {
+      if (!user || !story) {
+        setCanEdit(false);
+        return;
+      }
+      const canEditResult = await canEditStory(user.uid, story);
+      setCanEdit(canEditResult);
+    };
+    checkCanEdit();
+  }, [user, story]);
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -347,17 +366,17 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         >
           <ChapterCard
             chapter={item}
-            onPress={handleChapterPress}
-            onDelete={handleDeleteChapter}
-            onMoveUp={handleMoveUp}
-            onMoveDown={handleMoveDown}
+            onPress={canEdit ? handleChapterPress : undefined}
+            onDelete={canEdit ? handleDeleteChapter : undefined}
+            onMoveUp={canEdit ? handleMoveUp : undefined}
+            onMoveDown={canEdit ? handleMoveDown : undefined}
             isFirst={isFirst}
             isLast={isLast}
           />
         </Animated.View>
       );
     },
-    [chapters.length, handleChapterPress, handleDeleteChapter, handleMoveUp, handleMoveDown]
+    [chapters.length, handleChapterPress, handleDeleteChapter, handleMoveUp, handleMoveDown, canEdit]
   );
 
   // Render empty state
@@ -419,11 +438,14 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         renderHeader={() => null}
         renderFooter={() => null}
       />
-      <FloatingActionButton
-        options={fabOptions}
-        onMainPress={handleCreateChapter}
-        position="bottom-right"
-      />
+      {/* Floating Action Button - Only show if user can edit */}
+      {canEdit && (
+        <FloatingActionButton
+          options={fabOptions}
+          onMainPress={handleCreateChapter}
+          position="bottom-right"
+        />
+      )}
       <ChapterModal
         visible={isModalVisible}
         chapter={selectedChapter}

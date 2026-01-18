@@ -102,6 +102,22 @@ export const getSharesForUser = async (userId: string): Promise<StoryShare[]> =>
 };
 
 /**
+ * Get all shares owned by a user (stories where user is the owner)
+ */
+export const getSharesByOwner = async (ownerId: string): Promise<StoryShare[]> => {
+  const db = await getDb();
+  const results = await db.getAllAsync<any>(
+    'SELECT * FROM StoryShares WHERE ownerId = ? ORDER BY createdAt DESC',
+    [ownerId]
+  );
+
+  return results.map((result) => ({
+    ...result,
+    synced: result.synced === 1,
+  })) as StoryShare[];
+};
+
+/**
  * Get story permission for a user
  * Returns 'owner', 'read-write', 'read', or null
  */
@@ -184,6 +200,12 @@ export const updateStoryShare = async (
   if (fields.length === 0) {
     return getStoryShare(id);
   }
+
+  // Always mark as unsynced when updated
+  // This ensures all changes (including permission changes) are synced to Firestore
+  // synced is excluded from StoryShareUpdateInput, so we always set it to false on update
+  fields.push('synced = ?');
+  values.push(0);
 
   fields.push('updatedAt = ?');
   values.push(now);

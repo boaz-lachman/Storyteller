@@ -19,6 +19,7 @@ import {
   useUpdateSceneMutation,
   useDeleteSceneMutation,
 } from '../../store/api/scenesApi';
+import { useGetStoryQuery } from '../../store/api/storiesApi';
 import { SceneCard } from '../../components/cards/SceneCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { SceneModal } from '../../components/modals/SceneModal';
@@ -35,6 +36,7 @@ import { typography } from '../../constants/typography';
 import type { Scene } from '../../types';
 import type { SceneFormData } from '../../hooks/useSceneForm';
 import { useTranslation } from '../../hooks/useTranslation';
+import { canEditStory } from '../../utils/permissions';
 
 type ScenesScreenRouteProp = RouteProp<StoryTabParamList, 'Scenes'>;
 
@@ -57,6 +59,23 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
   const { storyId } = route.params;
   const { user } = useAuth();
   const dispatch = useAppDispatch();
+
+  // Fetch story to check permission
+  const { data: story } = useGetStoryQuery(storyId);
+  const [canEdit, setCanEdit] = useState(false);
+  
+  // Check if user has edit permission (not read-only)
+  useEffect(() => {
+    const checkCanEdit = async () => {
+      if (!user || !story) {
+        setCanEdit(false);
+        return;
+      }
+      const canEditResult = await canEditStory(user.uid, story);
+      setCanEdit(canEditResult);
+    };
+    checkCanEdit();
+  }, [user, story]);
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -298,13 +317,13 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
         >
           <SceneCard
             scene={item}
-            onPress={handleScenePress}
-            onDelete={handleDeleteScene}
+            onPress={canEdit ? handleScenePress : undefined}
+            onDelete={canEdit ? handleDeleteScene : undefined}
           />
         </Animated.View>
       );
     },
-    [handleScenePress, handleDeleteScene]
+    [handleScenePress, handleDeleteScene, canEdit]
   );
 
   // Render empty state
@@ -404,11 +423,14 @@ export default function ScenesScreen({ route }: ScenesScreenProps) {
         renderHeader={() => null}
         renderFooter={() => null}
       />
-      <FloatingActionButton
-        options={fabOptions}
-        onMainPress={handleCreateScene}
-        position="bottom-right"
-      />
+      {/* Floating Action Button - Only show if user can edit */}
+      {canEdit && (
+        <FloatingActionButton
+          options={fabOptions}
+          onMainPress={handleCreateScene}
+          position="bottom-right"
+        />
+      )}
       <SceneModal
         visible={isModalVisible}
         scene={selectedScene}

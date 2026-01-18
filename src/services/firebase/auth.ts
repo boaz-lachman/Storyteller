@@ -13,6 +13,7 @@ import {
   AuthError,
 } from 'firebase/auth';
 import { auth } from '../../config/firebase';
+import { registerUserEmail } from '../sharing/storySharingService';
 
 /**
  * Sign up a new user with email, password, and username
@@ -41,6 +42,11 @@ export const signUp = async (
       });
     }
     
+    // Register email in Firestore for sharing functionality
+    if (userCredential.user.email) {
+      await registerUserEmail(userCredential.user.uid, userCredential.user.email);
+    }
+    
     return userCredential.user;
   } catch (error) {
     const authError = error as AuthError;
@@ -65,6 +71,14 @@ export const signIn = async (
       email,
       password
     );
+    
+    // Register/update email in Firestore for sharing functionality
+    // This ensures existing users who signed up before email registration
+    // will have their emails registered on login
+    if (userCredential.user.email) {
+      await registerUserEmail(userCredential.user.uid, userCredential.user.email);
+    }
+    
     return userCredential.user;
   } catch (error) {
     const authError = error as AuthError;

@@ -23,6 +23,8 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatDateTime, formatStoryLength, formatStoryTheme } from '../../utils/formatting';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAuth } from '../../hooks/useAuth';
+import { canShareStory, canDeleteStory, getStoryUserPermission } from '../../utils/permissions';
 
 const AnimatedTouchableOpacity = Reanimated.createAnimatedComponent(TouchableOpacity);
 
@@ -45,9 +47,34 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
   onShare,
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const isRTL = I18nManager.isRTL;
   const swipeableRef = useRef<React.ComponentRef<typeof Swipeable>>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [userPermission, setUserPermission] = useState<string | null>(null);
+  
+  // Check if user is the owner and can share/delete
+  React.useEffect(() => {
+    const checkPermissions = async () => {
+      if (!user || !story) {
+        setCanShare(false);
+        setIsOwner(false);
+        setUserPermission(null);
+        return;
+      }
+      const [canShareResult, canDeleteResult, permission] = await Promise.all([
+        canShareStory(user.uid, story),
+        canDeleteStory(user.uid, story),
+        getStoryUserPermission(user.uid, story),
+      ]);
+      setCanShare(canShareResult);
+      setIsOwner(canDeleteResult);
+      setUserPermission(permission);
+    };
+    checkPermissions();
+  }, [user, story]);
   
   // Animation values
   const scale = useSharedValue(1);
@@ -173,13 +200,9 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
     return themeColors[story.theme] || colors.primary;
   };
 
-  return (
-    <Swipeable
-      ref={swipeableRef}
-      renderRightActions={renderRightActions}
-      overshootRight={false}
-      rightThreshold={20}
-    >
+  // Card content (shared between Swipeable and non-Swipeable versions)
+  const cardContent = (
+    <>
       <AnimatedTouchableOpacity
         activeOpacity={1}
         onPress={handlePress}
@@ -204,23 +227,6 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
                 {story.title}
               </Text>
               <View style={styles.badgesContainer}>
-                {/* Shared indicator */}
-                {story.permission && story.permission !== 'owner' && (
-                  <View style={styles.sharedBadge}>
-                    <AntDesign name="share-alt" size={12} color={colors.textInverse} />
-                    <Text style={styles.sharedBadgeText}>
-                      {t('stories:sharing.sharedWithMe')}
-                    </Text>
-                  </View>
-                )}
-                {/* Permission badge for read-only */}
-                {story.permission === 'read' && (
-                  <View style={styles.permissionBadge}>
-                    <Text style={styles.permissionBadgeText}>
-                      {t('stories:sharing.permission.read')}
-                    </Text>
-                  </View>
-                )}
                 {/* Sync Indicator */}
                 <SyncIndicator
                   synced={story.synced}
@@ -277,7 +283,7 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
               </View>
             </View>
 
-            {/* Footer: Creation Date and Share Button */}
+            {/* Footer: Creation Date, Share Button, and Shared/Permission Badges */}
             <View style={[styles.footer, isRTL && styles.footerRTL]}>
               <View style={styles.footerLeft}>
                 <AntDesign
@@ -288,8 +294,26 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
                 <Text style={styles.dateText}>
                   {formatDateTime(story.createdAt)}
                 </Text>
+                {/* Shared indicator and permission badge at the bottom */}
+                {userPermission && userPermission !== 'owner' && (
+                  <View style={styles.sharedBadge}>
+                    <AntDesign name="share-alt" size={10} color={colors.textInverse} />
+                    <Text style={styles.sharedBadgeText}>
+                      {t('stories:sharing.sharedWithMe')}
+                    </Text>
+                  </View>
+                )}
+                {/* Permission badge for read-only */}
+                {userPermission === 'read' && (
+                  <View style={styles.permissionBadge}>
+                    <Text style={styles.permissionBadgeText}>
+                      {t('stories:sharing.permission.read')}
+                    </Text>
+                  </View>
+                )}
               </View>
-              {onShare && (
+              {/* Show share button only if user can share the story */}
+              {onShare && canShare && (
                 <TouchableOpacity
                   onPress={() => onShare(story)}
                   style={styles.shareButton}
@@ -334,8 +358,25 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </Swipeable>
+    </>
   );
+
+  // Only wrap in Swipeable if user is the owner (only owners can delete)
+  if (isOwner && onDelete) {
+    return (
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        overshootRight={false}
+        rightThreshold={20}
+      >
+        {cardContent}
+      </Swipeable>
+    );
+  }
+
+  // Non-owners: render card directly without Swipeable
+  return cardContent;
 }, (prevProps, nextProps) => {
   // Only re-render if story, onPress, or onDelete callback references change
   return (
@@ -347,7 +388,6 @@ export const StoryCard: React.FC<StoryCardProps> = React.memo(({
     prevProps.story.length === nextProps.story.length &&
     prevProps.story.createdAt === nextProps.story.createdAt &&
     prevProps.story.synced === nextProps.story.synced &&
-    prevProps.story.permission === nextProps.story.permission &&
     prevProps.onPress === nextProps.onPress &&
     prevProps.onDelete === nextProps.onDelete &&
     prevProps.onShare === nextProps.onShare
