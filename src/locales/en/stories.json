@@ -12,6 +12,9 @@
     "allThemes": "All Themes",
     "allLengths": "All Lengths",
     "allStatuses": "All Statuses",
+    "allStories": "All Stories",
+    "ownedStories": "My Stories",
+    "sharedStories": "Shared with Me",
     "createStory": "Create Story",
     "created": "Story created successfully",
     "createFailed": "Failed to create story"
@@ -247,7 +250,9 @@
     "shareRevoked": "Share revoked successfully",
     "shareFailed": "Failed to share story",
     "userNotFound": "User not found. Please ensure the user has signed up with this email address.",
-    "noPermission": "You do not have permission to share this story"
+    "noPermission": "You do not have permission to share this story",
+    "cannotShareWithSelf": "Cannot Share With Yourself",
+    "cannotShareWithSelfMessage": "You cannot share a story with yourself."
   },
   "permissions": {
     "noEdit": "You don't have permission to edit this story",

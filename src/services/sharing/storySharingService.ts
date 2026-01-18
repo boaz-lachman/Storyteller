@@ -133,6 +133,11 @@ export const shareStoryWithEmail = async (
     );
   }
 
+  // Prevent user from sharing with themselves
+  if (sharedWithUserId === currentUserId) {
+    throw new Error('Cannot share a story with yourself.');
+  }
+
   // Check if already shared with this user
   const existingShare = await getShareByStoryAndUser(storyId, sharedWithUserId);
   if (existingShare) {

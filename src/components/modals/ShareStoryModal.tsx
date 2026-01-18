@@ -75,13 +75,16 @@ export const ShareStoryModal: React.FC<ShareStoryModalProps> = ({
       setRefreshing(true);
       const storyShares = await getSharesForStory(story.id);
       
-      // Transform to display format
-      const sharesData = storyShares.map((share) => ({
-        id: share.id,
-        email: share.sharedWithEmail,
-        permission: share.permission,
-        userId: share.sharedWithUserId,
-      }));
+      // Transform to display format and filter out current user
+      // (don't display the current user if they are being shared with)
+      const sharesData = storyShares
+        .filter((share) => share.sharedWithUserId !== user.uid)
+        .map((share) => ({
+          id: share.id,
+          email: share.sharedWithEmail,
+          permission: share.permission,
+          userId: share.sharedWithUserId,
+        }));
 
       setSharesList(sharesData);
       dispatch(setShares({ storyId: story.id, shares: storyShares }));
@@ -97,9 +100,20 @@ export const ShareStoryModal: React.FC<ShareStoryModalProps> = ({
       return;
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Prevent user from sharing with themselves
+    if (user.email && normalizedEmail === user.email.toLowerCase().trim()) {
+      Alert.alert(
+        t('stories:sharing.cannotShareWithSelf'),
+        t('stories:sharing.cannotShareWithSelfMessage'),
+        [{ text: t('common:buttons.ok'), onPress: () => {} }]
+      );
+      return;
+    }
+
     try {
       setSharing(true);
-      const normalizedEmail = email.toLowerCase().trim();
       
       const share = await shareStoryWithEmail(
         user.uid,
@@ -108,24 +122,31 @@ export const ShareStoryModal: React.FC<ShareStoryModalProps> = ({
         permission
       );
 
-      // Add to local state
-      const newShare = {
-        id: share.id,
-        email: normalizedEmail,
-        permission: share.permission,
-        userId: share.sharedWithUserId,
-      };
-      
-      setSharesList((prev) => {
-        // Check if already exists (update case)
-        const existingIndex = prev.findIndex((s) => s.email === normalizedEmail);
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = newShare;
-          return updated;
-        }
-        return [...prev, newShare];
-      });
+      // Add to local state (only if not the current user)
+      // Don't display the current user in the shared users list
+      if (share.sharedWithUserId !== user.uid) {
+        const newShare = {
+          id: share.id,
+          email: normalizedEmail,
+          permission: share.permission,
+          userId: share.sharedWithUserId,
+        };
+        
+        setSharesList((prev) => {
+          // Check if already exists (update case)
+          const existingIndex = prev.findIndex((s) => s.email === normalizedEmail);
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = newShare;
+            return updated;
+          }
+          return [...prev, newShare];
+        });
+      } else {
+        // If sharing with current user, remove them from the list if they were there
+        // (this should not happen, but handle it just in case)
+        setSharesList((prev) => prev.filter((s) => s.userId !== user.uid));
+      }
 
       dispatch(addShare(share));
       

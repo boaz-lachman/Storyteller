@@ -208,8 +208,9 @@ class SyncManager {
       }
 
       // Check if we should use incremental sync
+      // Manual sync always does a full sync to ensure all changes are pulled
       const lastSyncTime = await getLastIncrementalSyncTime(userId);
-      const useIncremental = lastSyncTime !== null;
+      const useIncremental = reason !== 'manual' && lastSyncTime !== null;
 
       // Perform sync (incremental if possible, full otherwise)
       let syncResult;
@@ -217,7 +218,11 @@ class SyncManager {
         console.log(`Sync: Performing incremental sync (last sync: ${new Date(lastSyncTime).toISOString()})`);
         syncResult = await incrementalSync(userId);
       } else {
-        console.log('Sync: Performing full sync (no previous sync found)');
+        if (reason === 'manual') {
+          console.log('Sync: Performing full sync (manual sync requested)');
+        } else {
+          console.log('Sync: Performing full sync (no previous sync found)');
+        }
         syncResult = await syncAll(userId);
       }
 

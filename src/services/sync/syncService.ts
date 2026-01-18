@@ -534,8 +534,17 @@ export const pullRemoteChanges = async (
     const affectedStoryIds = new Set<string>(); // Track story IDs affected by share updates
     
     try {
+      // Invalidate cache first to ensure fresh data from Firestore
+      store.dispatch(
+        firestoreApi.util.invalidateTags([{ type: 'Sync', id: 'LIST' }])
+      );
+      
+      // Force refetch to bypass cache and get fresh data from Firestore
       sharesResult = await store.dispatch(
-        firestoreApi.endpoints.downloadStoryShares.initiate(userId)
+        firestoreApi.endpoints.downloadStoryShares.initiate(userId, {
+          forceRefetch: true,
+          subscribe: false, // Don't subscribe to updates since we're doing a one-time sync
+        } as any) // Type assertion needed due to RTK Query type limitations
       );
       if (sharesResult?.data) {
         for (const remoteShare of sharesResult.data) {
@@ -543,9 +552,16 @@ export const pullRemoteChanges = async (
           affectedStoryIds.add(remoteShare.storyId); // Track affected story
           const localShare = await getStoryShare(remoteShare.id);
           
-          // Filter by timestamp if incremental sync
+          // For incremental sync, skip only if share hasn't changed AND local version exists and is synced
+          // This ensures we still process new shares or updates even during incremental sync
           if (sinceTimestamp && remoteShare.updatedAt <= sinceTimestamp) {
-            continue;
+            // Only skip if local share exists and is synced (meaning it came from Firestore)
+            // If local share doesn't exist or is unsynced, we need to process it
+            if (localShare && localShare.synced) {
+              // Share hasn't changed remotely and local version is synced, skip processing
+              continue;
+            }
+            // Local share doesn't exist or is unsynced, process it anyway
           }
 
           // Track story IDs from shares (for downloading shared stories)
@@ -578,11 +594,20 @@ export const pullRemoteChanges = async (
               : resolveConflict(localShare, remoteShare) === remoteShare || remoteShare.updatedAt > localShare.updatedAt;
             
             if (shouldUseRemote) {
-              // Update only the fields that can be updated (permission)
-              await updateStoryShare(remoteShare.id, {
-                permission: remoteShare.permission,
-              });
-              await markStoryShareSynced(remoteShare.id);
+              // Update all fields that can be updated from remote (permission, sharedByUserId)
+              // Use remote's updatedAt and mark as synced since this is a pull operation
+              await updateStoryShare(
+                remoteShare.id,
+                {
+                  permission: remoteShare.permission,
+                  sharedByUserId: remoteShare.sharedByUserId,
+                },
+                {
+                  useRemoteUpdatedAt: remoteShare.updatedAt,
+                  markSynced: true, // Mark as synced immediately since we're pulling from Firestore
+                }
+              );
+              // No need to call markStoryShareSynced since we already marked it in updateStoryShare
               pulledCount++;
             }
           }

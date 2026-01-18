@@ -45,6 +45,7 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList, 'StoriesList'
 type ThemeFilter = Story['theme'] | 'all';
 type LengthFilter = Story['length'] | 'all';
 type StatusFilter = Story['status'] | 'all';
+type OwnershipFilter = 'all' | 'owned' | 'shared';
 
 // Module-level map to track which users have had their autosave checked
 // This persists across component remounts caused by AppNavigator re-renders
@@ -119,6 +120,7 @@ export default function StoriesListScreen() {
   const [themeFilter, setThemeFilter] = useState<ThemeFilter>('all');
   const [lengthFilter, setLengthFilter] = useState<LengthFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>('all');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
 
   // RTK Query hooks
@@ -160,8 +162,19 @@ export default function StoriesListScreen() {
       filtered = filtered.filter((story) => story.status === statusFilter);
     }
 
+    // Apply ownership filter (owned vs shared)
+    if (ownershipFilter !== 'all') {
+      if (ownershipFilter === 'owned') {
+        // Filter for stories where user is the owner
+        filtered = filtered.filter((story) => story.permission === 'owner' || story.userId === user?.uid);
+      } else if (ownershipFilter === 'shared') {
+        // Filter for stories that are shared with the user (not owned by them)
+        filtered = filtered.filter((story) => story.permission !== 'owner' && story.permission !== undefined);
+      }
+    }
+
     return filtered;
-  }, [allStories, searchQuery, themeFilter, lengthFilter, statusFilter]);
+  }, [allStories, searchQuery, themeFilter, lengthFilter, statusFilter, ownershipFilter, user?.uid]);
 
   const [createStoryMutation, { isLoading: isCreating }] = useCreateStoryMutation();
   const [deleteStoryMutation, { isLoading: isDeleting }] = useDeleteStoryMutation();
@@ -306,19 +319,25 @@ export default function StoriesListScreen() {
     setFilterMenuVisible(false);
   }, []);
 
+  const handleOwnershipFilterChange = useCallback((ownership: OwnershipFilter) => {
+    setOwnershipFilter(ownership);
+    setFilterMenuVisible(false);
+  }, []);
+
   // Clear all filters
   const handleClearFilters = useCallback(() => {
     setSearchQuery('');
     setThemeFilter('all');
     setLengthFilter('all');
     setStatusFilter('all');
+    setOwnershipFilter('all');
     setFilterMenuVisible(false);
   }, []);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return searchQuery.trim() !== '' || themeFilter !== 'all' || lengthFilter !== 'all' || statusFilter !== 'all';
-  }, [searchQuery, themeFilter, lengthFilter, statusFilter]);
+    return searchQuery.trim() !== '' || themeFilter !== 'all' || lengthFilter !== 'all' || statusFilter !== 'all' || ownershipFilter !== 'all';
+  }, [searchQuery, themeFilter, lengthFilter, statusFilter, ownershipFilter]);
 
   // Calculate available filter options from existing stories
   const availableThemes = useMemo(() => {
@@ -524,6 +543,24 @@ export default function StoriesListScreen() {
                 ))}
               </>
             )}
+            <Divider />
+            <Menu.Item
+              onPress={() => handleOwnershipFilterChange('all')}
+              title={t('stories:list.allStories')}
+              leadingIcon={ownershipFilter === 'all' ? 'check' : undefined}
+            />
+            <Divider />
+            <Menu.Item
+              onPress={() => handleOwnershipFilterChange('owned')}
+              title={t('stories:list.ownedStories')}
+              leadingIcon={ownershipFilter === 'owned' ? 'check' : undefined}
+            />
+            <Divider />
+            <Menu.Item
+              onPress={() => handleOwnershipFilterChange('shared')}
+              title={t('stories:list.sharedStories')}
+              leadingIcon={ownershipFilter === 'shared' ? 'check' : undefined}
+            />
             <Divider />
             {hasActiveFilters && (
               <>

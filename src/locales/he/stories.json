@@ -12,6 +12,9 @@
     "allThemes": "כל הנושאים",
     "allLengths": "כל האורכים",
     "allStatuses": "כל הסטטוסים",
+    "allStories": "כל הסיפורים",
+    "ownedStories": "הסיפורים שלי",
+    "sharedStories": "שותפים איתי",
     "createStory": "צור סיפור",
     "created": "הסיפור נוצר בהצלחה",
     "createFailed": "יצירת הסיפור נכשלה"
@@ -247,7 +250,9 @@
     "shareRevoked": "השיתוף הוסר בהצלחה",
     "shareFailed": "שיתוף הסיפור נכשל",
     "userNotFound": "משתמש לא נמצא. אנא ודא שהמשתמש נרשם עם כתובת הדוא\"ל הזו.",
-    "noPermission": "אין לך הרשאה לשתף את הסיפור הזה"
+    "noPermission": "אין לך הרשאה לשתף את הסיפור הזה",
+    "cannotShareWithSelf": "לא ניתן לשתף עם עצמך",
+    "cannotShareWithSelfMessage": "אין באפשרותך לשתף סיפור עם עצמך."
   },
   "permissions": {
     "noEdit": "אין לך הרשאה לערוך את הסיפור הזה",

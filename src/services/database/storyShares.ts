@@ -10,7 +10,7 @@ import { getCurrentTimestamp, generateId } from '../../utils/helpers';
  * Create a new story share
  */
 export const createStoryShare = async (
-  share: StoryShareCreateInput
+  share: StoryShareCreateInput & { id?: string; synced?: boolean }
 ): Promise<StoryShare> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
@@ -176,7 +176,8 @@ export const getShareByStoryAndUser = async (
  */
 export const updateStoryShare = async (
   id: string,
-  updates: StoryShareUpdateInput
+  updates: StoryShareUpdateInput,
+  options?: { useRemoteUpdatedAt?: number; markSynced?: boolean }
 ): Promise<StoryShare | null> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
@@ -185,6 +186,7 @@ export const updateStoryShare = async (
   const fields: string[] = [];
   const values: any[] = [];
 
+  let hasUpdates = false;
   Object.entries(updates).forEach(([key, value]) => {
     if (value !== undefined && key !== 'id' && key !== 'storyId' && key !== 'ownerId' && 
         key !== 'sharedWithUserId' && key !== 'sharedWithEmail' && key !== 'createdAt') {
@@ -194,21 +196,35 @@ export const updateStoryShare = async (
       } else {
         values.push(value);
       }
+      hasUpdates = true;
     }
   });
 
-  if (fields.length === 0) {
+  // If no fields were updated and we're not using remote updatedAt, return early
+  // However, we should always update updatedAt when there are actual updates to ensure
+  // permission changes trigger timestamp updates
+  if (!hasUpdates && !options?.useRemoteUpdatedAt) {
     return getStoryShare(id);
   }
 
-  // Always mark as unsynced when updated
+  // Mark as unsynced when updated (unless this is a sync pull operation)
   // This ensures all changes (including permission changes) are synced to Firestore
-  // synced is excluded from StoryShareUpdateInput, so we always set it to false on update
-  fields.push('synced = ?');
-  values.push(0);
+  if (options?.markSynced) {
+    // During sync pull, mark as synced immediately since we're updating from Firestore
+    fields.push('synced = ?');
+    values.push(1);
+  } else {
+    // synced is excluded from StoryShareUpdateInput, so we always set it to false on update
+    // unless this is explicitly marked as synced (during pull)
+    fields.push('synced = ?');
+    values.push(0);
+  }
 
+  // Always update updatedAt when there are updates (to track permission changes, etc.)
+  // Use remote updatedAt if provided (for sync pulls), otherwise use current time
+  const updatedAtValue = options?.useRemoteUpdatedAt ?? now;
   fields.push('updatedAt = ?');
-  values.push(now);
+  values.push(updatedAtValue);
   values.push(id);
 
   await db.runAsync(

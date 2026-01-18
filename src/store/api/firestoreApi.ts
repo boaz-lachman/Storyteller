@@ -570,7 +570,7 @@ export const firestoreApi = createApi({
         operation: 'downloadStoryShares',
         userId,
       }),
-      providesTags: [{ type: 'Sync' }],
+      providesTags: [{ type: 'Sync' , id: 'LIST' }],
     }),
   }),
 });
