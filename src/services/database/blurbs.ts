@@ -101,15 +101,19 @@ export const getBlurbsByStory = async (
 export const updateBlurb = async (
   id: string,
   updates: BlurbUpdateInput,
-  userId?: string // Optional: if provided, will check permissions
+  options?: {
+    userId?: string; // Optional: if provided, will check permissions
+    preserveSync?: boolean; // If true, don't mark as unsynced
+    useRemoteUpdatedAt?: number; // If provided, use this timestamp instead of current time
+  }
 ): Promise<IdeaBlurb | null> => {
   // Check permissions if userId is provided
-  if (userId) {
+  if (options?.userId) {
     const blurb = await getBlurb(id);
     if (!blurb) {
       throw new Error('Blurb not found');
     }
-    const canEdit = await canEditEntity(userId, blurb);
+    const canEdit = await canEditEntity(options.userId, blurb);
     if (!canEdit) {
       throw new Error('You do not have permission to edit this blurb');
     }
@@ -122,7 +126,7 @@ export const updateBlurb = async (
   const values: any[] = [];
 
   Object.entries(updates).forEach(([key, value]) => {
-    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'storyId') {
+    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'storyId' && key !== 'updatedAt') {
       fields.push(`${key} = ?`);
       values.push(value);
     }
@@ -132,11 +136,15 @@ export const updateBlurb = async (
     return getBlurb(id);
   }
 
-  // Mark as unsynced when updated
-  fields.push('synced = ?');
-  values.push(0);
+  // Mark as unsynced when updated (unless preserveSync is true)
+  if (!options?.preserveSync) {
+    fields.push('synced = ?');
+    values.push(0);
+  }
+
+  // Use remote updatedAt if provided, otherwise use current time
   fields.push('updatedAt = ?');
-  values.push(now);
+  values.push(options?.useRemoteUpdatedAt ?? now);
   values.push(id);
 
   await db.runAsync(

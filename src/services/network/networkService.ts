@@ -4,8 +4,17 @@
  * Provides network state information and detects offline-to-online transitions
  */
 import NetInfo, { NetInfoState, NetInfoStateType } from '@react-native-community/netinfo';
-import { store } from '../../store';
 import { setOnline } from '../../store/slices/syncSlice';
+
+/**
+ * Lazy store getter to avoid circular dependencies
+ * The store is only imported when needed, breaking the circular dependency
+ */
+const getStore = () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { store } = require('../../store');
+  return store;
+};
 
 export interface NetworkState {
   isConnected: boolean;
@@ -144,7 +153,7 @@ class NetworkService {
       const isOnline = Boolean(
         this.currentState.isConnected && this.currentState.isInternetReachable
       );
-      store.dispatch(setOnline(isOnline));
+      getStore().dispatch(setOnline(isOnline));
     }
   }
 

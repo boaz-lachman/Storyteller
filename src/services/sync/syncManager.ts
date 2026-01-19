@@ -139,6 +139,31 @@ class SyncManager {
       return;
     }
 
+    // Invalidate all query caches before sync to ensure fresh data
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { storiesApi } = require('../../store/api/storiesApi');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { charactersApi } = require('../../store/api/charactersApi');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { blurbsApi } = require('../../store/api/blurbsApi');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { scenesApi } = require('../../store/api/scenesApi');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { chaptersApi } = require('../../store/api/chaptersApi');
+
+      const store = getStore();
+      store.dispatch(storiesApi.util.invalidateTags([{ type: 'Story' }]));
+      store.dispatch(charactersApi.util.invalidateTags([{ type: 'Character' }]));
+      store.dispatch(blurbsApi.util.invalidateTags([{ type: 'Blurb' }]));
+      store.dispatch(scenesApi.util.invalidateTags([{ type: 'Scene' }]));
+      store.dispatch(chaptersApi.util.invalidateTags([{ type: 'Chapter' }]));
+      console.log(`RTK Query cache invalidated before sync - reason: ${reason}`);
+    } catch (error) {
+      console.error('Error invalidating RTK Query cache before sync:', error);
+      // Non-critical error, continue with sync
+    }
+
     // Perform sync
     await this.performSync(userId, { ...options, reason });
   }

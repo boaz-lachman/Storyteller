@@ -21,8 +21,17 @@ import {
   type SyncQueueItemRecord,
 } from '../database/syncQueue';
 import { networkService } from '../network/networkService';
-import { store } from '../../store';
 import { firestoreApi } from '../../store/api/firestoreApi';
+
+/**
+ * Lazy store getter to avoid circular dependencies
+ * The store is only imported when needed, breaking the circular dependency
+ */
+const getStore = () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { store } = require('../../store');
+  return store;
+};
 
 export interface QueueItem extends SyncQueueItem {
   retryCount?: number;
@@ -178,27 +187,27 @@ class SyncQueueManager {
           let deleteResult;
           switch (item.type) {
             case 'story':
-              deleteResult = await store.dispatch(
+              deleteResult = await getStore().dispatch(
                 firestoreApi.endpoints.deleteStory.initiate(item.entityId)
               );
               break;
             case 'character':
-              deleteResult = await store.dispatch(
+              deleteResult = await getStore().dispatch(
                 firestoreApi.endpoints.deleteCharacter.initiate(item.entityId)
               );
               break;
             case 'blurb':
-              deleteResult = await store.dispatch(
+              deleteResult = await getStore().dispatch(
                 firestoreApi.endpoints.deleteBlurb.initiate(item.entityId)
               );
               break;
             case 'scene':
-              deleteResult = await store.dispatch(
+              deleteResult = await getStore().dispatch(
                 firestoreApi.endpoints.deleteScene.initiate(item.entityId)
               );
               break;
             case 'chapter':
-              deleteResult = await store.dispatch(
+              deleteResult = await getStore().dispatch(
                 firestoreApi.endpoints.deleteChapter.initiate(item.entityId)
               );
               break;

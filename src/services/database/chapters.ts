@@ -191,15 +191,19 @@ export const getChaptersByStory = async (
 export const updateChapter = async (
   id: string,
   updates: ChapterUpdateInput,
-  userId?: string // Optional: if provided, will check permissions
+  options?: {
+    userId?: string; // Optional: if provided, will check permissions
+    preserveSync?: boolean; // If true, don't mark as unsynced
+    useRemoteUpdatedAt?: number; // If provided, use this timestamp instead of current time
+  }
 ): Promise<Chapter | null> => {
   // Check permissions if userId is provided
-  if (userId) {
+  if (options?.userId) {
     const chapter = await getChapter(id);
     if (!chapter) {
       throw new Error('Chapter not found');
     }
-    const canEdit = await canEditEntity(userId, chapter);
+    const canEdit = await canEditEntity(options.userId, chapter);
     if (!canEdit) {
       throw new Error('You do not have permission to edit this chapter');
     }
@@ -212,7 +216,7 @@ export const updateChapter = async (
   const values: any[] = [];
 
   Object.entries(updates).forEach(([key, value]) => {
-    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'storyId') {
+    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'storyId' && key !== 'updatedAt') {
       // Handle "order" as a reserved keyword
       const fieldName = key === 'order' ? '"order"' : key;
       fields.push(`${fieldName} = ?`);
@@ -224,11 +228,15 @@ export const updateChapter = async (
     return getChapter(id);
   }
 
-  // Mark as unsynced when updated
-  fields.push('synced = ?');
-  values.push(0);
+  // Mark as unsynced when updated (unless preserveSync is true)
+  if (!options?.preserveSync) {
+    fields.push('synced = ?');
+    values.push(0);
+  }
+
+  // Use remote updatedAt if provided, otherwise use current time
   fields.push('updatedAt = ?');
-  values.push(now);
+  values.push(options?.useRemoteUpdatedAt ?? now);
   values.push(id);
 
   await db.runAsync(

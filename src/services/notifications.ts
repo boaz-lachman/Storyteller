@@ -6,7 +6,6 @@ import * as Notifications from 'expo-notifications';
 // Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
     // Add required NotificationBehavior properties:

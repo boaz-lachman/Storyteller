@@ -114,15 +114,19 @@ export const getCharactersByStory = async (
 export const updateCharacter = async (
   id: string,
   updates: CharacterUpdateInput,
-  userId?: string // Optional: if provided, will check permissions
+  options?: {
+    userId?: string; // Optional: if provided, will check permissions
+    preserveSync?: boolean; // If true, don't mark as unsynced
+    useRemoteUpdatedAt?: number; // If provided, use this timestamp instead of current time
+  }
 ): Promise<Character | null> => {
   // Check permissions if userId is provided
-  if (userId) {
+  if (options?.userId) {
     const character = await getCharacter(id);
     if (!character) {
       throw new Error('Character not found');
     }
-    const canEdit = await canEditEntity(userId, character);
+    const canEdit = await canEditEntity(options.userId, character);
     if (!canEdit) {
       throw new Error('You do not have permission to edit this character');
     }
@@ -135,7 +139,7 @@ export const updateCharacter = async (
   const values: any[] = [];
 
   Object.entries(updates).forEach(([key, value]) => {
-    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'storyId') {
+    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'storyId' && key !== 'updatedAt') {
       if (key === 'traits' && Array.isArray(value)) {
         fields.push(`${key} = ?`);
         values.push(safeJsonStringify(value));
@@ -150,11 +154,15 @@ export const updateCharacter = async (
     return getCharacter(id);
   }
 
-  // Mark as unsynced when updated
-  fields.push('synced = ?');
-  values.push(0);
+  // Mark as unsynced when updated (unless preserveSync is true)
+  if (!options?.preserveSync) {
+    fields.push('synced = ?');
+    values.push(0);
+  }
+
+  // Use remote updatedAt if provided, otherwise use current time
   fields.push('updatedAt = ?');
-  values.push(now);
+  values.push(options?.useRemoteUpdatedAt ?? updates.updatedAt ?? now);
   values.push(id);
 
   await db.runAsync(

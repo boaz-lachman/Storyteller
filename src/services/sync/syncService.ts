@@ -63,10 +63,27 @@ import {
 } from '../database/storyShares';
 
 // Firestore API imports
-import { store } from '../../store';
 import { firestoreApi } from '../../store/api/firestoreApi';
-import { storiesApi } from '../../store/api/storiesApi';
 import { getLastIncrementalSyncTime, updateLastSyncTime } from '../database/syncMetadata';
+
+/**
+ * Lazy store getter to avoid circular dependencies
+ * The store is only imported when needed, breaking the circular dependency
+ */
+const getStore = () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { store } = require('../../store');
+  return store;
+};
+
+/**
+ * Lazy storiesApi getter to avoid circular dependencies
+ */
+const getStoriesApi = () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { storiesApi } = require('../../store/api/storiesApi');
+  return storiesApi;
+};
 
 // Type imports
 import type { Character, IdeaBlurb, Scene, Chapter, StoryShare } from '../../types';
@@ -215,7 +232,7 @@ const syncStories = async (userId: string): Promise<number> => {
     const results = await Promise.allSettled(
       batch.map(async (story) => {
         try {
-          const uploadResult = await store.dispatch(
+          const uploadResult = await getStore().dispatch(
             firestoreApi.endpoints.uploadStory.initiate(story)
           );
           if (!!uploadResult.error) {
@@ -267,7 +284,7 @@ const syncCharacters = async (userId: string): Promise<number> => {
     const results = await Promise.allSettled(
       batch.map(async (character) => {
         try {
-          const uploadResult = await store.dispatch(
+          const uploadResult = await getStore().dispatch(
             firestoreApi.endpoints.uploadCharacter.initiate(character)
           );
           if (!!uploadResult.error) {
@@ -311,7 +328,7 @@ const syncBlurbs = async (userId: string): Promise<number> => {
     const results = await Promise.allSettled(
       batch.map(async (blurb) => {
         try {
-          const uploadResult = await store.dispatch(
+          const uploadResult = await getStore().dispatch(
             firestoreApi.endpoints.uploadBlurb.initiate(blurb)
           );
           if (!!uploadResult.error) {
@@ -355,7 +372,7 @@ const syncScenes = async (userId: string): Promise<number> => {
     const results = await Promise.allSettled(
       batch.map(async (scene) => {
         try {
-          const uploadResult = await store.dispatch(
+          const uploadResult = await getStore().dispatch(
             firestoreApi.endpoints.uploadScene.initiate(scene)
           );
           if (!!uploadResult.error) {
@@ -399,7 +416,7 @@ const syncChapters = async (userId: string): Promise<number> => {
     const results = await Promise.allSettled(
       batch.map(async (chapter) => {
         try {
-          const uploadResult = await store.dispatch(
+          const uploadResult = await getStore().dispatch(
             firestoreApi.endpoints.uploadChapter.initiate(chapter)
           );
           if (!!uploadResult.error) {
@@ -443,7 +460,7 @@ const syncStoryShares = async (userId: string): Promise<number> => {
     const results = await Promise.allSettled(
       batch.map(async (share) => {
         try {
-          const uploadResult = await store.dispatch(
+          const uploadResult = await getStore().dispatch(
             firestoreApi.endpoints.uploadStoryShare.initiate(share)
           );
           if (!!uploadResult.error) {
@@ -485,7 +502,7 @@ export const pullRemoteChanges = async (
     const storiesToSyncEntities = new Set<string>();
     
     // Pull stories using downloadStories
-    const storiesResult = await store.dispatch(
+    const storiesResult = await getStore().dispatch(
       firestoreApi.endpoints.downloadStories.initiate(userId)
     );
     if (storiesResult.data) {
@@ -516,8 +533,12 @@ export const pullRemoteChanges = async (
             : resolveConflict(localStory, remoteStory) === remoteStory || remoteStory.updatedAt > localStory.updatedAt;
           
           if (shouldUseRemote) {
-            // Remote is newer or local is synced and remote is newer, update local and mark as synced
-            await updateStory(remoteStory.id, remoteStory as any);
+            // Remote is newer or local is synced and remote is newer, update local with remote data
+            // Preserve sync status and use remote updatedAt timestamp
+            await updateStory(remoteStory.id, remoteStory as any, {
+              preserveSync: true,
+              useRemoteUpdatedAt: remoteStory.updatedAt,
+            });
             await markStorySynced(remoteStory.id);
             pulledCount++;
           }
@@ -535,12 +556,12 @@ export const pullRemoteChanges = async (
     
     try {
       // Invalidate cache first to ensure fresh data from Firestore
-      store.dispatch(
+      getStore().dispatch(
         firestoreApi.util.invalidateTags([{ type: 'Sync', id: 'LIST' }])
       );
-      
+
       // Force refetch to bypass cache and get fresh data from Firestore
-      sharesResult = await store.dispatch(
+      sharesResult = await getStore().dispatch(
         firestoreApi.endpoints.downloadStoryShares.initiate(userId, {
           forceRefetch: true,
           subscribe: false, // Don't subscribe to updates since we're doing a one-time sync
@@ -646,7 +667,7 @@ export const pullRemoteChanges = async (
         { type: 'Story' as const, id: 'LIST' },
         ...Array.from(affectedStoryIds).map((storyId) => ({ type: 'Story' as const, id: storyId })),
       ];
-      store.dispatch(storiesApi.util.invalidateTags(tagsToInvalidate));
+      getStore().dispatch(getStoriesApi().util.invalidateTags(tagsToInvalidate));
     }
 
     // Download shared story documents (stories shared with this user)
@@ -692,7 +713,10 @@ export const pullRemoteChanges = async (
                   : resolveConflict(localStory, remoteStory) === remoteStory || remoteStory.updatedAt > localStory.updatedAt;
                 
                 if (shouldUseRemote) {
-                  await updateStory(remoteStory.id, remoteStory as any);
+                  await updateStory(remoteStory.id, remoteStory as any, {
+                    preserveSync: true,
+                    useRemoteUpdatedAt: remoteStory.updatedAt,
+                  });
                   await markStorySynced(remoteStory.id);
                   pulledCount++;
                 }
@@ -735,7 +759,7 @@ export const pullRemoteChanges = async (
           { type: 'Story' as const, id: 'LIST' },
           ...Array.from(affectedStoryIds).map((storyId) => ({ type: 'Story' as const, id: storyId })),
         ];
-        store.dispatch(storiesApi.util.invalidateTags(tagsToInvalidate));
+        getStore().dispatch(getStoriesApi().util.invalidateTags(tagsToInvalidate));
       }
     }
 
@@ -795,7 +819,7 @@ export const pullRemoteChanges = async (
           };
 
           // Download all entities for this story (including completed stories)
-          const entitiesResult = await store.dispatch(
+          const entitiesResult = await getStore().dispatch(
             firestoreApi.endpoints.downloadEntitiesForStory.initiate({
               storyId,
               localEntities,
@@ -842,8 +866,12 @@ export const pullRemoteChanges = async (
                 : resolveConflict(localChar, remoteChar) === remoteChar || remoteChar.updatedAt > localChar.updatedAt;
 
               if (shouldUseRemote) {
-                // Remote is newer or local is synced and remote is newer, update local and mark as synced
-                await updateCharacter(remoteChar.id, remoteChar as any);
+                // Remote is newer or local is synced and remote is newer, update local with remote data
+                // Preserve sync status and use remote updatedAt timestamp
+                await updateCharacter(remoteChar.id, remoteChar as any, {
+                  preserveSync: true,
+                  useRemoteUpdatedAt: remoteChar.updatedAt,
+                });
                 await markCharacterSynced(remoteChar.id);
                 storyPulledCount++;
               }
@@ -890,8 +918,12 @@ export const pullRemoteChanges = async (
                 : resolveConflict(localBlurb, remoteBlurb) === remoteBlurb || remoteBlurb.updatedAt > localBlurb.updatedAt;
 
               if (shouldUseRemote) {
-                // Remote is newer or local is synced and remote is newer, update local and mark as synced
-                await updateBlurb(remoteBlurb.id, remoteBlurb as any);
+                // Remote is newer or local is synced and remote is newer, update local with remote data
+                // Preserve sync status and use remote updatedAt timestamp
+                await updateBlurb(remoteBlurb.id, remoteBlurb as any, {
+                  preserveSync: true,
+                  useRemoteUpdatedAt: remoteBlurb.updatedAt,
+                });
                 await markBlurbSynced(remoteBlurb.id);
                 storyPulledCount++;
               }
@@ -938,8 +970,12 @@ export const pullRemoteChanges = async (
                 : resolveConflict(localScene, remoteScene) === remoteScene || remoteScene.updatedAt > localScene.updatedAt;
 
               if (shouldUseRemote) {
-                // Remote is newer or local is synced and remote is newer, update local and mark as synced
-                await updateScene(remoteScene.id, remoteScene as any);
+                // Remote is newer or local is synced and remote is newer, update local with remote data
+                // Preserve sync status and use remote updatedAt timestamp
+                await updateScene(remoteScene.id, remoteScene as any, {
+                  preserveSync: true,
+                  useRemoteUpdatedAt: remoteScene.updatedAt,
+                });
                 await markSceneSynced(remoteScene.id);
                 storyPulledCount++;
               }
@@ -986,8 +1022,12 @@ export const pullRemoteChanges = async (
                 : resolveConflict(localChapter, remoteChapter) === remoteChapter || remoteChapter.updatedAt > localChapter.updatedAt;
 
               if (shouldUseRemote) {
-                // Remote is newer or local is synced and remote is newer, update local and mark as synced
-                await updateChapter(remoteChapter.id, remoteChapter as any);
+                // Remote is newer or local is synced and remote is newer, update local with remote data
+                // Preserve sync status and use remote updatedAt timestamp
+                await updateChapter(remoteChapter.id, remoteChapter as any, {
+                  preserveSync: true,
+                  useRemoteUpdatedAt: remoteChapter.updatedAt,
+                });
                 await markChapterSynced(remoteChapter.id);
                 storyPulledCount++;
               }
@@ -1097,8 +1137,9 @@ export const incrementalSync = async (userId: string): Promise<SyncResult> => {
     // Phase 2: Pull remote changes (only those changed since last sync)
     const pulled = await pullRemoteChanges(userId, lastSyncTime);
 
-    // Update last sync time
-    await updateLastSyncTime(userId, startTime);
+    // Update last sync time to current time (not startTime) to prevent missing changes
+    // that occurred during the sync operation
+    await updateLastSyncTime(userId, getCurrentTimestamp());
 
     const duration = getCurrentTimestamp() - startTime;
 

@@ -258,5 +258,6 @@
     "noEdit": "You don't have permission to edit this story",
     "noDelete": "Only the owner can delete this story",
     "noShare": "You don't have permission to share this story"
-  }
+  },
+  "storyRemoved": "This story was removed or is no longer shared with you"
 }

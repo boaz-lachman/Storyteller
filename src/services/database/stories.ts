@@ -197,7 +197,11 @@ export const getAllStories = async (userId: string): Promise<Story[]> => {
  */
 export const updateStory = async (
   id: string,
-  updates: StoryUpdateInput
+  updates: StoryUpdateInput,
+  options?: {
+    preserveSync?: boolean; // If true, don't mark as unsynced
+    useRemoteUpdatedAt?: number; // If provided, use this timestamp instead of current time
+  }
 ): Promise<Story | null> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
@@ -207,7 +211,7 @@ export const updateStory = async (
   const values: any[] = [];
 
   Object.entries(updates).forEach(([key, value]) => {
-    if (value !== undefined && key !== 'id' && key !== 'userId') {
+    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'updatedAt') {
       fields.push(`${key} = ?`);
       // Serialize cutOffChunks array to JSON string
       if (key === 'cutOffChunks' && Array.isArray(value)) {
@@ -222,11 +226,15 @@ export const updateStory = async (
     return getStory(id);
   }
 
-  // Mark as unsynced when updated
-  fields.push('synced = ?');
-  values.push(0);
+  // Mark as unsynced when updated (unless preserveSync is true)
+  if (!options?.preserveSync) {
+    fields.push('synced = ?');
+    values.push(0);
+  }
+
+  // Use remote updatedAt if provided, otherwise use current time
   fields.push('updatedAt = ?');
-  values.push(now);
+  values.push(options?.useRemoteUpdatedAt ?? updates.updatedAt ?? now);
   values.push(id);
 
   await db.runAsync(
