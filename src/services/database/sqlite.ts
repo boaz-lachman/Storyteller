@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { getCurrentTimestamp } from '../../utils/helpers';
 
 const DB_NAME = 'storyteller.db';
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 let db: SQLite.SQLiteDatabase | null = null;
 let isInitializing = false;
@@ -142,6 +142,21 @@ async function applyMigration(
       return;
     }
 
+    // Special handling for migration 004 to avoid duplicate column error
+    if (version === 4) {
+      await database.withTransactionAsync(async () => {
+        await applyMigration004Safe(database);
+        
+        // Record migration
+        await database.runAsync(
+          'INSERT INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)',
+          [version, getCurrentTimestamp(), `Migration ${version}`]
+        );
+      });
+      console.log(`Migration ${version} applied successfully`);
+      return;
+    }
+
     // Import migration SQL
     const migrationSQL = await getMigrationSQL(version);
     
@@ -183,6 +198,9 @@ async function getMigrationSQL(version: number): Promise<string | null> {
     }
     if (version === 3) {
       return getMigration003SQL();
+    }
+    if (version === 4) {
+      return getMigration004SQL();
     }
     return null;
   } catch (error) {
@@ -448,6 +466,49 @@ function getMigration003SQL(): string {
     CREATE INDEX IF NOT EXISTS idx_storyShares_ownerId ON StoryShares(ownerId);
     CREATE INDEX IF NOT EXISTS idx_storyShares_story_user ON StoryShares(storyId, sharedWithUserId);
   `;
+}
+
+/**
+ * Migration 004: Add deleted field to Stories table
+ * Note: This migration is idempotent - it checks if the column exists before adding it
+ */
+function getMigration004SQL(): string {
+  return `
+    -- Migration 004: Add deleted field to Stories table
+    -- Check if column exists before adding (SQLite doesn't support IF NOT EXISTS for ADD COLUMN)
+    -- We'll catch the error if column already exists
+    ALTER TABLE Stories ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
+  `;
+}
+
+/**
+ * Safe migration 004: Checks if column exists before adding
+ */
+async function applyMigration004Safe(database: SQLite.SQLiteDatabase): Promise<void> {
+  try {
+    // Check if deleted column exists
+    const tableInfo = await database.getAllAsync<{ name: string; type: string }>(
+      'PRAGMA table_info(Stories)'
+    );
+    const hasDeleted = tableInfo.some(col => col.name === 'deleted');
+    
+    if (!hasDeleted) {
+      // Column doesn't exist, add it
+      await database.execAsync('ALTER TABLE Stories ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;');
+      console.log('Migration 004: Added deleted column to Stories table');
+    } else {
+      console.log('Migration 004: deleted column already exists, skipping');
+    }
+  } catch (error: any) {
+    // If error is about duplicate column, ignore it (column already exists)
+    if (error?.message?.includes('duplicate column name') || 
+        error?.message?.includes('duplicate column')) {
+      console.log('Migration 004: deleted column already exists (caught duplicate error), skipping');
+      return;
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 /**

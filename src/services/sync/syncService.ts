@@ -500,13 +500,21 @@ export const pullRemoteChanges = async (
   try {
     // Track story IDs that need entity downloads (both newly pulled and existing)
     const storiesToSyncEntities = new Set<string>();
-    
+    getStore().dispatch(
+      firestoreApi.util.invalidateTags([{  type: 'Story', id: 'LIST' }])
+    );
     // Pull stories using downloadStories
     const storiesResult = await getStore().dispatch(
-      firestoreApi.endpoints.downloadStories.initiate(userId)
+      firestoreApi.endpoints.downloadStories.initiate(userId, {
+        forceRefetch: true,
+        subscribe: false, // Don't subscribe to updates since we're doing a one-time sync
+      } as any)
     );
     if (storiesResult.data) {
+      const remoteStoryIds = new Set<string>();
+      
       for (const remoteStory of storiesResult.data) {
+        remoteStoryIds.add(remoteStory.id);
         const localStory = await getStory(remoteStory.id);
         
         // Always mark story for entity sync (regardless of timestamp or status)
@@ -522,9 +530,12 @@ export const pullRemoteChanges = async (
         if (!localStory) {
           // New story from remote, create locally and mark as synced
           // Entities from Firestore are already synced, so mark them as such
-          await createStory(remoteStory);
-          await markStorySynced(remoteStory.id);
-          pulledCount++;
+          // Only create if not deleted (deleted stories that don't exist locally don't need to be created)
+          if (!remoteStory.deleted) {
+            await createStory(remoteStory);
+            await markStorySynced(remoteStory.id);
+            pulledCount++;
+          }
         } else {
           // Resolve conflict using Last-Write-Wins
           // If local entity is already synced and remote is newer, always use remote
@@ -535,6 +546,7 @@ export const pullRemoteChanges = async (
           if (shouldUseRemote) {
             // Remote is newer or local is synced and remote is newer, update local with remote data
             // Preserve sync status and use remote updatedAt timestamp
+            // This includes the deleted field, so deleted stories will be marked as deleted locally
             await updateStory(remoteStory.id, remoteStory as any, {
               preserveSync: true,
               useRemoteUpdatedAt: remoteStory.updatedAt,
@@ -545,6 +557,11 @@ export const pullRemoteChanges = async (
           // If local is newer and unsynced, it will be pushed in next sync
         }
       }
+      
+      // Check for stories that exist locally but are not in remote results
+      // If a story is synced locally but not in remote, it might have been deleted remotely
+      // However, since we're using soft deletes, deleted stories should still be in remote results
+      // So we don't need to handle this case - if a story is deleted remotely, it will come through with deleted=true
     }
 
     // Download story shares and their associated story documents
@@ -1022,12 +1039,8 @@ export const pullRemoteChanges = async (
                 : resolveConflict(localChapter, remoteChapter) === remoteChapter || remoteChapter.updatedAt > localChapter.updatedAt;
 
               if (shouldUseRemote) {
-                // Remote is newer or local is synced and remote is newer, update local with remote data
-                // Preserve sync status and use remote updatedAt timestamp
-                await updateChapter(remoteChapter.id, remoteChapter as any, {
-                  preserveSync: true,
-                  useRemoteUpdatedAt: remoteChapter.updatedAt,
-                });
+                // Remote is newer or local is synced and remote is newer, update local and mark as synced
+                await updateChapter(remoteChapter.id, remoteChapter as any);
                 await markChapterSynced(remoteChapter.id);
                 storyPulledCount++;
               }

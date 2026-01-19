@@ -104,6 +104,7 @@ export interface FirestoreStoryData {
   createdAt: number;
   updatedAt: number;
   synced: boolean;
+  deleted: boolean;
 }
 
 export interface FirestoreCharacterData {
@@ -234,6 +235,7 @@ export function toFirestoreStory(story: Story): FirestoreStoryData {
     createdAt: story.createdAt,
     updatedAt: story.updatedAt,
     synced: true, // Always true in Firestore
+    deleted: story.deleted || false,
   };
 }
 
@@ -266,6 +268,7 @@ export function fromFirestoreStory(
     createdAt: convertTimestamp(data.createdAt) || 0,
     updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true, // Downloaded from Firestore, so synced
+    deleted: data.deleted || false,
   };
 }
 

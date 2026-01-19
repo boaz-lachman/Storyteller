@@ -24,8 +24,9 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useState, useCallback, useEffect } from 'react';
-import { useAppDispatch } from '../../hooks/redux';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
+import { selectLastSyncTime } from '../../store/slices/syncSlice';
 
 type StoryDetailRouteProp = RouteProp<AppStackParamList, 'StoryDetail'>;
 type StoryDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, 'StoryDetail'>;
@@ -40,6 +41,7 @@ type StoryDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, 'S
 export default function StoryDetailScreen() {
   const { t } = useTranslation();
   const route = useRoute<StoryDetailRouteProp>();
+  const lastSyncTime = useAppSelector(selectLastSyncTime);
   const navigation = useNavigation<StoryDetailNavigationProp>();
   const dispatch = useAppDispatch();
   const { user } = useAuth();
@@ -66,7 +68,7 @@ export default function StoryDetailScreen() {
       setCanShare(canShareResult);
     };
     checkCanShare();
-  }, [user, story]);
+  }, [user, story, lastSyncTime]);
 
   // Handle share story
   const handleSharePress = useCallback(async () => {

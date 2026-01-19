@@ -34,14 +34,15 @@ export const createStory = async (story: StoryCreateInput & { userId: string }):
     createdAt: now,
     updatedAt: now,
     synced: story.synced ?? false,
+    deleted: false,
   };
 
   await db.runAsync(
     `INSERT INTO Stories (
       id, userId, title, description, length, theme, tone, pov, targetAudience,
       setting, timePeriod, status, generatedContent, generatedAt, wordCount, cutOffChunks,
-      createdAt, updatedAt, synced
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      createdAt, updatedAt, synced, deleted
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       newStory.id,
       newStory.userId,
@@ -62,6 +63,7 @@ export const createStory = async (story: StoryCreateInput & { userId: string }):
       newStory.createdAt,
       newStory.updatedAt,
       newStory.synced ? 1 : 0,
+      newStory.deleted ? 1 : 0,
     ]
   );
 
@@ -93,7 +95,8 @@ export const getStory = async (id: string): Promise<Story | null> => {
   return {
     ...result,
     cutOffChunks,
-    synced: result.synced,
+    synced: result.synced ? true : false,
+    deleted: result.deleted ? true : false,
   } as Story;
 };
 
@@ -103,18 +106,18 @@ export const getStory = async (id: string): Promise<Story | null> => {
 export const getAllStories = async (userId: string): Promise<Story[]> => {
   const db = await getDb();
   
-  // Get owned stories
+  // Get owned stories (exclude deleted)
   const ownedResults = await db.getAllAsync<Story>(
-    'SELECT * FROM Stories WHERE userId = ? ORDER BY updatedAt DESC',
+    'SELECT * FROM Stories WHERE userId = ? AND deleted = 0 ORDER BY updatedAt DESC',
     [userId]
   );
 
-  // Get shared stories
+  // Get shared stories (exclude deleted)
   const sharedResults = await db.getAllAsync<any>(
     `SELECT s.*, ss.permission as sharePermission, ss.ownerId as shareOwnerId
      FROM Stories s
      INNER JOIN StoryShares ss ON s.id = ss.storyId
-     WHERE ss.sharedWithUserId = ?
+     WHERE ss.sharedWithUserId = ? AND s.deleted = 0
      ORDER BY s.updatedAt DESC`,
     [userId]
   );
@@ -246,11 +249,33 @@ export const updateStory = async (
 };
 
 /**
- * Delete a story (hard delete)
+ * Delete a story (soft delete - marks as deleted for sync)
  */
 export const deleteStory = async (id: string): Promise<void> => {
   const db = await getDb();
-  await db.runAsync('DELETE FROM Stories WHERE id = ?', [id]);
+  const now = getCurrentTimestamp();
+  
+  // Get story to get userId for sync trigger
+  const story = await getStory(id);
+  if (!story) {
+    throw new Error(`Story with id ${id} not found`);
+  }
+  
+  // Soft delete: set deleted = 1 and mark as unsynced so it syncs to Firestore
+  await db.runAsync(
+    'UPDATE Stories SET deleted = 1, updatedAt = ?, synced = 0 WHERE id = ?',
+    [now, id]
+  );
+  
+  // Trigger sync after deletion
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { syncManager } = require('../sync/syncManager');
+    syncManager.triggerSyncOnEntityChange(story.userId);
+  } catch (error) {
+    // Non-critical error, sync will happen on next sync cycle
+    console.error('Error triggering sync after story deletion:', error);
+  }
 };
 
 /**

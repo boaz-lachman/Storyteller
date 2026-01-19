@@ -16,7 +16,7 @@ import { materialTopTabOptions } from './theme';
 import { useTranslation } from '../hooks/useTranslation';
 import { useGetStoryQuery, storiesApi } from '../store/api/storiesApi';
 import { useAuth } from '../hooks/useAuth';
-import { canEditStory } from '../utils/permissions';
+import { canEditStory, getStoryUserPermission } from '../utils/permissions';
 import { useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/redux';
 import { showSnackbar } from '../store/slices/uiSlice';
@@ -66,11 +66,27 @@ const StoryNavigator = ({
   useEffect(() => {
     // Only invalidate if sync has completed (lastSyncTime changed)
     if (lastSyncTime && lastSyncTime !== previousSyncTimeRef.current) {
+      const checkUserPermission = async () => {
+        if (!user) {
+          return;
+        }
+        const storyPermission = await getStoryUserPermission(user.uid, story);
+       if(storyPermission === null) {
+        hasNavigatedAway.current = true;
+        navigation.navigate('StoriesList');
+        dispatch(showSnackbar({
+          message: t('stories:storyRemoved'),
+          type: 'warning',
+        }));
+       }
+      };
+      
       previousSyncTimeRef.current = lastSyncTime;
       
       // Invalidate the specific story query to ensure fresh data after sync
       // RTK Query will automatically refetch, and the effect below will detect if story is removed
       dispatch(storiesApi.util.invalidateTags([{ type: 'Story', id: storyId }]));
+      checkUserPermission();
     }
   }, [lastSyncTime, dispatch, storyId]);
 
@@ -118,7 +134,7 @@ const StoryNavigator = ({
       setCanEdit(canEditResult);
     };
     checkCanEdit();
-  }, [user, story]);
+  }, [user, story, lastSyncTime]);
 
   // Hide Generate tab if user cannot edit (read-only)
   const showGenerateTab = canEdit;

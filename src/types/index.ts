@@ -36,6 +36,7 @@ export interface Story {
   createdAt: number;
   updatedAt: number;
   synced: boolean;
+  deleted: boolean;
   // Computed field: permission level for the current user (not stored in DB)
   permission?: StoryPermission;
 }
