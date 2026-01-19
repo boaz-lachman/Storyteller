@@ -5,6 +5,8 @@
  */
 import { store } from '../../store';
 import { showSnackbar, executeUndo, hideSnackbar } from '../../store/slices/uiSlice';
+import { selectUser } from '../../store/slices/authSlice';
+import { syncManager } from '../sync/syncManager';
 
 type EntityType = 'story' | 'character' | 'blurb' | 'scene';
 
@@ -52,6 +54,13 @@ class DeletionManager {
           
           // Hide snackbar after deletion completes
           store.dispatch(hideSnackbar());
+          
+          // Trigger sync after deletion completes (for character, blurb, scene)
+          // Only sync if user is authenticated
+          const user = selectUser(store.getState());
+          if (user?.uid && (entityType === 'character' || entityType === 'blurb' || entityType === 'scene')) {
+            syncManager.triggerSyncOnEntityChange(user.uid);
+          }
         } catch (error) {
           console.error(`Error executing delayed deletion for ${entityType} ${entityId}:`, error);
           this.pendingDeletions.delete(key);

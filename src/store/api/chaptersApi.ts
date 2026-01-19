@@ -302,6 +302,20 @@ export const chaptersApi = createApi({
         }
         return tags;
       },
+      async onQueryStarted(args, { queryFulfilled, getState }) {
+        try {
+          await queryFulfilled;
+          // Trigger sync after successful deletion
+          const state = getState() as any;
+          const authUser = state?.auth?.user;
+          if (authUser?.uid) {
+            syncManager.triggerSyncOnEntityChange(authUser.uid);
+          }
+        } catch (error) {
+          // Sync will happen on next sync cycle or via sync queue
+          console.error('Error triggering sync after chapter deletion:', error);
+        }
+      },
     }),
     reorderChapters: builder.mutation<Chapter[], ChapterReorderArgs>({
       query: (args) => args,

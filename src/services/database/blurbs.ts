@@ -176,8 +176,9 @@ export const deleteBlurb = async (
 
   const db = await getDb();
   const now = getCurrentTimestamp();
+  // Mark as deleted and unsynced so it will be uploaded to Firebase
   await db.runAsync(
-    'UPDATE Blurbs SET deleted = 1, updatedAt = ? WHERE id = ?',
+    'UPDATE Blurbs SET deleted = 1, synced = 0, updatedAt = ? WHERE id = ?',
     [now, id]
   );
 };
@@ -187,8 +188,10 @@ export const deleteBlurb = async (
  */
 export const getUnsyncedBlurbs = async (userId: string): Promise<IdeaBlurb[]> => {
   const db = await getDb();
+  // Include both non-deleted and deleted entities that are unsynced
+  // This ensures deleted entities are synced to Firebase
   const results = await db.getAllAsync<IdeaBlurb>(
-    'SELECT * FROM Blurbs WHERE userId = ? AND synced = 0 AND deleted = 0',
+    'SELECT * FROM Blurbs WHERE userId = ? AND synced = 0',
     [userId]
   );
 

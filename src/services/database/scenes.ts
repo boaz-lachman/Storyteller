@@ -189,8 +189,9 @@ export const deleteScene = async (
 
   const db = await getDb();
   const now = getCurrentTimestamp();
+  // Mark as deleted and unsynced so it will be uploaded to Firebase
   await db.runAsync(
-    'UPDATE Scenes SET deleted = 1, updatedAt = ? WHERE id = ?',
+    'UPDATE Scenes SET deleted = 1, synced = 0, updatedAt = ? WHERE id = ?',
     [now, id]
   );
 };
@@ -200,8 +201,10 @@ export const deleteScene = async (
  */
 export const getUnsyncedScenes = async (userId: string): Promise<Scene[]> => {
   const db = await getDb();
+  // Include both non-deleted and deleted entities that are unsynced
+  // This ensures deleted entities are synced to Firebase
   const results = await db.getAllAsync<any>(
-    'SELECT * FROM Scenes WHERE userId = ? AND synced = 0 AND deleted = 0',
+    'SELECT * FROM Scenes WHERE userId = ? AND synced = 0',
     [userId]
   );
 

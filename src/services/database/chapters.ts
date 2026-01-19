@@ -300,7 +300,13 @@ export const deleteChapter = async (
   }
 
   const db = await getDb();
-  await db.runAsync('DELETE FROM Chapters WHERE id = ?', [id]);
+  const now = getCurrentTimestamp();
+  // Use soft delete instead of hard delete to ensure deletion is synced to Firebase
+  // Mark as deleted and unsynced so it will be uploaded to Firebase
+  await db.runAsync(
+    'UPDATE Chapters SET deleted = 1, synced = 0, updatedAt = ? WHERE id = ?',
+    [now, id]
+  );
 };
 
 /**
@@ -312,6 +318,7 @@ export const softDeleteChapter = async (id: string): Promise<void> => {
   const db = await getDb();
   const now = getCurrentTimestamp();
   
+  // Mark as deleted and unsynced so it will be uploaded to Firebase
   // Generate a unique negative order value based on the chapter ID
   // This ensures no conflicts with the UNIQUE constraint, even for existing databases
   // We use a simple hash of the ID converted to a negative number
@@ -336,8 +343,10 @@ export const softDeleteChapter = async (id: string): Promise<void> => {
  */
 export const getUnsyncedChapters = async (userId: string): Promise<Chapter[]> => {
   const db = await getDb();
+  // Include both non-deleted and deleted entities that are unsynced
+  // This ensures deleted entities are synced to Firebase
   const results = await db.getAllAsync<Chapter>(
-    'SELECT * FROM Chapters WHERE userId = ? AND synced = 0 AND deleted = 0',
+    'SELECT * FROM Chapters WHERE userId = ? AND synced = 0',
     [userId]
   );
 
