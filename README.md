@@ -1,0 +1,75 @@
+# Storyteller
+
+Storyteller is a mobile app for planning, writing, and organizing stories. It’s built with **React Native + Expo**, stores data locally in **SQLite** for offline use, and can **sync** your content with **Firebase Firestore** when you’re online.
+
+## What you can do
+
+- **Create and manage stories**
+  - Title, description, theme, length, status (draft/completed)
+- **Organize story content**
+  - **Chapters** (ordered)
+  - **Scenes** (with metadata like setting and conflict level)
+  - **Characters** (role, importance, details)
+  - **Blurbs / ideas** (categorized notes like plot points, themes, conflicts)
+- **Offline-first**
+  - All CRUD actions work against the local SQLite database
+- **Sync to the cloud**
+  - Changes are uploaded to Firestore via a sync manager/queue
+  - Deletions use soft-delete flags so they can be synced reliably
+- **Undo for deletions**
+  - Certain deletes can be undone via an in-app snackbar flow
+
+## Tech stack
+
+- **React Native (Expo)**
+- **TypeScript**
+- **Redux Toolkit + RTK Query**
+- **SQLite** (local persistence)
+- **Firebase Firestore** (cloud sync)
+
+## Project structure (high level)
+
+- `src/screens/` – app screens (stories, chapters, scenes, characters, blurbs, etc.)
+- `src/components/` – reusable UI components (cards, modals, common UI)
+- `src/services/database/` – SQLite CRUD helpers
+- `src/services/sync/` – sync manager + sync queue for offline/online uploads
+- `src/store/` – Redux store, slices, and RTK Query APIs
+- `src/navigation/` – navigators and route wiring
+
+## Getting started
+
+### Prerequisites
+
+- Node.js (LTS recommended)
+- Expo tooling
+- Android Studio (Android) and/or Xcode (iOS) if running on simulators
+
+### Install
+
+```bash
+npm install
+```
+
+### Run
+
+```bash
+npm run start
+```
+
+Then choose a platform from the Expo CLI:
+
+- Android: `npm run android`
+- iOS: `npm run ios`
+- Web: `npm run web`
+
+## Useful scripts
+
+- `npm run lint` – run ESLint
+- `npm run lint:fix` – auto-fix lint issues where possible
+
+## Notes on sync
+
+- The app is designed to keep working **offline** using SQLite.
+- When online, a sync service uploads local changes to Firestore and pulls remote changes.
+- Some entities use **soft delete** (`deleted` flag) so deletions can be synced and recovered/undone safely.
+

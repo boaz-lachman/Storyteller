@@ -209,6 +209,14 @@ export const SceneCard: React.FC<SceneCardProps> = React.memo(({
   );
 }, (prevProps, nextProps) => {
   // Only re-render if scene, onPress, or onDelete callback references change
+  const prevChars = prevProps.scene.characters;
+  const nextChars = nextProps.scene.characters;
+  const charsEqual = 
+    (!prevChars && !nextChars) ||
+    (prevChars && nextChars && 
+     prevChars.length === nextChars.length &&
+     prevChars.every((char, idx) => char === nextChars[idx]));
+  
   return (
     prevProps.scene.id === nextProps.scene.id &&
     prevProps.scene.title === nextProps.scene.title &&
@@ -218,7 +226,7 @@ export const SceneCard: React.FC<SceneCardProps> = React.memo(({
     prevProps.scene.conflictLevel === nextProps.scene.conflictLevel &&
     prevProps.scene.createdAt === nextProps.scene.createdAt &&
     prevProps.scene.synced === nextProps.scene.synced &&
-    JSON.stringify(prevProps.scene.characters) === JSON.stringify(nextProps.scene.characters) &&
+    charsEqual &&
     prevProps.onPress === nextProps.onPress &&
     prevProps.onDelete === nextProps.onDelete
   );
