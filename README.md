@@ -33,45 +33,6 @@ Storyteller is a mobile app for planning, writing, and organizing stories. It’
 - **SQLite** (local persistence)
 - **Firebase Firestore** (cloud sync)
 
-## Project structure (high level)
-
-- `src/screens/` – app screens (stories, chapters, scenes, characters, blurbs, etc.)
-- `src/components/` – reusable UI components (cards, modals, common UI)
-- `src/services/database/` – SQLite CRUD helpers
-- `src/services/sync/` – sync manager + sync queue for offline/online uploads
-- `src/store/` – Redux store, slices, and RTK Query APIs
-- `src/navigation/` – navigators and route wiring
-
-## Getting started
-
-### Prerequisites
-
-- Node.js (LTS recommended)
-- Expo tooling
-- Android Studio (Android) and/or Xcode (iOS) if running on simulators
-
-### Install
-
-```bash
-npm install
-```
-
-### Run
-
-```bash
-npm run start
-```
-
-Then choose a platform from the Expo CLI:
-
-- Android: `npm run android`
-- iOS: `npm run ios`
-- Web: `npm run web`
-
-## Useful scripts
-
-- `npm run lint` – run ESLint
-- `npm run lint:fix` – auto-fix lint issues where possible
 
 ## Notes on sync
 
