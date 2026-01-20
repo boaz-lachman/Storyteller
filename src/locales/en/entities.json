@@ -253,6 +253,8 @@
     "instructionsLabel": "Additional Instructions (Optional)",
     "instructionsPlaceholder": "Any specific requirements or preferences for the story",
     "instructionsHelper": "Add any specific requirements or preferences for the story generation",
+    "ttsFriendlyLabel": "Optimize for Text-to-Speech",
+    "ttsFriendlyHelper": "Format the story for easy reading by text-to-speech services (spells out numbers, uses simple dialogue tags, etc.)",
     "generateButton": "Generate Story",
     "generating": "Generating...",
     "resultTitle": "Generated Story",

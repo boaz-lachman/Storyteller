@@ -5,7 +5,7 @@
  */
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, Card, Menu, Divider } from 'react-native-paper';
+import { Text, Card, Menu, Divider, Checkbox } from 'react-native-paper';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import type { RouteProp } from '@react-navigation/native';
 import type { StoryTabParamList } from '../../navigation/types';
@@ -69,6 +69,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   const [complexity, setComplexity] = useState<'simple' | 'moderate' | 'complex'>('moderate');
   const [style, setStyle] = useState<string>('');
   const [additionalInstructions, setAdditionalInstructions] = useState<string>('');
+  const [ttsFriendly, setTtsFriendly] = useState<boolean>(false);
   const [generatedStory, setGeneratedStory] = useState<GenerateStoryResponse | null>(null);
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [cutOffChunks, setCutOffChunks] = useState<number[]>([]);
@@ -154,6 +155,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         complexity,
         style: style || undefined,
         additionalInstructions: additionalInstructions || undefined,
+        ttsFriendly,
       };
 
       // Use chunked generation for novellas (with or without chapters)
@@ -240,9 +242,12 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
             })
           );
         } else if (chunkedProgress?.error) {
+          const errorMessage = typeof chunkedProgress.error === 'string' 
+            ? chunkedProgress.error 
+            : (chunkedProgress.error as any)?.message || String(chunkedProgress.error);
           dispatch(
             showSnackbar({
-              message: t('entities:generation.generationStoppedEarly', { error: chunkedProgress.error, completed: completedChunks, type: chunkType }),
+              message: t('entities:generation.generationStoppedEarly', { error: errorMessage, completed: completedChunks, type: chunkType }),
               type: 'warning',
             })
           );
@@ -259,7 +264,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         setIsChunkedGeneration(false);
         
         const prompt = buildStoryPrompt(story, characters, blurbs, scenes, chapters, promptOptions, language);
-        const systemPrompt = getDefaultSystemPrompt(language);
+        const systemPrompt = getDefaultSystemPrompt(language, ttsFriendly);
         const messages = formatPromptForClaude(prompt, systemPrompt);
 
         // Generate story using RTK Query mutation
@@ -323,7 +328,31 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
       
       setChunkedProgress(null);
 
-      const errorMessage = error?.data?.message || error?.data?.error || error?.message || t('entities:generation.generationFailed');
+      // Safely extract error message, handling various error object shapes
+      // Handle structure: {data: {error: {message: "...", type: "..."}, ...}}
+      let errorMessage: string;
+      if (error?.data?.error?.message && typeof error.data.error.message === 'string') {
+        errorMessage = error.data.error.message;
+      } else if (typeof error?.data?.message === 'string') {
+        errorMessage = error.data.message;
+      } else if (typeof error?.data?.error === 'string') {
+        errorMessage = error.data.error;
+      } else if (typeof error?.message === 'string') {
+        errorMessage = error.message;
+      } else if (typeof error?.data === 'string') {
+        errorMessage = error.data;
+      } else if (error?.data && typeof error.data === 'object') {
+        // Try to extract message from error.data object
+        const data = error.data as any;
+        if (data.error && typeof data.error === 'object' && data.error.message) {
+          errorMessage = data.error.message;
+        } else {
+          errorMessage = data.message || JSON.stringify(data);
+        }
+      } else {
+        errorMessage = t('entities:generation.generationFailed');
+      }
+      
       dispatch(
         showSnackbar({
           message: errorMessage,
@@ -331,7 +360,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
         })
       );
     }
-  }, [story, characters, blurbs, scenes, chapters, complexity, style, additionalInstructions, user, apiKeyConfigured, dispatch, generateStory, statistics]);
+  }, [story, characters, blurbs, scenes, chapters, complexity, style, additionalInstructions, ttsFriendly, language, user, apiKeyConfigured, dispatch, generateStory, statistics, t]);
 
   // Handle save story
   const handleSave = useCallback(async () => {
@@ -365,7 +394,29 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               );
             } catch (error: any) {
               console.error('Error saving story:', error);
-              const errorMessage = error?.error || error?.data?.error || t('entities:generation.saveFailed');
+              // Safely extract error message, handling various error object shapes
+              // Handle structure: {data: {error: {message: "...", type: "..."}, ...}}
+              let errorMessage: string;
+              if (error?.data?.error?.message && typeof error.data.error.message === 'string') {
+                errorMessage = error.data.error.message;
+              } else if (typeof error?.error === 'string') {
+                errorMessage = error.error;
+              } else if (typeof error?.data?.message === 'string') {
+                errorMessage = error.data.message;
+              } else if (typeof error?.data?.error === 'string') {
+                errorMessage = error.data.error;
+              } else if (typeof error?.message === 'string') {
+                errorMessage = error.message;
+              } else if (error?.data && typeof error.data === 'object') {
+                const data = error.data as any;
+                if (data.error && typeof data.error === 'object' && data.error.message) {
+                  errorMessage = data.error.message;
+                } else {
+                  errorMessage = data.message || JSON.stringify(data);
+                }
+              } else {
+                errorMessage = t('entities:generation.saveFailed');
+              }
               dispatch(
                 showSnackbar({
                   message: errorMessage,
@@ -539,6 +590,29 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                   containerStyle={styles.inputContainer}
                 />
               </View>
+
+              {/* TTS-Friendly Formatting Option */}
+              <View style={styles.optionRow}>
+                <TouchableOpacity
+                  style={styles.checkboxRow}
+                  onPress={() => setTtsFriendly(!ttsFriendly)}
+                  activeOpacity={0.7}
+                >
+                  <Checkbox
+                    status={ttsFriendly ? 'checked' : 'unchecked'}
+                    onPress={() => setTtsFriendly(!ttsFriendly)}
+                    color={colors.primary}
+                  />
+                  <View style={styles.checkboxLabelContainer}>
+                    <Text style={styles.checkboxLabel}>
+                      {t('entities:generation.ttsFriendlyLabel')}
+                    </Text>
+                    <Text style={styles.checkboxHelper}>
+                      {t('entities:generation.ttsFriendlyHelper')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             </Card.Content>
           </Card>
         </Animated.View>
@@ -686,7 +760,11 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                 : t('entities:generation.generatingSubtext')}
             </Text>
             {isChunkedGeneration && chunkedProgress && chunkedProgress.error && (
-              <Text style={styles.errorText}>{chunkedProgress.error}</Text>
+              <Text style={styles.errorText}>
+                {typeof chunkedProgress.error === 'string' 
+                  ? chunkedProgress.error 
+                  : (chunkedProgress.error as any)?.message || String(chunkedProgress.error)}
+              </Text>
             )}
           </View>
         </Animated.View>
@@ -906,6 +984,29 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  checkboxLabelContainer: {
+    flex: 1,
+    paddingTop: spacing.xs,
+  },
+  checkboxLabel: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  checkboxHelper: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.regular,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   errorText: {
     fontFamily: typography.fontFamily.regular,

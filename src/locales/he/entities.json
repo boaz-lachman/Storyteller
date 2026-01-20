@@ -253,6 +253,8 @@
     "instructionsLabel": "הוראות נוספות (אופציונלי)",
     "instructionsPlaceholder": "כל דרישות או העדפות ספציפיות לסיפור",
     "instructionsHelper": "הוסף כל דרישות או העדפות ספציפיות ליצירת הסיפור",
+    "ttsFriendlyLabel": "מיטוב לקריאה קולית",
+    "ttsFriendlyHelper": "עיצוב הסיפור לקריאה קלה על ידי שירותי קריאה קולית (מספרים במילים, תגי דיאלוג פשוטים וכו')",
     "generateButton": "צור סיפור",
     "generating": "יוצר...",
     "resultTitle": "סיפור שנוצר",

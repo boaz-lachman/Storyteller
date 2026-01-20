@@ -541,7 +541,7 @@ async function generateChunk(
       language
     );
   }
-  const systemPrompt = getDefaultSystemPrompt(language);
+  const systemPrompt = getDefaultSystemPrompt(language, options.ttsFriendly || false);
   const messages = formatPromptForClaude(context, systemPrompt);
 
   // Use configured limit, but cap at Claude's maximum (16384)

@@ -12,6 +12,7 @@ export interface PromptBuilderOptions {
   complexity?: 'simple' | 'moderate' | 'complex';
   style?: string;
   additionalInstructions?: string;
+  ttsFriendly?: boolean; // Format story for text-to-speech readability
 }
 
 /**
@@ -286,8 +287,9 @@ export const formatPromptForClaude = (
 /**
  * Get default system prompt for story generation
  * @param language - Language code ('en' or 'he'). If 'he', the story will be generated in Hebrew.
+ * @param ttsFriendly - If true, includes detailed TTS formatting instructions
  */
-export const getDefaultSystemPrompt = (language: 'en' | 'he' = 'en'): string => {
+export const getDefaultSystemPrompt = (language: 'en' | 'he' = 'en', ttsFriendly: boolean = false): string => {
   const basePrompt = `You are a creative writing assistant specializing in story generation. 
 Your task is to create engaging, well-structured stories based on provided elements including characters, plot ideas, scenes, and story attributes.
 
@@ -297,15 +299,60 @@ Guidelines:
 - Maintain consistency in character development and plot progression
 - Create a cohesive narrative that flows naturally
 - Respect the specified length requirements
-- Write in a style appropriate for the target audience
-- format it in a way that is easy for text-to-speech to read aloud`;
+- Write in a style appropriate for the target audience`;
+
+  // Add TTS-friendly formatting instructions if requested
+  const ttsInstructions = ttsFriendly ? `
+
+TEXT-TO-SPEECH FORMATTING REQUIREMENTS:
+The story will be read aloud by text-to-speech software, so format it to be easily spoken:
+
+1. DIALOGUE FORMATTING:
+   - Use simple, clear dialogue tags: "said", "asked", "replied", "whispered", "shouted"
+   - Always attribute dialogue clearly (e.g., "John said" rather than leaving it ambiguous)
+   - Format dialogue as: "Dialogue text here," character said. (with comma before the dialogue tag)
+   - Avoid complex dialogue tags like "exclaimed incredulously" - keep them simple
+
+2. NUMBERS AND DATES:
+   - Spell out numbers up to one hundred (e.g., "twenty", "forty-five", "ninety-nine")
+   - For larger round numbers, use words when natural (e.g., "one thousand", "two million")
+   - Write dates in spoken format: "January first" instead of "Jan 1st", "the fifteenth of March" instead of "3/15"
+   - Write times in spoken format: "three o'clock" instead of "3:00", "half past two" instead of "2:30"
+
+3. ABBREVIATIONS:
+   - Spell out all abbreviations: "mister" instead of "Mr.", "doctor" instead of "Dr."
+   - Spell out titles: "professor" instead of "Prof.", "senator" instead of "Sen."
+
+4. PUNCTUATION AND FORMATTING:
+   - Use simple punctuation - avoid nested quotes or complex punctuation structures
+   - Use paragraph breaks to indicate natural pauses in the narrative
+   - NO markdown formatting: no headers (#), no bold/italic markers (*, **, _), no code blocks
+   - NO special formatting characters: no asterisks, no special symbols that might confuse TTS
+   - Use standard quotation marks for dialogue: "Like this," she said.
+
+5. SENTENCE STRUCTURE:
+   - Use clear, straightforward sentence structures that flow naturally when spoken
+   - Avoid overly complex nested clauses that might be hard to parse when read aloud
+   - Break long sentences into shorter, more digestible ones when appropriate
+
+6. SPECIAL CHARACTERS AND SYMBOLS:
+   - Avoid symbols like @, #, %, & - spell them out if needed (e.g., "at", "number", "percent", "and")
+   - Write currency in words when possible: "twenty dollars" instead of "$20" (or keep simple like "$20" if it reads well)
+   - Avoid ellipses (...) in favor of complete sentences or "he paused" type descriptions
+
+7. GENERAL:
+   - Write in plain text only - the story should be readable and natural when spoken aloud
+   - Think about how the text will sound when read by a TTS voice, not just how it looks on the page
+   - Maintain good narrative flow while ensuring every word can be clearly spoken` : '';
+
+  const fullPrompt = basePrompt + ttsInstructions;
 
   // Add language instruction if Hebrew
   if (language === 'he') {
-    return `${basePrompt}
+    return `${fullPrompt}
 
 IMPORTANT: Write the entire story in Hebrew. All narrative text, dialogue, and descriptions must be in Hebrew.`;
   }
 
-  return basePrompt;
+  return fullPrompt;
 };
