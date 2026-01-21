@@ -536,7 +536,7 @@ export const clearDatabase = async (): Promise<void> => {
     // This ensures atomicity and that foreign key constraints are respected
     await db.withTransactionAsync(async () => {
       // Clear all content tables
-      await db.execAsync(`
+      await db!.execAsync(`
         DELETE FROM SyncQueue;
         DELETE FROM GeneratedStories;
         DELETE FROM Chapters;
@@ -548,7 +548,7 @@ export const clearDatabase = async (): Promise<void> => {
       `);
       
       // Reset schema_version to indicate a fresh database state
-      await db.execAsync(`
+      await db!.execAsync(`
         DELETE FROM schema_version;
       `);
     });
