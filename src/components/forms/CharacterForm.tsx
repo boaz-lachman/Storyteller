@@ -3,10 +3,11 @@
  * Form for creating/editing a character with all character attributes
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import Slider from '@react-native-community/slider';
+import { Feather } from '@expo/vector-icons';
 import { Input } from './Input';
 import { PaperButton } from './PaperButton';
 import { useCharacterForm, CHARACTER_FORM_OPTIONS, type CharacterFormData } from '../../hooks/useCharacterForm';
@@ -15,6 +16,7 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Character } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { generateCharacterName } from '../../utils/nameGenerator';
 
 export interface CharacterFormProps {
   character?: Character | null;
@@ -68,15 +70,31 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     >
       <Text style={styles.sectionTitle}>{t('entities:characters.sections.basicInfo')}</Text>
       
-      <Input
-        label={t('entities:characters.fields.name')}
-        value={name}
-        onChangeText={setName}
-        error={errors.name}
-        required
-        placeholder={t('entities:characters.fields.namePlaceholder')}
-        containerStyle={styles.inputContainer}
-      />
+      {/* Name Input with Generator Button */}
+      <View style={styles.nameInputContainer}>
+        <Input
+          label={t('entities:characters.fields.name')}
+          value={name}
+          onChangeText={setName}
+          error={errors.name}
+          required
+          placeholder={t('entities:characters.fields.namePlaceholder')}
+          containerStyle={styles.inputContainer}
+        />
+        <TouchableOpacity
+          style={styles.generateButton}
+          onPress={() => {
+            const generatedName = generateCharacterName();
+            setName(generatedName);
+          }}
+          activeOpacity={0.7}
+        >
+          <Feather name="shuffle" size={20} color={colors.primary} />
+          <Text style={styles.generateButtonText}>
+            {t('entities:characters.buttons.generateName') || 'Generate Name'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <Input
         label={t('entities:characters.fields.description')}
@@ -222,8 +240,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
+  nameInputContainer: {
+    marginBottom: spacing.md,
+  },
   inputContainer: {
     marginBottom: spacing.md,
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  generateButtonText: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
   },
   pickerContainer: {
     marginBottom: spacing.md,

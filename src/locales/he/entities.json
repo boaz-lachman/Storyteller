@@ -40,7 +40,8 @@
       "create": "צור",
       "save": "שמור",
       "cancel": "ביטול",
-      "delete": "מחק"
+      "delete": "מחק",
+      "generateName": "צור שם"
     },
     "delete": {
       "confirmTitle": "מחק דמות",

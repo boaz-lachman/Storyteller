@@ -40,7 +40,8 @@
       "create": "Create",
       "save": "Save",
       "cancel": "Cancel",
-      "delete": "Delete"
+      "delete": "Delete",
+      "generateName": "Generate Name"
     },
     "delete": {
       "confirmTitle": "Delete Character",
