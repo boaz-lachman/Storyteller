@@ -134,6 +134,24 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
               <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
+                {/* Format Selection */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>{t('stories:export.format') || 'Format'}</Text>
+                  <RadioButton.Group
+                    onValueChange={(value) => setExportFormat(value as ExportFormat)}
+                    value={exportFormat}
+                  >
+                    {formatOptions.map((option) => (
+                      <View key={option.value} style={styles.radioOption}>
+                        <RadioButton value={option.value} color={colors.primary} />
+                        <View style={styles.radioContent}>
+                          <Text style={styles.radioLabel}>{option.label}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </RadioButton.Group>
+                </View>
+
                 {/* Export Type Selection */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>{t('stories:export.exportType')}</Text>
@@ -257,7 +275,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   content: {
-    maxHeight: 400,
+    maxHeight: 300,
     marginBottom: spacing.md,
   },
   section: {

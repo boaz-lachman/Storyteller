@@ -5,9 +5,11 @@
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { generateStoryPDF } from './pdfGenerator';
+import { generateStoryDOCX } from '../docx/docxGenerator';
+import { generateStoryEPUB } from '../epub/epubGenerator';
 import type { Story, Character, IdeaBlurb, Scene, Chapter } from '../../types';
 
-export type ExportFormat = 'pdf';
+export type ExportFormat = 'pdf' | 'docx' | 'epub';
 
 export type ExportType = 'full' | 'elements-only' | 'generated-only';
 
@@ -134,6 +136,176 @@ const exportStoryAsPDF = async (
 };
 
 /**
+ * Export story as DOCX
+ * @param story - Story to export
+ * @param entities - Story entities (characters, blurbs, scenes, chapters)
+ * @param options - Export options
+ * @returns URI of the exported file
+ */
+const exportStoryAsDOCX = async (
+  story: Story,
+  entities: {
+    characters?: Character[];
+    blurbs?: IdeaBlurb[];
+    scenes?: Scene[];
+    chapters?: Chapter[];
+  },
+  options: ExportOptions
+): Promise<string> => {
+  const {
+    type = 'full',
+  } = options;
+
+  // Determine what to include based on export type
+  const charactersToInclude = entities.characters;
+  const blurbsToInclude = entities.blurbs;
+  
+  let includeMetadata = false;
+  let includeDescription = false;
+  let includeGeneratedContent = false;
+  let includeCharacters = false;
+  let includeBlurbs = false;
+
+  switch (type) {
+    case 'full':
+      includeMetadata = true;
+      includeDescription = true;
+      includeGeneratedContent = !!story.generatedContent && story.generatedContent.trim().length > 0;
+      includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
+      includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
+      break;
+    case 'elements-only':
+      includeMetadata = false;
+      includeDescription = false;
+      includeGeneratedContent = false;
+      includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
+      includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
+      break;
+    case 'generated-only':
+      includeMetadata = false;
+      includeDescription = false;
+      includeGeneratedContent = !!story.generatedContent && story.generatedContent.trim().length > 0;
+      includeCharacters = false;
+      includeBlurbs = false;
+      break;
+  }
+
+  // Generate DOCX with appropriate options
+  const docxUri = await generateStoryDOCX(story, {
+    characters: charactersToInclude,
+    blurbs: blurbsToInclude,
+    includeCharacters,
+    includeBlurbs,
+    includeMetadata,
+    includeDescription,
+    includeGeneratedContent,
+  });
+
+  // Rename the DOCX file to the story title
+  const filename = generateFilename(story, 'docx', type);
+  const lastSlashIndex = docxUri.lastIndexOf('/');
+  const directory = lastSlashIndex !== -1 ? docxUri.substring(0, lastSlashIndex + 1) : '';
+  const newUri = `${directory}${filename}`;
+
+  try {
+    await FileSystem.moveAsync({
+      from: docxUri,
+      to: newUri,
+    });
+    return newUri;
+  } catch (error) {
+    console.error('Error renaming DOCX file:', error);
+    console.warn('Failed to rename DOCX file, using original URI');
+    return docxUri;
+  }
+};
+
+/**
+ * Export story as EPUB
+ * @param story - Story to export
+ * @param entities - Story entities (characters, blurbs, scenes, chapters)
+ * @param options - Export options
+ * @returns URI of the exported file
+ */
+const exportStoryAsEPUB = async (
+  story: Story,
+  entities: {
+    characters?: Character[];
+    blurbs?: IdeaBlurb[];
+    scenes?: Scene[];
+    chapters?: Chapter[];
+  },
+  options: ExportOptions
+): Promise<string> => {
+  const {
+    type = 'full',
+  } = options;
+
+  // Determine what to include based on export type
+  const charactersToInclude = entities.characters;
+  const blurbsToInclude = entities.blurbs;
+  
+  let includeMetadata = false;
+  let includeDescription = false;
+  let includeGeneratedContent = false;
+  let includeCharacters = false;
+  let includeBlurbs = false;
+
+  switch (type) {
+    case 'full':
+      includeMetadata = true;
+      includeDescription = true;
+      includeGeneratedContent = !!story.generatedContent && story.generatedContent.trim().length > 0;
+      includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
+      includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
+      break;
+    case 'elements-only':
+      includeMetadata = false;
+      includeDescription = false;
+      includeGeneratedContent = false;
+      includeCharacters = !!charactersToInclude && charactersToInclude.length > 0;
+      includeBlurbs = !!blurbsToInclude && blurbsToInclude.length > 0;
+      break;
+    case 'generated-only':
+      includeMetadata = false;
+      includeDescription = false;
+      includeGeneratedContent = !!story.generatedContent && story.generatedContent.trim().length > 0;
+      includeCharacters = false;
+      includeBlurbs = false;
+      break;
+  }
+
+  // Generate EPUB with appropriate options
+  const epubUri = await generateStoryEPUB(story, {
+    characters: charactersToInclude,
+    blurbs: blurbsToInclude,
+    includeCharacters,
+    includeBlurbs,
+    includeMetadata,
+    includeDescription,
+    includeGeneratedContent,
+  });
+
+  // Rename the EPUB file to the story title
+  const filename = generateFilename(story, 'epub', type);
+  const lastSlashIndex = epubUri.lastIndexOf('/');
+  const directory = lastSlashIndex !== -1 ? epubUri.substring(0, lastSlashIndex + 1) : '';
+  const newUri = `${directory}${filename}`;
+
+  try {
+    await FileSystem.moveAsync({
+      from: epubUri,
+      to: newUri,
+    });
+    return newUri;
+  } catch (error) {
+    console.error('Error renaming EPUB file:', error);
+    console.warn('Failed to rename EPUB file, using original URI');
+    return epubUri;
+  }
+};
+
+/**
  * Export story with specified options
  * @param story - Story to export
  * @param entities - Story entities
@@ -157,6 +329,12 @@ export const exportStory = async (
   switch (format) {
     case 'pdf':
       fileUri = await exportStoryAsPDF(story, entities, options);
+      break;
+    case 'docx':
+      fileUri = await exportStoryAsDOCX(story, entities, options);
+      break;
+    case 'epub':
+      fileUri = await exportStoryAsEPUB(story, entities, options);
       break;
     default:
       throw new Error(`Unsupported export format: ${format}`);
@@ -191,14 +369,48 @@ export const saveExportedFile = async (
 };
 
 /**
+ * Get MIME type for export format
+ */
+const getMimeType = (format: ExportFormat): string => {
+  switch (format) {
+    case 'pdf':
+      return 'application/pdf';
+    case 'docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'epub':
+      return 'application/epub+zip';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
+/**
+ * Get UTI for iOS sharing
+ */
+const getUTI = (format: ExportFormat): string => {
+  switch (format) {
+    case 'pdf':
+      return 'com.adobe.pdf';
+    case 'docx':
+      return 'org.openxmlformats.wordprocessingml.document';
+    case 'epub':
+      return 'org.idpf.epub-container';
+    default:
+      return 'public.data';
+  }
+};
+
+/**
  * Share exported file using expo-sharing
  * @param fileUri - URI of the file to share
  * @param filename - Optional filename for sharing
+ * @param format - Export format
  * @returns True if sharing was successful
  */
 export const shareExportedFile = async (
   fileUri: string,
-  filename?: string
+  filename?: string,
+  format: ExportFormat = 'pdf'
 ): Promise<boolean> => {
   try {
     const isAvailable = await Sharing.isAvailableAsync();
@@ -208,9 +420,9 @@ export const shareExportedFile = async (
     }
 
     await Sharing.shareAsync(fileUri, {
-      mimeType: 'application/pdf',
+      mimeType: getMimeType(format),
       dialogTitle: filename || 'Share Story',
-      UTI: 'com.adobe.pdf', // iOS UTI for PDF
+      UTI: getUTI(format),
     });
 
     return true;
@@ -242,10 +454,11 @@ export const exportAndShareStory = async (
     const fileUri = await exportStory(story, entities, options);
     
     // Generate filename
-    const filename = generateFilename(story, options.format || 'pdf', options.type || 'full');
+    const format = options.format || 'pdf';
+    const filename = generateFilename(story, format, options.type || 'full');
     
     // Share file
-    await shareExportedFile(fileUri, filename);
+    await shareExportedFile(fileUri, filename, format);
     
     return true;
   } catch (error) {
@@ -287,6 +500,14 @@ export const getFormatOptions = (): Array<{ value: ExportFormat; label: string }
     {
       value: 'pdf',
       label: 'PDF',
+    },
+    {
+      value: 'docx',
+      label: 'Word Document (DOCX)',
+    },
+    {
+      value: 'epub',
+      label: 'EPUB',
     },
   ];
 };
