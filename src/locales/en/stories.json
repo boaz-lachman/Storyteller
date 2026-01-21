@@ -190,6 +190,7 @@
     "speed": "Speed:",
     "status": {
       "playing": "Playing...",
+      "paused": "Paused",
       "stopped": "Stopped",
       "ready": "Ready"
     }

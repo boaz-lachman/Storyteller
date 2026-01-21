@@ -24,9 +24,11 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useState, useCallback, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { showSnackbar } from '../../store/slices/uiSlice';
 import { selectLastSyncTime } from '../../store/slices/syncSlice';
+import { speechService } from '../../services/speech/speechService';
 
 type StoryDetailRouteProp = RouteProp<AppStackParamList, 'StoryDetail'>;
 type StoryDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, 'StoryDetail'>;
@@ -69,6 +71,20 @@ export default function StoryDetailScreen() {
     };
     checkCanShare();
   }, [user, story, lastSyncTime]);
+
+  // Reset audio player when leaving the screen
+  useFocusEffect(
+    useCallback(() => {
+      // This runs when screen is focused
+      return () => {
+        // This cleanup runs when screen is unfocused (user navigates away)
+        // Stop any playing speech and reset the player
+        if (speechService.isCurrentlySpeaking()) {
+          speechService.stop().catch(console.error);
+        }
+      };
+    }, [])
+  );
 
   // Handle share story
   const handleSharePress = useCallback(async () => {

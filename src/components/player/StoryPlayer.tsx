@@ -3,7 +3,7 @@
  * Text-to-speech player for reading stories aloud
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, AppState, AppStateStatus, Platform } from 'react-native';
 import { Text, Card, Menu } from 'react-native-paper';
 import { Feather } from '@expo/vector-icons';
 import * as Localization from 'expo-localization';
@@ -18,7 +18,7 @@ export interface StoryPlayerProps {
   onStateChange?: (isPlaying: boolean) => void;
 }
 
-type PlayerState = 'idle' | 'playing' | 'stopped';
+type PlayerState = 'idle' | 'playing' | 'paused' | 'stopped';
 
 /**
  * Story Player Component
@@ -121,10 +121,12 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     // Cleanup on unmount - but don't reset the service's initialized state
     // The service already has its own guard against re-initialization
     return () => {
-      // Only cleanup if speech is currently active
-      if (speechService.isCurrentlySpeaking()) {
+      // Only cleanup if speech is currently active or paused
+      if (speechService.isCurrentlySpeaking() || speechService.isPausedState()) {
         speechService.stop().catch(console.error);
       }
+      // Reset player state when unmounting
+      setPlayerState('idle');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run once on mount
@@ -192,8 +194,25 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
     return cleaned;
   }, []);
 
-  // Handle play
+  // Handle play/pause
   const handlePlay = useCallback(async () => {
+    // If paused, resume from where we left off (iOS only)
+    if (playerState === 'paused') {
+      await handleResume();
+      return;
+    }
+
+    // If already playing, pause on iOS, stop on Android
+    if (playerState === 'playing') {
+      if (Platform.OS === 'ios') {
+        await handlePause();
+      } else {
+        // On Android, just stop when playing button is clicked
+        await handleStop();
+      }
+      return;
+    }
+
     if (!text || text.trim().length === 0) {
       console.warn('Cannot play: text is empty');
       return;
@@ -217,7 +236,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
     try {
       // Stop any current speech first
-      if (playerState === 'playing') {
+      if (playerState === 'playing' || playerState === 'paused') {
         await speechService.stop();
       }
 
@@ -237,7 +256,12 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
         },
         onStopped: () => {
           console.log('Speech playback stopped');
-          setPlayerState('stopped');
+          // Only set to paused on iOS, otherwise stopped
+          if (speechService.isPausedState() && Platform.OS === 'ios') {
+            setPlayerState('paused');
+          } else {
+            setPlayerState('stopped');
+          }
         },
         onError: (error) => {
           console.error('Speech playback error:', error);
@@ -249,6 +273,40 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
       setPlayerState('idle');
     }
   }, [text, speechRate, speechPitch, selectedVoice, playerState, cleanTextForSpeech]);
+
+  // Handle pause (iOS only)
+  const handlePause = useCallback(async () => {
+    // Only allow pause on iOS
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+    
+    try {
+      await speechService.pause();
+      setPlayerState('paused');
+      console.log('Speech playback paused');
+    } catch (error) {
+      console.error('Error pausing story:', error);
+      setPlayerState('stopped');
+    }
+  }, []);
+
+  // Handle resume (iOS only)
+  const handleResume = useCallback(async () => {
+    // Only allow resume on iOS
+    if (Platform.OS !== 'ios') {
+      return;
+    }
+    
+    try {
+      await speechService.resume();
+      setPlayerState('playing');
+      console.log('Speech playback resumed');
+    } catch (error) {
+      console.error('Error resuming story:', error);
+      setPlayerState('idle');
+    }
+  }, []);
 
   // Handle stop
   const handleStop = useCallback(async () => {
@@ -441,13 +499,19 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
           <TouchableOpacity
             style={[styles.controlButton, styles.playPauseButton]}
             onPress={handlePlay}
-            disabled={!text || text.trim().length === 0 || playerState === 'playing'}
+            disabled={!text || text.trim().length === 0}
           >
             <Feather
-              name="play"
+              name={
+                playerState === 'playing' && Platform.OS === 'ios'
+                  ? 'pause'
+                  : playerState === 'paused'
+                  ? 'play'
+                  : 'play'
+              }
               size={32}
               color={
-                !text || text.trim().length === 0 || playerState === 'playing'
+                !text || text.trim().length === 0
                   ? colors.textTertiary
                   : colors.primary
               }
@@ -460,6 +524,8 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
           <Text style={styles.statusText}>
             {playerState === 'playing'
               ? t('stories:player.status.playing')
+              : playerState === 'paused' && Platform.OS === 'ios'
+              ? t('stories:player.status.paused') || 'Paused'
               : playerState === 'stopped'
               ? t('stories:player.status.stopped')
               : t('stories:player.status.ready')}

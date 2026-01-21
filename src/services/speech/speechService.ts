@@ -3,6 +3,7 @@
  * Handles text-to-speech functionality using expo-speech
  */
 import * as Speech from 'expo-speech';
+import { Platform } from 'react-native';
 
 export interface Voice {
   identifier: string;
@@ -28,10 +29,12 @@ class SpeechService {
   private initializationPromise: Promise<void> | null = null;
   private availableVoices: Voice[] = [];
   private isSpeaking = false;
+  private isPaused = false;
   private currentOptions: SpeechOptions | null = null;
   private textChunks: string[] = [];
   private currentChunkIndex = 0;
   private shouldContinueSpeaking = false;
+  private remainingChunksForResume: string[] = []; // Store chunks for resume after pause
   private readonly MAX_CHUNK_SIZE = 4000; // Maximum characters per chunk
   private readonly MIN_CHUNK_SIZE = 500; // Minimum characters per chunk (for sentence boundary detection)
 
@@ -313,10 +316,29 @@ class SpeechService {
           }, 100); // 100ms pause between chunks
         },
         onStopped: () => {
+          // If paused, don't reset - we'll resume from remaining chunks
+          if (this.isPaused) {
+            this.isSpeaking = false;
+            // Don't reset chunks or index - we need them for resume
+            // Save remaining chunks for resume
+            if (this.currentChunkIndex > 0 && this.currentChunkIndex <= this.textChunks.length) {
+              // We were in the middle of a chunk, save current + remaining chunks
+              // Note: Since we can't resume mid-chunk, we'll restart from current chunk
+              this.remainingChunksForResume = this.textChunks.slice(this.currentChunkIndex - 1);
+            } else {
+              // Current chunk was completed, save remaining chunks
+              this.remainingChunksForResume = this.textChunks.slice(this.currentChunkIndex);
+            }
+            // Don't call onStopped callback when pausing
+            return;
+          }
+          
+          // Normal stop - reset everything
           this.isSpeaking = false;
           this.currentChunkIndex = 0;
           this.textChunks = [];
           this.shouldContinueSpeaking = false;
+          this.remainingChunksForResume = [];
           if (this.currentOptions?.onStopped) {
             this.currentOptions.onStopped();
           }
@@ -371,18 +393,20 @@ class SpeechService {
       throw new Error('Text cannot be empty after cleaning');
     }
 
-    // Stop any current speech
-    if (this.isSpeaking) {
-      await this.stop();
-    }
+      // Stop any current speech (including paused state)
+      if (this.isSpeaking || this.isPaused) {
+        await this.stop();
+      }
 
-    try {
-      this.currentOptions = options || {};
-      
-      // Split text into chunks
-      this.textChunks = this.splitTextIntoChunks(cleanedText);
-      this.currentChunkIndex = 0;
-      this.shouldContinueSpeaking = true;
+      try {
+        this.currentOptions = options || {};
+        this.isPaused = false;
+        
+        // Split text into chunks
+        this.textChunks = this.splitTextIntoChunks(cleanedText);
+        this.currentChunkIndex = 0;
+        this.shouldContinueSpeaking = true;
+        this.remainingChunksForResume = [];
 
       console.log('Starting chunked speech playback:', {
         originalTextLength: text.length,
@@ -411,16 +435,19 @@ class SpeechService {
    * Stop current speech
    */
   async stop(): Promise<void> {
-    if (!this.isSpeaking && !this.shouldContinueSpeaking) {
+    if (!this.isSpeaking && !this.shouldContinueSpeaking && !this.isPaused) {
       return;
     }
 
     try {
+      // Reset paused state if stopping
+      this.isPaused = false;
       this.shouldContinueSpeaking = false;
       await Speech.stop();
       this.isSpeaking = false;
       this.currentChunkIndex = 0;
       this.textChunks = [];
+      this.remainingChunksForResume = [];
       
       // Call onStopped callback if provided
       if (this.currentOptions?.onStopped) {
@@ -431,29 +458,126 @@ class SpeechService {
     } catch (error) {
       console.error('Error stopping speech:', error);
       this.isSpeaking = false;
+      this.isPaused = false;
       this.shouldContinueSpeaking = false;
       this.currentChunkIndex = 0;
       this.textChunks = [];
+      this.remainingChunksForResume = [];
       this.currentOptions = null;
     }
   }
 
   /**
-   * Pause speech (if supported)
-   * Note: expo-speech doesn't support pause, so this will stop
+   * Check if speech is currently paused
    */
-  async pause(): Promise<void> {
-    await this.stop();
+  isPausedState(): boolean {
+    return this.isPaused;
   }
 
   /**
-   * Resume speech (if supported)
-   * Note: expo-speech doesn't support resume, so this is a no-op
+   * Pause speech
+   * Saves the current position to allow resume from the same point
+   * Only uses native pause on iOS (not supported on Android)
+   */
+  async pause(): Promise<void> {
+    if (!this.isSpeaking) {
+      return;
+    }
+
+    this.isPaused = true;
+    
+    // Only use native pause on iOS (Android doesn't support it)
+    if (Platform.OS === 'ios') {
+      try {
+        await Speech.pause();
+        
+        // Note: onStopped won't fire with native pause, so handle it manually
+        this.isSpeaking = false;
+        
+        // Save remaining chunks for resume
+        if (this.currentChunkIndex > 0 && this.currentChunkIndex <= this.textChunks.length) {
+          // We were in the middle of chunks, save from current chunk onwards
+          // Note: Since we paused mid-chunk, we'll restart from current chunk
+          this.remainingChunksForResume = this.textChunks.slice(this.currentChunkIndex - 1);
+        } else {
+          // All chunks before current were done, save remaining
+          this.remainingChunksForResume = this.textChunks.slice(this.currentChunkIndex);
+        }
+        
+        console.log('Speech paused (iOS native pause)', {
+          currentChunkIndex: this.currentChunkIndex,
+          totalChunks: this.textChunks.length,
+          remainingChunks: this.remainingChunksForResume.length,
+        });
+      } catch (error) {
+        // Fallback to stop approach if native pause fails
+        console.log('Native pause failed, using stop approach', error);
+        await Speech.stop();
+        // onStopped callback will handle saving remaining chunks when isPaused is true
+      }
+    } else {
+      // Android/Web: Use stop approach and save remaining chunks
+      console.log('Using stop approach for pause (Android/Web)');
+      await Speech.stop();
+      // onStopped callback will handle saving remaining chunks when isPaused is true
+    }
+  }
+
+  /**
+   * Resume speech from where it was paused
+   * Only uses native resume on iOS (not supported on Android)
    */
   async resume(): Promise<void> {
-    // expo-speech doesn't support pause/resume
-    // This is a placeholder for future implementation
-    console.warn('Resume is not supported by expo-speech');
+    if (!this.isPaused) {
+      console.warn('Cannot resume: speech is not paused');
+      return;
+    }
+
+    if (this.remainingChunksForResume.length === 0) {
+      console.warn('Cannot resume: no remaining chunks');
+      this.isPaused = false;
+      return;
+    }
+
+    // Only use native resume on iOS (Android doesn't support it)
+    if (Platform.OS === 'ios') {
+      try {
+        await Speech.resume();
+        
+        // If native resume works, we're done
+        this.isSpeaking = true;
+        this.isPaused = false;
+        
+        if (this.currentOptions?.onStart) {
+          this.currentOptions.onStart();
+        }
+        
+        console.log('Speech resumed with native resume (iOS)');
+      } catch (error) {
+        // Fallback to chunk-based resume if native resume fails
+        console.log('Native resume failed, resuming from saved chunks', error);
+        this.resumeFromChunks();
+      }
+    } else {
+      // Android/Web: Manually resume from chunks
+      console.log('Resuming from saved chunks (Android/Web)');
+      this.resumeFromChunks();
+    }
+  }
+
+  /**
+   * Resume speech from saved chunks (used on Android/Web or as fallback)
+   * @private
+   */
+  private resumeFromChunks(): void {
+    // Restore chunks and continue from where we left off
+    this.textChunks = [...this.remainingChunksForResume];
+    this.currentChunkIndex = 0;
+    this.shouldContinueSpeaking = true;
+    this.isPaused = false;
+    
+    // Start speaking from the remaining chunks
+    this.speakNextChunk();
   }
 
   /**
@@ -490,7 +614,7 @@ class SpeechService {
    * Cleanup and reset service
    */
   async cleanup(): Promise<void> {
-    if (this.isSpeaking || this.shouldContinueSpeaking) {
+    if (this.isSpeaking || this.shouldContinueSpeaking || this.isPaused) {
       await this.stop();
     }
     this.isInitialized = false;
@@ -501,6 +625,8 @@ class SpeechService {
     this.textChunks = [];
     this.currentChunkIndex = 0;
     this.shouldContinueSpeaking = false;
+    this.isPaused = false;
+    this.remainingChunksForResume = [];
   }
 }
 

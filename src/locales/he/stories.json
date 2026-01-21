@@ -190,6 +190,7 @@
     "speed": "מהירות:",
     "status": {
       "playing": "מנגן...",
+      "paused": "מושהה",
       "stopped": "הופסק",
       "ready": "מוכן"
     }
