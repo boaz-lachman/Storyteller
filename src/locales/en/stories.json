@@ -138,9 +138,7 @@
         "description": "Export only the generated story content"
       }
     },
-    "format": {
-      "pdf": "PDF"
-    },
+    "format": "format",
     "buttons": {
       "cancel": "Cancel",
       "export": "Export"

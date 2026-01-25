@@ -2,9 +2,21 @@
  * DOCX Generator Service
  * Creates DOCX documents from story data using docx library
  */
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, SectionType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import * as FileSystem from 'expo-file-system/legacy';
-import type { Story, Character, IdeaBlurb, Scene, Chapter } from '../../types';
+import type { Story, Character, IdeaBlurb } from '../../types';
+import { getTextDirection, isHebrew } from '../../utils/languageDetection';
+import {
+  getExportTranslations,
+  translateRole,
+  translateCategory,
+  translateTheme,
+  translateLength,
+  translateTone,
+  translatePOV,
+  translateTargetAudience,
+} from '../../utils/exportTranslations';
+import { colors } from '../../constants/colors';
 
 export interface DocxOptions {
   characters?: Character[];
@@ -36,15 +48,24 @@ export const generateStoryDOCX = async (
     includeGeneratedContent = true,
   } = options || {};
 
-  const children: (Paragraph | SectionType)[] = [];
+  // Detect text direction and language
+  const textDirection = getTextDirection(story.title);
+  const isRTLText = textDirection === 'rtl';
+  const defaultAlignment = isRTLText ? AlignmentType.RIGHT : AlignmentType.LEFT;
+  const language: 'en' | 'he' = isHebrew(story.title) ? 'he' : 'en';
+  const t = getExportTranslations(language);
 
-  // Title
+  const children: Paragraph[] = [];
+
+  // Title - with enhanced styling
   children.push(
     new Paragraph({
       text: story.title,
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
-      spacing: { after: 400 },
+      spacing: { after: 600 },
+      bidirectional: isRTLText,
+      style: 'Title',
     })
   );
 
@@ -52,21 +73,25 @@ export const generateStoryDOCX = async (
   if (includeMetadata) {
     children.push(
       new Paragraph({
-        text: 'Story Information',
+        text: t.storyInformation,
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 600, after: 300 },
+        alignment: defaultAlignment,
+        bidirectional: isRTLText,
+        shading: {
+          fill: 'E8EAF0',
+        },
       })
     );
 
     const metadataItems = [
-      { label: 'Length', value: formatValue(story.length) },
-      { label: 'Theme', value: formatValue(story.theme) },
-      { label: 'Tone', value: formatValue(story.tone) },
-      { label: 'Point of View', value: formatValue(story.pov) },
-      { label: 'Target Audience', value: formatValue(story.targetAudience) },
-      { label: 'Status', value: formatValue(story.status) },
-      ...(story.setting ? [{ label: 'Setting', value: story.setting }] : []),
-      ...(story.timePeriod ? [{ label: 'Time Period', value: story.timePeriod }] : []),
+      { label: t.length, value: translateLength(story.length, language) },
+      { label: t.theme, value: translateTheme(story.theme, language) },
+      { label: t.tone, value: translateTone(story.tone, language) },
+      { label: t.pov, value: translatePOV(story.pov, language) },
+      { label: t.targetAudience, value: translateTargetAudience(story.targetAudience, language) },
+      ...(story.setting ? [{ label: t.setting, value: story.setting }] : []),
+      ...(story.timePeriod ? [{ label: t.timePeriod, value: story.timePeriod }] : []),
     ];
 
     metadataItems.forEach((item) => {
@@ -76,12 +101,18 @@ export const generateStoryDOCX = async (
             new TextRun({
               text: `${item.label}: `,
               bold: true,
+              color: colors.primary.replace('#', ''),
+              size: 24,
             }),
             new TextRun({
               text: item.value,
+              size: 24,
             }),
           ],
-          spacing: { after: 150 },
+          spacing: { after: 200 },
+          alignment: defaultAlignment,
+          bidirectional: isRTLText,
+          indent: { left: 360, right: 360 },
         })
       );
     });
@@ -89,29 +120,50 @@ export const generateStoryDOCX = async (
 
   // Description section
   if (includeDescription && story.description) {
+    const descriptionDir = getTextDirection(story.description);
+    const isDescRTL = descriptionDir === 'rtl';
+    const descAlignment = isDescRTL ? AlignmentType.RIGHT : AlignmentType.LEFT;
+
     children.push(
       new Paragraph({
-        text: 'Description',
+        text: t.description,
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 600, after: 300 },
+        alignment: descAlignment,
+        bidirectional: isDescRTL,
+        shading: {
+          fill: 'E8EAF0',
+        },
       })
     );
 
     children.push(
       new Paragraph({
         text: story.description,
-        spacing: { after: 300 },
+        spacing: { after: 400 },
+        alignment: AlignmentType.JUSTIFIED,
+        bidirectional: isDescRTL,
+        style: 'Normal',
       })
     );
   }
 
   // Generated content section
   if (includeGeneratedContent && story.generatedContent) {
+    const contentDir = getTextDirection(story.generatedContent);
+    const isContentRTL = contentDir === 'rtl';
+    const contentAlignment = isContentRTL ? AlignmentType.RIGHT : AlignmentType.LEFT;
+
     children.push(
       new Paragraph({
-        text: 'Story Content',
+        text: t.storyContent,
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 600, after: 300 },
+        alignment: contentAlignment,
+        bidirectional: isContentRTL,
+        shading: {
+          fill: 'E8EAF0',
+        },
       })
     );
 
@@ -121,11 +173,13 @@ export const generateStoryDOCX = async (
       children.push(
         new Paragraph({
           text: paragraph.trim(),
-          spacing: { 
-            after: index < contentParagraphs.length - 1 ? 200 : 300,
+          spacing: {
+            after: index < contentParagraphs.length - 1 ? 240 : 400,
             before: index > 0 ? 0 : 0,
           },
-          indent: { firstLine: 720 }, // 0.5 inch indent for first line
+          indent: { firstLine: isContentRTL ? 0 : 720 }, // 0.5 inch indent for LTR only
+          alignment: AlignmentType.JUSTIFIED,
+          bidirectional: isContentRTL,
         })
       );
     });
@@ -135,68 +189,108 @@ export const generateStoryDOCX = async (
   if (includeCharacters && characters.length > 0) {
     children.push(
       new Paragraph({
-        text: 'Characters',
+        text: t.characters,
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 600, after: 300 },
+        alignment: defaultAlignment,
+        bidirectional: isRTLText,
+        shading: {
+          fill: 'E8EAF0',
+        },
       })
     );
 
-    characters.forEach((character) => {
+    characters.forEach((character, index) => {
+      const characterDir = getTextDirection(character.name);
+      const isCharRTL = characterDir === 'rtl';
+      const charAlignment = isCharRTL ? AlignmentType.RIGHT : AlignmentType.LEFT;
+
+      // Character name with role badge
       children.push(
         new Paragraph({
           children: [
             new TextRun({
               text: character.name,
               bold: true,
-              size: 28, // 14pt
+              size: 32, // 16pt
+              color: colors.text.replace('#', ''),
             }),
             new TextRun({
-              text: ` (${formatRole(character.role)})`,
+              text: ` (${translateRole(character.role, language)})`,
               italics: true,
-              size: 24, // 12pt
+              size: 26, // 13pt
+              color: colors.primary.replace('#', ''),
             }),
           ],
-          spacing: { before: 200, after: 100 },
+          spacing: { before: index > 0 ? 400 : 200, after: 200 },
+          alignment: charAlignment,
+          bidirectional: isCharRTL,
+          border: {
+            bottom: {
+              color: colors.primary.replace('#', ''),
+              space: 1,
+              size: 6,
+              style: 'single',
+            },
+          },
         })
       );
 
+      // Description
       children.push(
         new Paragraph({
           text: character.description,
-          spacing: { after: 100 },
+          spacing: { after: 150 },
+          alignment: charAlignment,
+          bidirectional: isCharRTL,
+          indent: { left: 240, right: 240 },
         })
       );
 
+      // Traits
       if (character.traits && character.traits.length > 0) {
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: 'Traits: ',
+                text: `${t.traits}: `,
                 bold: true,
+                color: colors.primary.replace('#', ''),
+                size: 24,
               }),
               new TextRun({
                 text: character.traits.join(', '),
+                size: 24,
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: charAlignment,
+            bidirectional: isCharRTL,
+            indent: { left: 240, right: 240 },
           })
         );
       }
 
+      // Backstory
       if (character.backstory) {
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: 'Backstory: ',
+                text: `${t.backstory}: `,
                 bold: true,
+                color: colors.primary.replace('#', ''),
+                size: 24,
               }),
               new TextRun({
                 text: character.backstory,
+                size: 24,
               }),
             ],
-            spacing: { after: 200 },
+            spacing: { after: 250 },
+            alignment: charAlignment,
+            bidirectional: isCharRTL,
+            indent: { left: 240, right: 240 },
           })
         );
       }
@@ -207,37 +301,63 @@ export const generateStoryDOCX = async (
   if (includeBlurbs && blurbs.length > 0) {
     children.push(
       new Paragraph({
-        text: 'Story Ideas & Blurbs',
+        text: t.storyIdeas,
         heading: HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 },
+        spacing: { before: 600, after: 300 },
+        alignment: defaultAlignment,
+        bidirectional: isRTLText,
+        shading: {
+          fill: 'E8EAF0',
+        },
       })
     );
 
-    blurbs.forEach((blurb) => {
+    blurbs.forEach((blurb, index) => {
+      const blurbDir = getTextDirection(blurb.title);
+      const isBlurbRTL = blurbDir === 'rtl';
+      const blurbAlignment = isBlurbRTL ? AlignmentType.RIGHT : AlignmentType.LEFT;
+
+      // Blurb title with category badge
       children.push(
         new Paragraph({
           children: [
             new TextRun({
               text: blurb.title,
               bold: true,
-              size: 28, // 14pt
+              size: 32, // 16pt
+              color: colors.text.replace('#', ''),
             }),
             ...(blurb.category ? [
               new TextRun({
-                text: ` (${formatCategory(blurb.category)})`,
+                text: ` (${translateCategory(blurb.category, language)})`,
                 italics: true,
-                size: 24, // 12pt
+                size: 26, // 13pt
+                color: colors.warning.replace('#', ''),
               }),
             ] : []),
           ],
-          spacing: { before: 200, after: 100 },
+          spacing: { before: index > 0 ? 400 : 200, after: 200 },
+          alignment: blurbAlignment,
+          bidirectional: isBlurbRTL,
+          border: {
+            bottom: {
+              color: colors.warning.replace('#', ''),
+              space: 1,
+              size: 6,
+              style: 'single',
+            },
+          },
         })
       );
 
+      // Blurb description
       children.push(
         new Paragraph({
           text: blurb.description,
-          spacing: { after: 200 },
+          spacing: { after: 250 },
+          alignment: blurbAlignment,
+          bidirectional: isBlurbRTL,
+          indent: { left: 240, right: 240 },
         })
       );
     });
@@ -246,21 +366,89 @@ export const generateStoryDOCX = async (
   // Footer
   children.push(
     new Paragraph({
-      text: `Generated on ${new Date().toLocaleString()}`,
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 600 },
-      style: 'subtle',
+      text: '',
+      spacing: { before: 800 },
     })
   );
 
-  // Create the document
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `${t.generatedOn} ${new Date().toLocaleString()}`,
+          italics: true,
+          color: colors.textTertiary.replace('#', ''),
+          size: 20,
+        }),
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 400 },
+      border: {
+        top: {
+          color: colors.borderLight.replace('#', ''),
+          space: 1,
+          size: 12,
+          style: 'single',
+        },
+      },
+    })
+  );
+
+  // Create the document with enhanced styling
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            margin: {
+              top: 1440, // 1 inch
+              right: 1440,
+              bottom: 1440,
+              left: 1440,
+            },
+          },
+        },
         children,
       },
     ],
+    styles: {
+      paragraphStyles: [
+        {
+          id: 'Normal',
+          name: 'Normal',
+          basedOn: 'Normal',
+          next: 'Normal',
+          run: {
+            size: 24, // 12pt
+            font: isRTLText ? 'Arial' : 'Georgia',
+          },
+          paragraph: {
+            spacing: {
+              line: 360, // 1.5 line spacing
+              before: 120,
+              after: 120,
+            },
+          },
+        },
+        {
+          id: 'Title',
+          name: 'Title',
+          basedOn: 'Normal',
+          run: {
+            size: 56, // 28pt
+            bold: true,
+            color: colors.text.replace('#', ''),
+            font: isRTLText ? 'Arial' : 'Georgia',
+          },
+          paragraph: {
+            spacing: {
+              after: 600,
+            },
+            alignment: AlignmentType.CENTER,
+          },
+        },
+      ],
+    },
   });
 
   // Generate the DOCX file as base64 string

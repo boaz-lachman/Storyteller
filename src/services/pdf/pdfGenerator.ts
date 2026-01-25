@@ -4,6 +4,18 @@
  */
 import * as Print from 'expo-print';
 import type { Story, Character, IdeaBlurb, Scene, Chapter } from '../../types';
+import { isRTL, getTextDirection, getFontFamily, isHebrew } from '../../utils/languageDetection';
+import {
+  getExportTranslations,
+  translateRole,
+  translateCategory,
+  translateTheme,
+  translateLength,
+  translateTone,
+  translatePOV,
+  translateTargetAudience,
+} from '../../utils/exportTranslations';
+import { colors } from '../../constants/colors';
 
 /**
  * Generate a basic PDF from HTML content
@@ -97,23 +109,32 @@ export const generateStoryPDF = async (
     includeGeneratedContent = true,
   } = options || {};
 
+  // Detect text direction and language based on story title
+  const textDirection = getTextDirection(story.title);
+  const isRTLText = textDirection === 'rtl';
+  const fontFamily = getFontFamily(story.title);
+  const language: 'en' | 'he' = isHebrew(story.title) ? 'he' : 'en';
+  const t = getExportTranslations(language);
+
   // Build HTML content using formatting functions
-  const titleHtml = formatTitle(story.title);
-  const metadataHtml = includeMetadata ? formatMetadata(story) : '';
+  const titleHtml = formatTitle(story.title, isRTLText);
+  const metadataHtml = includeMetadata ? formatMetadata(story, isRTLText, language) : '';
   const contentHtml = formatContentSections(story, {
     includeDescription,
     includeGeneratedContent,
+    isRTL: isRTLText,
+    language,
   });
-  const charactersHtml = includeCharacters ? formatCharacterList(characters) : '';
-  const blurbsHtml = includeBlurbs ? formatBlurbList(blurbs) : '';
+  const charactersHtml = includeCharacters ? formatCharacterList(characters, isRTLText, language) : '';
+  const blurbsHtml = includeBlurbs ? formatBlurbList(blurbs, isRTLText, language) : '';
 
   const html = `
     <!DOCTYPE html>
-    <html>
+    <html dir="${textDirection}">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        ${getPDFStyles()}
+        ${getPDFStyles(fontFamily, isRTLText)}
       </head>
       <body>
         ${titleHtml}
@@ -121,9 +142,9 @@ export const generateStoryPDF = async (
         ${contentHtml}
         ${charactersHtml}
         ${blurbsHtml}
-        
+
         <div class="footer">
-          Generated on ${new Date().toLocaleString()}
+          ${t.generatedOn} ${new Date().toLocaleString()}
         </div>
       </body>
     </html>
@@ -135,11 +156,12 @@ export const generateStoryPDF = async (
 /**
  * Format story title for PDF
  * @param title - Story title
+ * @param isRTL - Whether text is right-to-left
  * @returns Formatted title HTML
  */
-const formatTitle = (title: string): string => {
+const formatTitle = (title: string, isRTL: boolean = false): string => {
   return `
-    <div class="title-section">
+    <div class="title-section" dir="${isRTL ? 'rtl' : 'ltr'}">
       <h1 class="story-title">${escapeHtml(title)}</h1>
     </div>
   `;
@@ -148,18 +170,21 @@ const formatTitle = (title: string): string => {
 /**
  * Format story metadata section
  * @param story - Story object
+ * @param isRTL - Whether text is right-to-left
+ * @param language - Language code for translations
  * @returns Formatted metadata HTML
  */
-const formatMetadata = (story: Story): string => {
+const formatMetadata = (story: Story, isRTL: boolean = false, language: 'en' | 'he' = 'en'): string => {
+  const t = getExportTranslations(language);
+
   const metadataItems = [
-    { label: 'Length', value: formatValue(story.length) },
-    { label: 'Theme', value: formatValue(story.theme) },
-    { label: 'Tone', value: formatValue(story.tone) },
-    { label: 'Point of View', value: formatValue(story.pov) },
-    { label: 'Target Audience', value: formatValue(story.targetAudience) },
-    { label: 'Status', value: formatValue(story.status) },
-    ...(story.setting ? [{ label: 'Setting', value: escapeHtml(story.setting) }] : []),
-    ...(story.timePeriod ? [{ label: 'Time Period', value: escapeHtml(story.timePeriod) }] : []),
+    { label: t.length, value: translateLength(story.length, language) },
+    { label: t.theme, value: translateTheme(story.theme, language) },
+    { label: t.tone, value: translateTone(story.tone, language) },
+    { label: t.pov, value: translatePOV(story.pov, language) },
+    { label: t.targetAudience, value: translateTargetAudience(story.targetAudience, language) },
+    ...(story.setting ? [{ label: t.setting, value: escapeHtml(story.setting) }] : []),
+    ...(story.timePeriod ? [{ label: t.timePeriod, value: escapeHtml(story.timePeriod) }] : []),
   ];
 
   const itemsHtml = metadataItems
@@ -172,8 +197,8 @@ const formatMetadata = (story: Story): string => {
     .join('');
 
   return `
-    <div class="metadata-section">
-      <h2 class="section-title">Story Information</h2>
+    <div class="metadata-section" dir="${isRTL ? 'rtl' : 'ltr'}">
+      <h2 class="section-title">${t.storyInformation}</h2>
       <div class="metadata-grid">
         ${itemsHtml}
       </div>
@@ -192,16 +217,20 @@ const formatContentSections = (
   options?: {
     includeDescription?: boolean;
     includeGeneratedContent?: boolean;
+    isRTL?: boolean;
+    language?: 'en' | 'he';
   }
 ): string => {
-  const { includeDescription = true, includeGeneratedContent = true } = options || {};
+  const { includeDescription = true, includeGeneratedContent = true, isRTL = false, language = 'en' } = options || {};
+  const t = getExportTranslations(language);
   let sections = '';
 
   // Description section
   if (includeDescription && story.description) {
+    const descriptionDir = getTextDirection(story.description);
     sections += `
-      <div class="content-section">
-        <h2 class="section-title">Description</h2>
+      <div class="content-section" dir="${descriptionDir}">
+        <h2 class="section-title">${t.description}</h2>
         <div class="content-text">${escapeHtml(story.description).replace(/\n/g, '<br>')}</div>
       </div>
     `;
@@ -209,9 +238,10 @@ const formatContentSections = (
 
   // Generated content section
   if (includeGeneratedContent && story.generatedContent) {
+    const contentDir = getTextDirection(story.generatedContent);
     sections += `
-      <div class="content-section">
-        <h2 class="section-title">Story Content</h2>
+      <div class="content-section" dir="${contentDir}">
+        <h2 class="section-title">${t.storyContent}</h2>
         <div class="story-content">${escapeHtml(story.generatedContent).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</div>
       </div>
     `;
@@ -223,25 +253,30 @@ const formatContentSections = (
 /**
  * Format character list
  * @param characters - Array of characters
+ * @param isRTL - Whether text is right-to-left
+ * @param language - Language code for translations
  * @returns Formatted characters HTML
  */
-const formatCharacterList = (characters: Character[]): string => {
+const formatCharacterList = (characters: Character[], isRTL: boolean = false, language: 'en' | 'he' = 'en'): string => {
   if (!characters || characters.length === 0) {
     return '';
   }
 
+  const t = getExportTranslations(language);
+
   const charactersHtml = characters
     .map((character) => {
-      const roleBadge = formatRoleBadge(character.role);
+      const characterDir = getTextDirection(character.name);
+      const roleBadge = formatRoleBadge(character.role, language);
       const traitsList = character.traits && character.traits.length > 0
-        ? `<div class="traits"><strong>Traits:</strong> ${character.traits.map(t => escapeHtml(t)).join(', ')}</div>`
+        ? `<div class="traits"><strong>${t.traits}:</strong> ${character.traits.map(t => escapeHtml(t)).join(', ')}</div>`
         : '';
       const backstory = character.backstory
-        ? `<div class="backstory"><strong>Backstory:</strong> ${escapeHtml(character.backstory).replace(/\n/g, '<br>')}</div>`
+        ? `<div class="backstory"><strong>${t.backstory}:</strong> ${escapeHtml(character.backstory).replace(/\n/g, '<br>')}</div>`
         : '';
 
       return `
-        <div class="character-item">
+        <div class="character-item" dir="${characterDir}">
           <div class="character-header">
             <h3 class="character-name">${escapeHtml(character.name)}</h3>
             ${roleBadge}
@@ -255,8 +290,8 @@ const formatCharacterList = (characters: Character[]): string => {
     .join('');
 
   return `
-    <div class="characters-section">
-      <h2 class="section-title">Characters</h2>
+    <div class="characters-section" dir="${isRTL ? 'rtl' : 'ltr'}">
+      <h2 class="section-title">${t.characters}</h2>
       <div class="characters-list">
         ${charactersHtml}
       </div>
@@ -267,19 +302,24 @@ const formatCharacterList = (characters: Character[]): string => {
 /**
  * Format blurb list for PDF
  * @param blurbs - Array of blurbs
+ * @param isRTL - Whether text is right-to-left
+ * @param language - Language code for translations
  * @returns Formatted blurbs HTML
  */
-const formatBlurbList = (blurbs: IdeaBlurb[]): string => {
+const formatBlurbList = (blurbs: IdeaBlurb[], isRTL: boolean = false, language: 'en' | 'he' = 'en'): string => {
   if (!blurbs || blurbs.length === 0) {
     return '';
   }
 
+  const t = getExportTranslations(language);
+
   const blurbsHtml = blurbs
     .map((blurb) => {
-      const categoryBadge = blurb.category ? formatCategoryBadge(blurb.category) : '';
-      
+      const blurbDir = getTextDirection(blurb.title);
+      const categoryBadge = blurb.category ? formatCategoryBadge(blurb.category, language) : '';
+
       return `
-        <div class="blurb-item">
+        <div class="blurb-item" dir="${blurbDir}">
           <div class="blurb-header">
             <h3 class="blurb-title">${escapeHtml(blurb.title)}</h3>
             ${categoryBadge}
@@ -291,8 +331,8 @@ const formatBlurbList = (blurbs: IdeaBlurb[]): string => {
     .join('');
 
   return `
-    <div class="blurbs-section">
-      <h2 class="section-title">Story Ideas & Blurbs</h2>
+    <div class="blurbs-section" dir="${isRTL ? 'rtl' : 'ltr'}">
+      <h2 class="section-title">${t.storyIdeas}</h2>
       <div class="blurbs-list">
         ${blurbsHtml}
       </div>
@@ -303,30 +343,25 @@ const formatBlurbList = (blurbs: IdeaBlurb[]): string => {
 /**
  * Format category badge
  * @param category - Blurb category
+ * @param language - Language code for translations
  * @returns Formatted category badge HTML
  */
-const formatCategoryBadge = (category: IdeaBlurb['category']): string => {
+const formatCategoryBadge = (category: IdeaBlurb['category'], language: 'en' | 'he' = 'en'): string => {
   if (!category) return '';
-  
-  const categoryLabels: Record<NonNullable<IdeaBlurb['category']>, string> = {
-    'plot-point': 'Plot Point',
-    'conflict': 'Conflict',
-    'theme': 'Theme',
-    'setting': 'Setting',
-    'other': 'Other',
-  };
 
   const categoryColors: Record<NonNullable<IdeaBlurb['category']>, string> = {
-    'plot-point': '#9b59b6',
-    'conflict': '#e67e22',
-    'theme': '#16a085',
-    'setting': '#3498db',
-    'other': '#95a5a6',
+    'plot-point': colors.themeDrama,
+    'conflict': colors.error,
+    'theme': colors.success,
+    'setting': colors.info,
+    'other': colors.textTertiary,
   };
+
+  const translatedCategory = translateCategory(category, language);
 
   return `
     <span class="category-badge" style="background-color: ${categoryColors[category]};">
-      ${escapeHtml(categoryLabels[category])}
+      ${escapeHtml(translatedCategory)}
     </span>
   `;
 };
@@ -334,26 +369,22 @@ const formatCategoryBadge = (category: IdeaBlurb['category']): string => {
 /**
  * Format role badge
  * @param role - Character role
+ * @param language - Language code for translations
  * @returns Formatted role badge HTML
  */
-const formatRoleBadge = (role: Character['role']): string => {
+const formatRoleBadge = (role: Character['role'], language: 'en' | 'he' = 'en'): string => {
   const roleColors: Record<Character['role'], string> = {
-    protagonist: '#27ae60',
-    antagonist: '#e74c3c',
-    supporting: '#3498db',
-    minor: '#95a5a6',
+    protagonist: colors.success,
+    antagonist: colors.error,
+    supporting: colors.info,
+    minor: colors.textTertiary,
   };
 
-  const roleLabels: Record<Character['role'], string> = {
-    protagonist: 'Protagonist',
-    antagonist: 'Antagonist',
-    supporting: 'Supporting',
-    minor: 'Minor',
-  };
+  const translatedRole = translateRole(role, language);
 
   return `
     <span class="role-badge" style="background-color: ${roleColors[role]};">
-      ${escapeHtml(roleLabels[role])}
+      ${escapeHtml(translatedRole)}
     </span>
   `;
 };
@@ -373,16 +404,18 @@ const formatValue = (value: string): string => {
 
 /**
  * Get PDF styles
+ * @param fontFamily - Font family to use
+ * @param isRTL - Whether text is right-to-left
  * @returns CSS styles for PDF
  */
-const getPDFStyles = (): string => {
+const getPDFStyles = (fontFamily: string, isRTL: boolean = false): string => {
   return `
     <style>
       * {
         box-sizing: border-box;
       }
       body {
-        font-family: 'Georgia', 'Times New Roman', serif;
+        font-family: ${fontFamily};
         padding: 40px;
         line-height: 1.8;
         color: #2c3e50;
@@ -390,213 +423,267 @@ const getPDFStyles = (): string => {
         margin: 0 auto;
         background-color: #ffffff;
       }
-      
+
       /* Title Section */
       .title-section {
-        margin-bottom: 40px;
+        margin-bottom: 50px;
         text-align: center;
-        padding-bottom: 30px;
-        border-bottom: 4px solid #3498db;
+        padding: 40px 20px;
+        background: linear-gradient(135deg, ${colors.gradient.peach} 0%, ${colors.gradient.orange} 100%);
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(255, 159, 122, 0.3);
       }
       .story-title {
-        color: #2c3e50;
-        font-size: 2.5em;
+        color: ${colors.text};
+        font-size: 3em;
         margin: 0;
         padding: 0;
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing: -0.5px;
+        text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.3);
       }
-      
+
       /* Section Titles */
       .section-title {
-        color: #2c3e50;
-        font-size: 1.8em;
-        margin: 40px 0 20px 0;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #ecf0f1;
-        font-weight: 600;
+        color: ${colors.text};
+        font-size: 2em;
+        margin: 50px 0 25px 0;
+        padding-bottom: 15px;
+        border-bottom: 3px solid ${colors.primary};
+        font-weight: 700;
+        position: relative;
       }
-      
+      .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        ${isRTL ? 'right' : 'left'}: 0;
+        width: 80px;
+        height: 3px;
+        background: ${colors.warning};
+      }
+
       /* Metadata Section */
       .metadata-section {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        padding: 30px;
-        border-radius: 10px;
-        margin-bottom: 40px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, ${colors.surface} 0%, ${colors.accentLight} 100%);
+        padding: 35px;
+        border-radius: 15px;
+        margin-bottom: 50px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        border: 2px solid ${colors.borderLight};
       }
       .metadata-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
+        gap: 20px;
       }
       .metadata-item {
         display: flex;
         flex-direction: column;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 8px;
+        transition: transform 0.2s;
+      }
+      .metadata-item:hover {
+        transform: translateY(-2px);
       }
       .metadata-label {
-        font-weight: 600;
-        color: #555;
-        font-size: 0.9em;
-        margin-bottom: 5px;
+        font-weight: 700;
+        color: ${colors.primary};
+        font-size: 0.85em;
+        margin-bottom: 8px;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 1px;
       }
       .metadata-value {
-        color: #2c3e50;
-        font-size: 1.1em;
+        color: ${colors.text};
+        font-size: 1.15em;
+        font-weight: 500;
       }
-      
+
       /* Content Sections */
       .content-section {
-        margin-bottom: 40px;
+        margin-bottom: 50px;
+        padding: 30px;
+        background: ${colors.surface};
+        border-radius: 12px;
+        border-${isRTL ? 'right' : 'left'}: 5px solid ${colors.primary};
       }
       .content-text {
-        font-size: 1.1em;
-        line-height: 1.9;
-        color: #34495e;
+        font-size: 1.15em;
+        line-height: 2;
+        color: ${colors.textSecondary};
         text-align: justify;
       }
       .story-content {
-        font-size: 1.05em;
-        line-height: 2;
-        color: #2c3e50;
+        font-size: 1.1em;
+        line-height: 2.1;
+        color: ${colors.text};
         text-align: justify;
         white-space: pre-wrap;
       }
       .story-content p {
-        margin-bottom: 15px;
-        text-indent: 2em;
+        margin-bottom: 20px;
+        text-indent: ${isRTL ? '0' : '2em'};
       }
-      
+
       /* Characters Section */
       .characters-section {
-        margin-bottom: 40px;
+        margin-bottom: 50px;
       }
       .characters-list {
         display: grid;
-        gap: 25px;
+        gap: 30px;
       }
       .character-item {
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-left: 4px solid #3498db;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        background: linear-gradient(135deg, ${colors.background} 0%, ${colors.surface} 100%);
+        border: 2px solid ${colors.borderLight};
+        border-${isRTL ? 'right' : 'left'}: 6px solid ${colors.primary};
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .character-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(255, 159, 122, 0.15);
       }
       .character-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 15px;
       }
       .character-name {
-        color: #2c3e50;
-        font-size: 1.5em;
+        color: ${colors.text};
+        font-size: 1.7em;
         margin: 0;
-        font-weight: 600;
+        font-weight: 700;
       }
       .role-badge {
         display: inline-block;
-        padding: 5px 15px;
-        border-radius: 20px;
+        padding: 8px 18px;
+        border-radius: 25px;
         color: white;
         font-size: 0.85em;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 1px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
       }
       .character-description {
-        font-size: 1.05em;
-        line-height: 1.8;
-        color: #34495e;
-        margin-bottom: 15px;
+        font-size: 1.1em;
+        line-height: 1.9;
+        color: ${colors.textSecondary};
+        margin-bottom: 20px;
       }
       .traits {
-        font-size: 0.95em;
-        color: #555;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #ecf0f1;
+        font-size: 1em;
+        color: ${colors.textSecondary};
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 2px solid ${colors.borderLight};
       }
       .backstory {
-        font-size: 0.95em;
-        color: #555;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #ecf0f1;
-        line-height: 1.7;
+        font-size: 1em;
+        color: ${colors.textSecondary};
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 2px solid ${colors.borderLight};
+        line-height: 1.8;
       }
-      
+
       /* Blurbs Section */
       .blurbs-section {
-        margin-bottom: 40px;
+        margin-bottom: 50px;
       }
       .blurbs-list {
         display: flex;
         flex-direction: column;
-        gap: 25px;
+        gap: 30px;
       }
       .blurb-item {
-        background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
-        padding: 25px;
-        border-radius: 8px;
-        border-left: 4px solid #3498db;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-        transition: transform 0.2s ease;
+        background: linear-gradient(135deg, ${colors.background} 0%, ${colors.accentLight} 100%);
+        padding: 30px;
+        border-radius: 12px;
+        border-${isRTL ? 'right' : 'left'}: 6px solid ${colors.warning};
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .blurb-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(230, 168, 92, 0.15);
       }
       .blurb-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 15px;
       }
       .blurb-title {
-        color: #2c3e50;
-        font-size: 1.3em;
+        color: ${colors.text};
+        font-size: 1.5em;
         margin: 0;
-        font-weight: 600;
+        font-weight: 700;
         flex: 1;
         min-width: 200px;
       }
       .category-badge {
         display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
+        padding: 6px 16px;
+        border-radius: 20px;
         font-size: 0.75em;
-        font-weight: 600;
+        font-weight: 700;
         color: white;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 1px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
       }
       .blurb-description {
-        color: #34495e;
-        font-size: 1em;
-        line-height: 1.7;
+        color: ${colors.textSecondary};
+        font-size: 1.05em;
+        line-height: 1.9;
         text-align: justify;
       }
-      
+
       /* Footer */
       .footer {
-        margin-top: 60px;
-        padding-top: 20px;
-        border-top: 2px solid #ecf0f1;
+        margin-top: 80px;
+        padding-top: 30px;
+        border-top: 3px solid ${colors.borderLight};
         text-align: center;
-        color: #7f8c8d;
-        font-size: 0.9em;
+        color: ${colors.textTertiary};
+        font-size: 0.95em;
+        font-style: italic;
       }
-      
+
+      /* RTL-specific adjustments */
+      [dir="rtl"] .character-item,
+      [dir="rtl"] .blurb-item,
+      [dir="rtl"] .content-section {
+        text-align: right;
+      }
+
+      [dir="rtl"] .metadata-item {
+        text-align: right;
+      }
+
       @media print {
         body {
           padding: 20px;
         }
         .page-break {
           page-break-before: always;
+        }
+        .character-item:hover,
+        .blurb-item:hover,
+        .metadata-item:hover {
+          transform: none;
         }
       }
     </style>

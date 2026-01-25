@@ -686,9 +686,9 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
             </Card.Content>
           </Card>
 
-          {/* Story Player - Only shows if TTS is available for device locale */}
+          {/* Story Player - Only shows if TTS is available for story language */}
           <Animated.View entering={FadeInDown.delay(125).duration(400)}>
-            <StoryPlayer text={generatedStory.content} />
+            <StoryPlayer text={generatedStory.content} title={story.title} />
           </Animated.View>
 
           <Card style={styles.card}>

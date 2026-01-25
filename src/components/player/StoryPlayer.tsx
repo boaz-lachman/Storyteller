@@ -2,19 +2,20 @@
  * Story Player Component
  * Text-to-speech player for reading stories aloud
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, AppState, AppStateStatus, Platform } from 'react-native';
 import { Text, Card, Menu } from 'react-native-paper';
 import { Feather } from '@expo/vector-icons';
-import * as Localization from 'expo-localization';
 import { speechService, type Voice } from '../../services/speech/speechService';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useTranslation } from '../../hooks/useTranslation';
+import { isRTL } from '../../utils/languageDetection';
 
 export interface StoryPlayerProps {
   text: string;
+  title?: string;
   onStateChange?: (isPlaying: boolean) => void;
 }
 
@@ -25,6 +26,7 @@ type PlayerState = 'idle' | 'playing' | 'paused' | 'stopped';
  */
 export const StoryPlayer: React.FC<StoryPlayerProps> = ({
   text,
+  title,
   onStateChange,
 }) => {
   const { t } = useTranslation();
@@ -39,77 +41,71 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
   const [hasVoicesForLocale, setHasVoicesForLocale] = useState(false);
   const appState = useRef(AppState.currentState);
 
-  // Get device locale
-  const getDeviceLocale = useCallback((): string => {
-    try {
-      // Try expo-localization first
-      const locales = Localization.getLocales();
-      if (locales && locales.length > 0) {
-        const languageTag = locales[0].languageTag;
-        if (languageTag) {
-          // Extract language code (e.g., 'en' from 'en-US')
-          return languageTag.split('-')[0].toLowerCase();
-        }
-      }
-    } catch (error) {
-      console.warn('Error getting locale from expo-localization:', error);
-    }
+  // Detect story language from text
+  const storyLanguage = useMemo((): string => {
+    // Check title first, then text
+    const textToCheck = title || text;
+    if (!textToCheck) return 'en';
 
-    // Fallback to Intl API
-    try {
-      const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-      return locale.split('-')[0].toLowerCase();
-    } catch (error) {
-      console.warn('Error getting locale from Intl:', error);
-    }
+    // Detect if text contains Hebrew characters
+    const isHebrewText = isRTL(textToCheck);
+    return isHebrewText ? 'he' : 'en';
+  }, [text, title]);
 
-    // Final fallback
-    return 'en';
+  // Get language code with region for speech service
+  const getLanguageCode = useCallback((language: string): string => {
+    // Map language to appropriate language code for TTS
+    const languageMap: Record<string, string> = {
+      'en': 'en-US',
+      'he': 'he-IL',
+    };
+    return languageMap[language] || 'en-US';
   }, []);
 
   // Initialize speech service - only run once on mount
   const hasInitializedRef = useRef(false);
-  
+
   useEffect(() => {
     // Only initialize once, even if component re-renders
     if (hasInitializedRef.current) {
       return;
     }
-    
+
     hasInitializedRef.current = true;
-    
+
     const initialize = async () => {
       try {
         await speechService.initialize();
         const voicesList = speechService.getAvailableVoices();
         setAllVoices(voicesList); // Store all voices for lookup
-        
-        // Get device locale and filter voices
-        const deviceLocale = getDeviceLocale();
-        const filteredVoices = speechService.getVoicesByLanguage(deviceLocale);
-        
-        // Check if there are voices for the locale
+
+        // Filter voices based on story language (not device locale)
+        const filteredVoices = speechService.getVoicesByLanguage(storyLanguage);
+
+        // Check if there are voices for the language
         const hasVoices = filteredVoices.length > 0;
         setHasVoicesForLocale(hasVoices);
-        
-        // If no voices found for locale, don't show the player
+
+        // If no voices found for language, don't show the player
         if (!hasVoices) {
+          console.warn(`No voices available for story language: ${storyLanguage}`);
           setIsInitialized(true);
           return;
         }
-        
-        // Use filtered voices for the locale
+
+        // Use filtered voices for the story language
         setAvailableVoices(filteredVoices);
-        
-        // Set default voice (prefer device locale)
+
+        // Set default voice for story language
         // Ensure a voice is always selected if any voices are available
-        let defaultVoice = speechService.getDefaultVoice(deviceLocale);
+        let defaultVoice = speechService.getDefaultVoice(storyLanguage);
         if (!defaultVoice && filteredVoices.length > 0) {
           // Prefer high quality voices, then first available
           defaultVoice = filteredVoices.find(v => v.quality && v.quality > 0)?.identifier || filteredVoices[0]?.identifier;
         }
         setSelectedVoice(defaultVoice || null);
-        
+
+        console.log(`Initialized speech player with ${filteredVoices.length} voices for language: ${storyLanguage}`);
         setIsInitialized(true);
       } catch (error) {
         console.error('Error initializing speech service:', error);
@@ -129,7 +125,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
       setPlayerState('idle');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run once on mount
+  }, [storyLanguage]); // Re-initialize if story language changes
 
   // Handle app state changes (interruptions)
   useEffect(() => {
@@ -242,7 +238,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
 
       // Start playing
       await speechService.speak(cleanedText, {
-        language: 'en-US',
+        language: getLanguageCode(storyLanguage),
         rate: speechRate,
         pitch: speechPitch,
         voice: selectedVoice || undefined,
@@ -272,7 +268,7 @@ export const StoryPlayer: React.FC<StoryPlayerProps> = ({
       console.error('Error playing story:', error);
       setPlayerState('idle');
     }
-  }, [text, speechRate, speechPitch, selectedVoice, playerState, cleanTextForSpeech]);
+  }, [text, speechRate, speechPitch, selectedVoice, playerState, cleanTextForSpeech, storyLanguage, getLanguageCode]);
 
   // Handle pause (iOS only)
   const handlePause = useCallback(async () => {

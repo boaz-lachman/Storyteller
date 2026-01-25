@@ -27,6 +27,7 @@ export interface Story {
   targetAudience: 'children' | 'young-adult' | 'adult';
   setting?: string;
   timePeriod?: string;
+  language?: 'en' | 'he'; // Story language: English or Hebrew
   // Status
   status: 'draft' | 'completed';
   generatedContent?: string;

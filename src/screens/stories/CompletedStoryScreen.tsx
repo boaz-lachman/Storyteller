@@ -186,7 +186,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
 
       {/* Story Player */}
       <Animated.View entering={FadeInDown.delay(175).duration(400)}>
-        <StoryPlayer text={story.generatedContent || ''} />
+        <StoryPlayer text={story.generatedContent || ''} title={story.title} />
       </Animated.View>
 
       {/* Story Content */}

@@ -35,12 +35,14 @@ const generateFilename = (
   type: ExportType = 'full'
 ): string => {
   // Sanitize the story title for use as a filename
+  // Remove only filesystem-invalid characters: / \ : * ? " < > |
+  // This preserves Hebrew, English, and other Unicode characters
   const sanitizedTitle = story.title
-    .replace(/[^a-z0-9\s]/gi, '') // Remove special characters except spaces
+    .replace(/[/\\:*?"<>|]/g, '') // Remove filesystem-invalid characters
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
     .trim()
     .replace(/\s/g, '_'); // Replace spaces with underscores
-  
+
   return `${sanitizedTitle}.${format}`;
 };
 

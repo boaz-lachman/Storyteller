@@ -138,9 +138,7 @@
         "description": "ייצא רק את התוכן שנוצר של הסיפור"
       }
     },
-    "format": {
-      "pdf": "PDF"
-    },
+    "format": "פורמט",
     "buttons": {
       "cancel": "ביטול",
       "export": "ייצא"
