@@ -48,6 +48,7 @@ import { countWords } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAppSelector } from '../../hooks/redux';
 import { selectLanguage } from '../../store/slices/languageSlice';
+import { BookView } from '../../components/reader/BookView';
 
 type GenerateStoryScreenRouteProp = RouteProp<StoryTabParamList, 'Generate'>;
 
@@ -73,6 +74,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
   const [generatedStory, setGeneratedStory] = useState<GenerateStoryResponse | null>(null);
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [cutOffChunks, setCutOffChunks] = useState<number[]>([]);
+  const [useBookView, setUseBookView] = useState(true);
   
   // Chunked generation state
   const [chunkedProgress, setChunkedProgress] = useState<ChunkedGenerationProgress | null>(null);
@@ -640,34 +642,48 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
             <Card.Content>
               <View style={styles.resultHeader}>
                 <Text style={styles.sectionTitle}>{t('entities:generation.resultTitle')}</Text>
-                <Menu
-                  key={String(formatMenuVisible)+"2"}
-                  visible={formatMenuVisible}
-                  onDismiss={() => setFormatMenuVisible(false)}
-                  anchor={
-                    <TouchableOpacity
-                      style={styles.formatSelector}
-                      onPress={() => setFormatMenuVisible(true)}
+                <View style={styles.headerButtons}>
+                  <TouchableOpacity
+                    style={styles.viewToggle}
+                    onPress={() => setUseBookView(!useBookView)}
+                  >
+                    <Ionicons
+                      name={useBookView ? "list" : "book"}
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  {!useBookView && (
+                    <Menu
+                      key={String(formatMenuVisible)+"2"}
+                      visible={formatMenuVisible}
+                      onDismiss={() => setFormatMenuVisible(false)}
+                      anchor={
+                        <TouchableOpacity
+                          style={styles.formatSelector}
+                          onPress={() => setFormatMenuVisible(true)}
+                        >
+                          <Ionicons name="options" size={20} color={colors.primary} />
+                        </TouchableOpacity>
+                      }
                     >
-                      <Ionicons name="options" size={20} color={colors.primary} />
-                    </TouchableOpacity>
-                  }
-                >
-                  <Menu.Item
-                    onPress={() => {
-                      setFormatOption('formatted');
-                      setFormatMenuVisible(false);
-                    }}
-                    title={t('entities:generation.formatFormatted')}
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setFormatOption('raw');
-                      setFormatMenuVisible(false);
-                    }}
-                    title={t('entities:generation.formatRaw')}
-                  />
-                </Menu>
+                      <Menu.Item
+                        onPress={() => {
+                          setFormatOption('formatted');
+                          setFormatMenuVisible(false);
+                        }}
+                        title={t('entities:generation.formatFormatted')}
+                      />
+                      <Menu.Item
+                        onPress={() => {
+                          setFormatOption('raw');
+                          setFormatMenuVisible(false);
+                        }}
+                        title={t('entities:generation.formatRaw')}
+                      />
+                    </Menu>
+                  )}
+                </View>
               </View>
 
               {/* Story Stats */}
@@ -696,21 +712,30 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               <Divider style={styles.divider} />
 
               {/* Story Content */}
-              <ScrollView
-                style={styles.storyContentContainer}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={true}
-              >
-                <Text
-                  style={[
-                    styles.storyContent,
-                    formatOption === 'raw' && styles.storyContentRaw,
-                  ]}
-                  selectable
+              {useBookView ? (
+                <View style={styles.bookViewContainer}>
+                  <BookView
+                    content={generatedStory.content}
+                    language={language}
+                  />
+                </View>
+              ) : (
+                <ScrollView
+                  style={styles.storyContentContainer}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={true}
                 >
-                  {generatedStory.content}
-                </Text>
-              </ScrollView>
+                  <Text
+                    style={[
+                      styles.storyContent,
+                      formatOption === 'raw' && styles.storyContentRaw,
+                    ]}
+                    selectable
+                  >
+                    {generatedStory.content}
+                  </Text>
+                </ScrollView>
+              )}
             </Card.Content>
           </Card>
 
@@ -936,8 +961,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  viewToggle: {
+    padding: spacing.xs,
+  },
   formatSelector: {
     padding: spacing.xs,
+  },
+  bookViewContainer: {
+    height: 500,
+    backgroundColor: colors.background,
+    borderRadius: spacing.xs,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   statsRow: {
     flexDirection: 'row',

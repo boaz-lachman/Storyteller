@@ -24,6 +24,9 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatWordCount } from '../../utils/formatting';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAppSelector } from '../../hooks/redux';
+import { selectLanguage } from '../../store/slices/languageSlice';
+import { BookView } from '../../components/reader/BookView';
 
 type CompletedStoryScreenRouteProp = RouteProp<StoryTabParamList, 'CompletedStory'>;
 
@@ -37,9 +40,11 @@ interface CompletedStoryScreenProps {
 export default function CompletedStoryScreen({ route }: CompletedStoryScreenProps) {
   const { t } = useTranslation();
   const { storyId } = route.params;
+  const language = useAppSelector(selectLanguage);
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [formatMenuVisible, setFormatMenuVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [useBookView, setUseBookView] = useState(true);
 
   const { data: story, isLoading } = useGetStoryQuery(storyId);
   
@@ -195,93 +200,116 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
           <Card.Content>
             <View style={styles.resultHeader}>
               <Text style={styles.sectionTitle}>{t('stories:completed.storyTitle')}</Text>
-              <Menu
-                key={String(formatMenuVisible)+"3"}
-                visible={formatMenuVisible}
-                onDismiss={() => setFormatMenuVisible(false)}
-                anchor={
-                  <TouchableOpacity
-                    style={styles.formatSelector}
-                    onPress={() => setFormatMenuVisible(true)}
+              <View style={styles.headerButtons}>
+                <TouchableOpacity
+                  style={styles.viewToggle}
+                  onPress={() => setUseBookView(!useBookView)}
+                >
+                  <Ionicons
+                    name={useBookView ? "list" : "book"}
+                    size={20}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+                {!useBookView && (
+                  <Menu
+                    key={String(formatMenuVisible)+"3"}
+                    visible={formatMenuVisible}
+                    onDismiss={() => setFormatMenuVisible(false)}
+                    anchor={
+                      <TouchableOpacity
+                        style={styles.formatSelector}
+                        onPress={() => setFormatMenuVisible(true)}
+                      >
+                        <Feather name="settings" size={20} color={colors.primary} />
+                      </TouchableOpacity>
+                    }
                   >
-                    <Feather name="settings" size={20} color={colors.primary} />
-                  </TouchableOpacity>
-                }
-              >
-                <Menu.Item
-                  onPress={() => {
-                    setFormatOption('formatted');
-                    setFormatMenuVisible(false);
-                  }}
-                  title={t('stories:completed.formatFormatted')}
-                />
-                <Menu.Item
-                  onPress={() => {
-                    setFormatOption('raw');
-                    setFormatMenuVisible(false);
-                  }}
-                  title={t('stories:completed.formatRaw')}
-                />
-              </Menu>
+                    <Menu.Item
+                      onPress={() => {
+                        setFormatOption('formatted');
+                        setFormatMenuVisible(false);
+                      }}
+                      title={t('stories:completed.formatFormatted')}
+                    />
+                    <Menu.Item
+                      onPress={() => {
+                        setFormatOption('raw');
+                        setFormatMenuVisible(false);
+                      }}
+                      title={t('stories:completed.formatRaw')}
+                    />
+                  </Menu>
+                )}
+              </View>
             </View>
 
-            <ScrollView
-              style={styles.storyContentContainer}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator={true}
-            >
-              {formatOption === 'raw' ? (
-                <Text
-                  style={styles.storyContentRaw}
-                  selectable
-                >
-                  {story.generatedContent}
-                </Text>
-              ) : (
-                <View>
-                  {parsedSections.map((section, index) => (
-                    <View key={index} style={styles.sectionContainer}>
-                      {section.header && (
-                        <View style={styles.sectionHeaderContainer}>
-                          <Text
-                            style={[
-                              styles.sectionHeader,
-                              section.isCutOff && styles.sectionHeaderCutOff,
-                            ]}
-                            selectable
-                          >
-                            {section.header}
-                          </Text>
-                          {section.isCutOff && (
-                            <View style={styles.cutOffBadge}>
-                              <Ionicons name="warning" size={16} color={colors.error} />
-                              <Text style={styles.cutOffText}>{t('stories:completed.incompleteBadge')}</Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
-                      <Text
-                        style={[
-                          styles.storyContent,
-                          section.isCutOff && styles.storyContentCutOff,
-                        ]}
-                        selectable
-                      >
-                        {section.content}
-                      </Text>
-                      {section.isCutOff && section.content && (
-                        <View style={styles.cutOffWarning}>
-                          <Ionicons name="alert-circle" size={14} color={colors.warning} />
-                          <Text style={styles.cutOffWarningText}>
-                            {t('stories:completed.cutOffWarning')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </ScrollView>
+            {useBookView ? (
+              <View style={styles.bookViewContainer}>
+                <BookView
+                  content={story.generatedContent}
+                  language={language}
+                />
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.storyContentContainer}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={true}
+              >
+                {formatOption === 'raw' ? (
+                  <Text
+                    style={styles.storyContentRaw}
+                    selectable
+                  >
+                    {story.generatedContent}
+                  </Text>
+                ) : (
+                  <View>
+                    {parsedSections.map((section, index) => (
+                      <View key={index} style={styles.sectionContainer}>
+                        {section.header && (
+                          <View style={styles.sectionHeaderContainer}>
+                            <Text
+                              style={[
+                                styles.sectionHeader,
+                                section.isCutOff && styles.sectionHeaderCutOff,
+                              ]}
+                              selectable
+                            >
+                              {section.header}
+                            </Text>
+                            {section.isCutOff && (
+                              <View style={styles.cutOffBadge}>
+                                <Ionicons name="warning" size={16} color={colors.error} />
+                                <Text style={styles.cutOffText}>{t('stories:completed.incompleteBadge')}</Text>
+                              </View>
+                            )}
+                          </View>
+                        )}
+                        <Text
+                          style={[
+                            styles.storyContent,
+                            section.isCutOff && styles.storyContentCutOff,
+                          ]}
+                          selectable
+                        >
+                          {section.content}
+                        </Text>
+                        {section.isCutOff && section.content && (
+                          <View style={styles.cutOffWarning}>
+                            <Ionicons name="alert-circle" size={14} color={colors.warning} />
+                            <Text style={styles.cutOffWarningText}>
+                              {t('stories:completed.cutOffWarning')}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+            )}
           </Card.Content>
         </Card>
       </Animated.View>
@@ -393,8 +421,24 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
     color: colors.text,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  viewToggle: {
+    padding: spacing.xs,
+  },
   formatSelector: {
     padding: spacing.xs,
+  },
+  bookViewContainer: {
+    height: 600,
+    backgroundColor: colors.background,
+    borderRadius: spacing.xs,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   storyContentContainer: {
     maxHeight: 600,

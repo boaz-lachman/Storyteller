@@ -258,5 +258,10 @@
     "noDelete": "Only the owner can delete this story",
     "noShare": "You don't have permission to share this story"
   },
-  "storyRemoved": "This story was removed or is no longer shared with you"
+  "storyRemoved": "This story was removed or is no longer shared with you",
+  "bookView": {
+    "goToPage": "Go to Page",
+    "pageNumberPlaceholder": "Enter page number (1-{{total}})",
+    "go": "Go"
+  }
 }
