@@ -391,7 +391,7 @@ export default function ChaptersScreen({ route }: ChaptersScreenProps) {
         icon={<FontAwesome6 name="book" size={64} color={colors.textTertiary} />}
       />
     );
-  }, [isLoading, isFetching]);
+  }, [isLoading, isFetching, t]);
 
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(

@@ -17,6 +17,9 @@ import { typography } from '../../constants/typography';
 import type { Character } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { generateCharacterName } from '../../utils/nameGenerator';
+import { useGetStoryQuery } from '../../store/api/storiesApi';
+import { useAppSelector } from '../../hooks/redux';
+import { selectLanguage } from '../../store/slices/languageSlice';
 
 export interface CharacterFormProps {
   character?: Character | null;
@@ -37,6 +40,12 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   storyId,
 }) => {
   const { t } = useTranslation();
+  const appLanguage = useAppSelector(selectLanguage);
+  
+  // Get story language if storyId is provided
+  const { data: story } = useGetStoryQuery(storyId || '', { skip: !storyId });
+  const storyLanguage = story?.language || appLanguage;
+  
   // Use custom hook for form logic
   const {
     name,
@@ -45,12 +54,14 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     role,
     traitsInput,
     backstory,
+    keyEventsInput,
     setName,
     setDescription,
     setImportance,
     setRole,
     setTraitsInput,
     setBackstory,
+    setKeyEventsInput,
     errors,
     handleSubmit,
     resetForm,
@@ -84,7 +95,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
         <TouchableOpacity
           style={styles.generateButton}
           onPress={() => {
-            const generatedName = generateCharacterName();
+            const generatedName = generateCharacterName({ language: storyLanguage });
             setName(generatedName);
           }}
           activeOpacity={0.7}
@@ -197,6 +208,16 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
         placeholder={t('entities:characters.fields.backstoryPlaceholder')}
         multiline
         numberOfLines={4}
+        containerStyle={styles.inputContainer}
+      />
+
+      {/* Key Events Input */}
+      <Input
+        label={t('entities:characters.fields.keyEvents') || 'Key Events'}
+        value={keyEventsInput}
+        onChangeText={setKeyEventsInput}
+        placeholder={t('entities:characters.fields.keyEventsPlaceholder') || 'e.g., Lost parents at age 10, Won the championship, Met their mentor'}
+        helperText={t('entities:characters.fields.keyEventsHelper') || 'Core events that are central to this character\'s life (comma-separated)'}
         containerStyle={styles.inputContainer}
       />
 

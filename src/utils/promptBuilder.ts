@@ -82,6 +82,9 @@ export const buildStoryPrompt = (
       if (character.backstory) {
         sections.push(`Backstory: ${character.backstory}`);
       }
+      if (character.keyEvents && character.keyEvents.length > 0) {
+        sections.push(`Key Events: ${character.keyEvents.join('; ')}`);
+      }
       sections.push('');
     });
   }

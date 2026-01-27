@@ -417,7 +417,7 @@ export default function StoriesListScreen() {
         icon={<AntDesign name="file-text" size={64} color={colors.textTertiary} />}
       />
     );
-  }, [isLoading, isFetching, hasActiveFilters, stories.length]);
+  }, [isLoading, isFetching, hasActiveFilters, stories.length, t]);
 
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({

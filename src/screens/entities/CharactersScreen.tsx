@@ -349,7 +349,7 @@ export default function CharactersScreen({ route }: CharactersScreenProps) {
         icon={<Ionicons name="people" size={64} color={colors.textTertiary} />}
       />
     );
-  }, [isLoading, isFetching]);
+  }, [isLoading, isFetching, t]);
 
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(

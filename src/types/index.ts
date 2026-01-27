@@ -48,6 +48,7 @@ export interface Character extends BaseEntity {
   role: 'protagonist' | 'antagonist' | 'supporting' | 'minor';
   traits: string[];
   backstory?: string;
+  keyEvents?: string[]; // Core events that are central to the character's life
 }
 
 export interface IdeaBlurb extends BaseEntity {

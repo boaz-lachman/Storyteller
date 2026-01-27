@@ -12,6 +12,7 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useAppSelector } from '../../hooks/redux';
 import { selectIsSyncing } from '../../store/slices/syncSlice';
+import { selectLanguage } from '../../store/slices/languageSlice';
 import { MainBookActivityIndicator } from './MainBookActivityIndicator';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -32,6 +33,8 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(({
   icon,
 }) => {
   const { t } = useTranslation();
+  // Subscribe to language changes to ensure component updates when language changes
+  const language = useAppSelector(selectLanguage);
   // Use shallow equality to prevent re-renders when sync state changes but isSyncing stays the same
   const isSyncing = useAppSelector(selectIsSyncing, (left, right) => left === right);
   

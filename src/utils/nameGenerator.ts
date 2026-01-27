@@ -1,10 +1,11 @@
 /**
  * Character Name Generator
  * Generates random character names from various categories
+ * Supports both English and Hebrew names
  */
 
-// First names (common and diverse)
-const FIRST_NAMES = [
+// English first names (common and diverse)
+const ENGLISH_FIRST_NAMES = [
   // Classic/Common
   'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
   'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica',
@@ -53,8 +54,36 @@ const FIRST_NAMES = [
   'Penelope', 'Aria', 'Chloe', 'Grace', 'Ellie', 'Nora', 'Hannah', 'Victoria',
 ];
 
-// Last names (common surnames)
-const LAST_NAMES = [
+// Hebrew first names
+const HEBREW_FIRST_NAMES = [
+  // Common Hebrew names
+  'אבי', 'אברהם', 'אדיר', 'אהוד', 'אור', 'אורי', 'אוריאל', 'אלון', 'אליעזר', 'אליהו',
+  'אמיר', 'אסף', 'אשר', 'בן', 'בנימין', 'גד', 'גדעון', 'גיל', 'דן', 'דוד',
+  'דור', 'דורון', 'דני', 'הדר', 'זאב', 'חיים', 'חנן', 'טל', 'יאיר', 'יואב',
+  'יובל', 'יוגב', 'יונתן', 'יוסי', 'יוסף', 'יעקב', 'יצחק', 'ירון', 'ישי', 'ישראל',
+  'כרמל', 'ליאור', 'ליעד', 'מאיר', 'מיכאל', 'מתן', 'נדב', 'נועם', 'נח', 'נתן',
+  'עומר', 'עידו', 'עמית', 'עמיר', 'ערן', 'פלג', 'ציון', 'קובי', 'רועי', 'רן',
+  'רפאל', 'שאול', 'שי', 'שלום', 'שלמה', 'שמואל', 'תום', 'תומר',
+  
+  // Female Hebrew names
+  'אביגיל', 'אביה', 'אביטל', 'אבישג', 'אדווה', 'אדל', 'אדר', 'אהובה', 'אור', 'אורה',
+  'אורית', 'אורלי', 'אושרי', 'איה', 'אילנה', 'איריס', 'אלונה', 'אליה', 'אלין', 'אלינור',
+  'אליס', 'אמילי', 'אן', 'אנא', 'אנה', 'אסנת', 'אסתר', 'אריאל', 'אריאלה', 'בת',
+  'בת-אל', 'בת-שבע', 'גאיה', 'גבריאל', 'גילי', 'גל', 'גלי', 'גפן', 'דבורה', 'דגנית',
+  'דור', 'דורית', 'דנה', 'דניאל', 'דניאלה', 'הדס', 'הדסה', 'הילה', 'הלל', 'הראל',
+  'זהבה', 'זיו', 'חוה', 'חגית', 'חנה', 'טל', 'טליה', 'יאירה', 'יהל', 'יהלי',
+  'יהלום', 'יובל', 'יונה', 'יונית', 'יעל', 'יעלה', 'יפית', 'יסמין', 'כרמל', 'כרמלה',
+  'ליאור', 'ליאורה', 'ליאן', 'ליאת', 'ליבי', 'ליה', 'ליזה', 'לימור', 'לירון', 'מאיה',
+  'מיכל', 'מיקה', 'מירב', 'מירי', 'מישאל', 'מעיין', 'מרגלית', 'נגה', 'נועה', 'נועם',
+  'נורית', 'נטע', 'נטעלי', 'נילי', 'נינה', 'ניצן', 'נעמה', 'נתלי', 'סיגל', 'סיון',
+  'עדי', 'עדן', 'עדנה', 'עדי', 'עידית', 'עינב', 'עלמה', 'עמית', 'ענת', 'עפרה',
+  'פז', 'פלג', 'צביה', 'ציון', 'ציפי', 'קרן', 'רונה', 'רות', 'רותם', 'רז',
+  'רזיאל', 'רינת', 'רנה', 'שגית', 'שולמית', 'שושנה', 'שירה', 'שיראל', 'שלי', 'שרית',
+  'תאיר', 'תהל', 'תמר', 'תמרה',
+];
+
+// English last names (common surnames)
+const ENGLISH_LAST_NAMES = [
   // Common surnames
   'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
   'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Wilson', 'Anderson', 'Thomas', 'Taylor',
@@ -88,6 +117,18 @@ const LAST_NAMES = [
   'Westerly', 'Woodward', 'Alderman', 'Bainbridge', 'Chesterton', 'Derwent', 'Eastman', 'Farrington',
 ];
 
+// Hebrew last names (common Israeli surnames)
+const HEBREW_LAST_NAMES = [
+  'כהן', 'לוי', 'מזרחי', 'ביטון', 'דהן', 'אברהם', 'פרידמן', 'אזולאי', 'דוד', 'חדד',
+  'עמר', 'יוסף', 'אדרי', 'סבג', 'בן-דוד', 'שלום', 'אוחנה', 'משה', 'סויסה', 'אלון',
+  'כץ', 'דיין', 'רוזן', 'גולן', 'בר', 'שפירו', 'גרין', 'כהן-סגל', 'שטרן', 'וייס',
+  'ברגר', 'גולדברג', 'כץ', 'לוי', 'מור', 'נחום', 'עוז', 'פישר', 'קליין', 'רובין',
+  'שרון', 'תמיר', 'אברמוביץ', 'ברק', 'גלעד', 'דורון', 'הראל', 'יזרעאלי', 'כהן-תמיר', 'ליפשיץ',
+  'מאיר', 'נבון', 'סלע', 'עמית', 'פלד', 'צור', 'קרן', 'רוזן-צבי', 'שדה', 'תמיר',
+  'אביב', 'ברקת', 'גבע', 'דביר', 'הדר', 'יזרעאל', 'כהן-שלום', 'לוי-אברהם', 'מאירי', 'נחום-לוי',
+  'סלע-כהן', 'עמית-דוד', 'פלד-יוסף', 'צור-משה', 'קרן-אברהם', 'רוזן-דוד', 'שדה-יוסף', 'תמיר-כהן',
+];
+
 /**
  * Generate a random character name
  * @param options - Options for name generation
@@ -97,26 +138,32 @@ export const generateCharacterName = (options?: {
   firstNameOnly?: boolean;
   lastNameOnly?: boolean;
   style?: 'common' | 'fantasy' | 'modern' | 'random';
+  language?: 'en' | 'he';
 }): string => {
   const {
     firstNameOnly = false,
     lastNameOnly = false,
     style = 'random',
+    language = 'en',
   } = options || {};
 
+  // Select name arrays based on language
+  const firstNames = language === 'he' ? HEBREW_FIRST_NAMES : ENGLISH_FIRST_NAMES;
+  const lastNames = language === 'he' ? HEBREW_LAST_NAMES : ENGLISH_LAST_NAMES;
+
   if (firstNameOnly) {
-    return FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+    return firstNames[Math.floor(Math.random() * firstNames.length)];
   }
 
   if (lastNameOnly) {
-    return LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+    return lastNames[Math.floor(Math.random() * lastNames.length)];
   }
 
   // Generate first name
-  const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
   
   // Generate last name
-  const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
 
   return `${firstName} ${lastName}`;
 };

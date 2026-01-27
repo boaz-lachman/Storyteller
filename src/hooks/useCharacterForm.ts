@@ -14,6 +14,7 @@ export interface CharacterFormData {
   role: 'protagonist' | 'antagonist' | 'supporting' | 'minor';
   traits: string[]; // Array of trait strings
   backstory?: string;
+  keyEvents?: string[]; // Array of key event strings
 }
 
 export interface UseCharacterFormProps {
@@ -31,6 +32,8 @@ export interface UseCharacterFormReturn {
   traits: string[];
   traitsInput: string; // Comma-separated string for input
   backstory: string;
+  keyEvents: string[];
+  keyEventsInput: string; // Comma-separated string for input
   
   // Setters
   setName: (value: string) => void;
@@ -39,6 +42,7 @@ export interface UseCharacterFormReturn {
   setRole: (value: CharacterFormData['role']) => void;
   setTraitsInput: (value: string) => void;
   setBackstory: (value: string) => void;
+  setKeyEventsInput: (value: string) => void;
   
   // Errors
   errors: Record<string, string>;
@@ -75,6 +79,24 @@ const formatTraits = (traits: string[]): string => {
 };
 
 /**
+ * Parse key events from comma-separated string
+ */
+const parseKeyEvents = (input: string): string[] => {
+  if (!input.trim()) return [];
+  return input
+    .split(',')
+    .map((event) => event.trim())
+    .filter((event) => event.length > 0);
+};
+
+/**
+ * Format key events array to comma-separated string
+ */
+const formatKeyEvents = (events: string[]): string => {
+  return events.join(', ');
+};
+
+/**
  * Custom hook for CharacterForm
  */
 export const useCharacterForm = ({
@@ -90,6 +112,8 @@ export const useCharacterForm = ({
   const [traits, setTraits] = useState<string[]>([]);
   const [traitsInput, setTraitsInputState] = useState('');
   const [backstory, setBackstory] = useState('');
+  const [keyEvents, setKeyEvents] = useState<string[]>([]);
+  const [keyEventsInput, setKeyEventsInputState] = useState('');
 
   // Error state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -121,6 +145,10 @@ export const useCharacterForm = ({
             setTraitsInputState(formatTraits(data.traits));
           }
           if (data.backstory) setBackstory(data.backstory);
+          if (data.keyEvents && Array.isArray(data.keyEvents)) {
+            setKeyEvents(data.keyEvents);
+            setKeyEventsInputState(formatKeyEvents(data.keyEvents));
+          }
         }
       }
     };
@@ -136,6 +164,12 @@ export const useCharacterForm = ({
     setTraits(parsedTraits);
   }, [traitsInput]);
 
+  // Update key events array when keyEventsInput changes
+  useEffect(() => {
+    const parsedEvents = parseKeyEvents(keyEventsInput);
+    setKeyEvents(parsedEvents);
+  }, [keyEventsInput]);
+
   // Initialize form with character data
   useEffect(() => {
     if (character) {
@@ -146,6 +180,8 @@ export const useCharacterForm = ({
       setTraits(character.traits || []);
       setTraitsInputState(formatTraits(character.traits || []));
       setBackstory(character.backstory || '');
+      setKeyEvents(character.keyEvents || []);
+      setKeyEventsInputState(formatKeyEvents(character.keyEvents || []));
       setErrors({});
     }
   }, [character]);
@@ -159,10 +195,11 @@ export const useCharacterForm = ({
       role,
       traits,
       backstory,
+      keyEvents,
     };
     autoSave(formData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, description, importance, role, traits, backstory]);
+  }, [name, description, importance, role, traits, backstory, keyEvents]);
 
   // Check if form has changes
   const hasChanges = character ? (
@@ -171,14 +208,16 @@ export const useCharacterForm = ({
     importance !== (character.importance || 5) ||
     role !== (character.role || 'supporting') ||
     JSON.stringify(traits) !== JSON.stringify(character.traits || []) ||
-    backstory !== (character.backstory || '')
+    backstory !== (character.backstory || '') ||
+    JSON.stringify(keyEvents) !== JSON.stringify(character.keyEvents || [])
   ) : (
     name !== '' ||
     description !== '' ||
     importance !== 5 ||
     role !== 'supporting' ||
     traits.length > 0 ||
-    backstory !== ''
+    backstory !== '' ||
+    keyEvents.length > 0
   );
 
   // Reset form to original character values or defaults
@@ -191,6 +230,8 @@ export const useCharacterForm = ({
       setTraits(character.traits || []);
       setTraitsInputState(formatTraits(character.traits || []));
       setBackstory(character.backstory || '');
+      setKeyEvents(character.keyEvents || []);
+      setKeyEventsInputState(formatKeyEvents(character.keyEvents || []));
     } else {
       setName('');
       setDescription('');
@@ -199,6 +240,8 @@ export const useCharacterForm = ({
       setTraits([]);
       setTraitsInputState('');
       setBackstory('');
+      setKeyEvents([]);
+      setKeyEventsInputState('');
     }
     setErrors({});
     clearSavedState();
@@ -207,6 +250,11 @@ export const useCharacterForm = ({
   // Handle traits input change
   const setTraitsInput = (value: string) => {
     setTraitsInputState(value);
+  };
+
+  // Handle key events input change
+  const setKeyEventsInput = (value: string) => {
+    setKeyEventsInputState(value);
   };
 
   // Validate form
@@ -246,6 +294,7 @@ export const useCharacterForm = ({
         role,
         traits,
         backstory: backstory.trim() || undefined,
+        keyEvents: keyEvents.length > 0 ? keyEvents : undefined,
       });
     }
   };
@@ -259,6 +308,8 @@ export const useCharacterForm = ({
     traits,
     traitsInput,
     backstory,
+    keyEvents,
+    keyEventsInput,
     
     // Setters
     setName,
@@ -267,6 +318,7 @@ export const useCharacterForm = ({
     setRole,
     setTraitsInput,
     setBackstory,
+    setKeyEventsInput,
     
     // Errors
     errors,

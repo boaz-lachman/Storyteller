@@ -352,7 +352,7 @@ export default function BlurbsScreen({ route }: BlurbsScreenProps) {
         icon={<FontAwesome5 name="pen-fancy" size={64} color={colors.textTertiary} />}
       />
     );
-  }, [isLoading, isFetching]);
+  }, [isLoading, isFetching, t]);
 
   // Get item layout for BigList optimization
   const getItemLayout = useCallback(

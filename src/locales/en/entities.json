@@ -19,7 +19,10 @@
       "traitsPlaceholderExample": "Enter traits separated by commas (e.g., brave, intelligent, kind)",
       "traitsHelper": "Separate multiple traits with commas",
       "backstory": "Backstory",
-      "backstoryPlaceholder": "Enter character backstory (optional)"
+      "backstoryPlaceholder": "Enter character backstory (optional)",
+      "keyEvents": "Key Events",
+      "keyEventsPlaceholder": "e.g., Lost parents at age 10, Won the championship, Met their mentor",
+      "keyEventsHelper": "Core events that are central to this character's life (comma-separated)"
     },
     "sections": {
       "basicInfo": "Basic Information",

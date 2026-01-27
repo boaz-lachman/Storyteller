@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS Characters (
   role TEXT NOT NULL,
   traits TEXT NOT NULL,
   backstory TEXT,
+  keyEvents TEXT,
   importance INTEGER NOT NULL CHECK(importance >= 1 AND importance <= 10),
   createdAt INTEGER NOT NULL,
   updatedAt INTEGER NOT NULL,

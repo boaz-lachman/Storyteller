@@ -25,6 +25,7 @@ export const createCharacter = async (
     role: character.role,
     traits: character.traits || [],
     backstory: character.backstory,
+    keyEvents: character.keyEvents,
     importance: character.importance,
     createdAt: now,
     updatedAt: now,
@@ -34,9 +35,9 @@ export const createCharacter = async (
 
   await db.runAsync(
     `INSERT INTO Characters (
-      id, userId, storyId, name, description, role, traits, backstory,
+      id, userId, storyId, name, description, role, traits, backstory, keyEvents,
       importance, createdAt, updatedAt, synced, deleted
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       newCharacter.id,
       newCharacter.userId,
@@ -46,6 +47,7 @@ export const createCharacter = async (
       newCharacter.role,
       safeJsonStringify(newCharacter.traits),
       newCharacter.backstory || null,
+      safeJsonStringify(newCharacter.keyEvents || []),
       newCharacter.importance,
       newCharacter.createdAt,
       newCharacter.updatedAt,
@@ -72,6 +74,7 @@ export const getCharacter = async (id: string): Promise<Character | null> => {
   return {
     ...result,
     traits: safeJsonParse(result.traits, []),
+    keyEvents: safeJsonParse(result.keyEvents, []),
     synced: result.synced === 1,
     deleted: result.deleted === 1,
   } as Character;
@@ -103,6 +106,7 @@ export const getCharactersByStory = async (
   return results.map((char) => ({
     ...char,
     traits: safeJsonParse(char.traits, []),
+    keyEvents: safeJsonParse(char.keyEvents, []),
     synced: char.synced === 1,
     deleted: char.deleted === 1,
   })) as Character[];
@@ -139,11 +143,15 @@ export const updateCharacter = async (
   const values: any[] = [];
 
   Object.entries(updates).forEach(([key, value]) => {
-    if (value !== undefined && key !== 'id' && key !== 'userId' && key !== 'storyId' && key !== 'updatedAt') {
-      if (key === 'traits' && Array.isArray(value)) {
+    if (key !== 'id' && key !== 'userId' && key !== 'storyId' && key !== 'updatedAt') {
+      if (key === 'keyEvents' && (value === undefined || value === null)) {
+        // Allow setting keyEvents to undefined/null
+        fields.push(`${key} = ?`);
+        values.push(null);
+      } else if (value !== undefined && (key === 'traits' || key === 'keyEvents') && Array.isArray(value)) {
         fields.push(`${key} = ?`);
         values.push(safeJsonStringify(value));
-      } else {
+      } else if (value !== undefined) {
         fields.push(`${key} = ?`);
         values.push(value);
       }
@@ -216,6 +224,7 @@ export const getUnsyncedCharacters = async (userId: string): Promise<Character[]
   return results.map((char) => ({
     ...char,
     traits: safeJsonParse(char.traits, []),
+    keyEvents: safeJsonParse(char.keyEvents, []),
     synced: char.synced === 1,
     deleted: char.deleted === 1,
   })) as Character[];
@@ -250,6 +259,7 @@ export const getCharactersByIds = async (ids: string[]): Promise<Map<string, Cha
     charactersMap.set(char.id, {
       ...char,
       traits: safeJsonParse(char.traits, []),
+      keyEvents: safeJsonParse(char.keyEvents, []),
       synced: char.synced === 1,
       deleted: char.deleted === 1,
     } as Character);

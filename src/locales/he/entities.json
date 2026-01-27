@@ -19,7 +19,10 @@
       "traitsPlaceholderExample": "הכנס תכונות מופרדות בפסיקים (למשל, אמיץ, חכם, טוב לב)",
       "traitsHelper": "הפרד תכונות מרובות בפסיקים",
       "backstory": "רקע",
-      "backstoryPlaceholder": "הכנס רקע דמות (אופציונלי)"
+      "backstoryPlaceholder": "הכנס רקע דמות (אופציונלי)",
+      "keyEvents": "אירועים מרכזיים",
+      "keyEventsPlaceholder": "למשל: איבד הורים בגיל 10, זכה באליפות, פגש את המנטור שלו",
+      "keyEventsHelper": "אירועים מרכזיים בחיי הדמות (מופרדים בפסיקים)"
     },
     "sections": {
       "basicInfo": "מידע בסיסי",

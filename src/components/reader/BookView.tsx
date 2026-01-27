@@ -30,12 +30,12 @@ const getCharsPerPage = () => {
   const lineHeight = 28; // Must match styles.pageText.lineHeight
   const fontSize = 16; // Must match typography.fontSize.md
 
-  // Account for all vertical space (be very conservative to avoid text cutoff)
-  // padding top (24) + footer padding (16+8) + footer text (~30) + controls (~75) + safety buffer (50)
-  const verticalPadding = 24 + 16 + 8 + 30 + 75 + 60;
+  // Account for all vertical space conservatively to ensure text fits
+  // padding top (24) + footer padding (16+8) + footer text (~20) + controls (~60) + extra safety buffer (40)
+  const verticalPadding = 24 + 16 + 8 + 20 + 60 + 300;
   const availableHeight = screenHeight - verticalPadding;
 
-  // Calculate lines that fit (reduce by 3 lines for extra safety)
+  // Calculate lines that fit (reduce by 3 lines for safety to prevent cutoff)
   const linesPerPage = Math.max(Math.floor(availableHeight / lineHeight) - 3, 4);
 
   // Estimate characters per line (rough approximation)
@@ -45,7 +45,11 @@ const getCharsPerPage = () => {
   const avgCharWidth = fontSize * 0.5; // Rough estimate
   const charsPerLine = Math.floor(availableWidth / avgCharWidth);
 
-  return Math.max(linesPerPage * charsPerLine, 500); // Minimum 500 chars
+  // Reduce by 30% to ensure all text fits on page (split into more pages)
+  const calculatedChars = linesPerPage * charsPerLine;
+  const conservativeChars = Math.floor(calculatedChars * 0.7);
+
+  return Math.max(conservativeChars, 300); // Minimum 300 chars (reduced from 500)
 };
 
 interface BookViewProps {

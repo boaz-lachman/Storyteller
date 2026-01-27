@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { getCurrentTimestamp } from '../../utils/helpers';
 
 const DB_NAME = 'storyteller.db';
-const CURRENT_VERSION = 4;
+const CURRENT_VERSION = 5;
 
 let db: SQLite.SQLiteDatabase | null = null;
 let isInitializing = false;
@@ -157,6 +157,21 @@ async function applyMigration(
       return;
     }
 
+    // Special handling for migration 005 to avoid duplicate column error
+    if (version === 5) {
+      await database.withTransactionAsync(async () => {
+        await applyMigration005Safe(database);
+        
+        // Record migration
+        await database.runAsync(
+          'INSERT INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)',
+          [version, getCurrentTimestamp(), `Migration ${version}`]
+        );
+      });
+      console.log(`Migration ${version} applied successfully`);
+      return;
+    }
+
     // Import migration SQL
     const migrationSQL = await getMigrationSQL(version);
     
@@ -201,6 +216,9 @@ async function getMigrationSQL(version: number): Promise<string | null> {
     }
     if (version === 4) {
       return getMigration004SQL();
+    }
+    if (version === 5) {
+      return getMigration005SQL();
     }
     return null;
   } catch (error) {
@@ -256,6 +274,7 @@ function getInitialSchemaSQL(): string {
       role TEXT NOT NULL,
       traits TEXT NOT NULL,
       backstory TEXT,
+      keyEvents TEXT,
       importance INTEGER NOT NULL CHECK(importance >= 1 AND importance <= 10),
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
@@ -504,6 +523,49 @@ async function applyMigration004Safe(database: SQLite.SQLiteDatabase): Promise<v
     if (error?.message?.includes('duplicate column name') || 
         error?.message?.includes('duplicate column')) {
       console.log('Migration 004: deleted column already exists (caught duplicate error), skipping');
+      return;
+    }
+    // Re-throw other errors
+    throw error;
+  }
+}
+
+/**
+ * Migration 005: Add keyEvents column to Characters table
+ * Note: This migration is idempotent - it checks if the column exists before adding it
+ */
+function getMigration005SQL(): string {
+  return `
+    -- Migration 005: Add keyEvents column to Characters table
+    -- Check if column exists before adding (SQLite doesn't support IF NOT EXISTS for ADD COLUMN)
+    -- We'll catch the error if column already exists
+    ALTER TABLE Characters ADD COLUMN keyEvents TEXT;
+  `;
+}
+
+/**
+ * Safe migration 005: Checks if column exists before adding
+ */
+async function applyMigration005Safe(database: SQLite.SQLiteDatabase): Promise<void> {
+  try {
+    // Check if keyEvents column exists
+    const tableInfo = await database.getAllAsync<{ name: string; type: string }>(
+      'PRAGMA table_info(Characters)'
+    );
+    const hasKeyEvents = tableInfo.some(col => col.name === 'keyEvents');
+    
+    if (!hasKeyEvents) {
+      // Column doesn't exist, add it
+      await database.execAsync('ALTER TABLE Characters ADD COLUMN keyEvents TEXT;');
+      console.log('Migration 005: Added keyEvents column to Characters table');
+    } else {
+      console.log('Migration 005: keyEvents column already exists, skipping');
+    }
+  } catch (error: any) {
+    // If error is about duplicate column, ignore it (column already exists)
+    if (error?.message?.includes('duplicate column name') || 
+        error?.message?.includes('duplicate column')) {
+      console.log('Migration 005: keyEvents column already exists (caught duplicate error), skipping');
       return;
     }
     // Re-throw other errors
