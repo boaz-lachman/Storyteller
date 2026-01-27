@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   bookViewContainer: {
-    height: 600,
+    height: 850,
     backgroundColor: colors.background,
     borderRadius: spacing.xs,
     overflow: 'hidden',

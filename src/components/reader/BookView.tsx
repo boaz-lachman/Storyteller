@@ -32,7 +32,7 @@ const getCharsPerPage = () => {
 
   // Account for all vertical space conservatively to ensure text fits
   // padding top (24) + footer padding (16+8) + footer text (~20) + controls (~60) + extra safety buffer (40)
-  const verticalPadding = 24 + 16 + 8 + 20 + 60 + 300;
+  const verticalPadding = 24 + 16 + 8 + 20 + 60 + 40;
   const availableHeight = screenHeight - verticalPadding;
 
   // Calculate lines that fit (reduce by 3 lines for safety to prevent cutoff)
