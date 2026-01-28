@@ -7,8 +7,11 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, P
 import { Text, Card, Menu, Portal, Badge } from 'react-native-paper';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Feather, Entypo, Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { StoryTabParamList } from '../../navigation/types';
+import type { AppStackParamList } from '../../navigation/types';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useGetStoryQuery } from '../../store/api/storiesApi';
 import { useGetCharactersQuery } from '../../store/api/charactersApi';
 import { useGetBlurbsQuery } from '../../store/api/blurbsApi';
@@ -42,6 +45,8 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
   const { t } = useTranslation();
   const { storyId } = route.params;
   const language = useAppSelector(selectLanguage);
+  const navigation = useNavigation();
+  const stackNav = navigation.getParent() as NativeStackNavigationProp<AppStackParamList> | undefined;
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [formatMenuVisible, setFormatMenuVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
@@ -159,12 +164,23 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
               </Text>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.exportButton}
-            onPress={() => setExportModalVisible(true)}
-          >
-            <Entypo name="export" size={20} color={colors.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {story.generatedContent ? (
+              <TouchableOpacity
+                style={styles.lightModeButton}
+                onPress={() => stackNav?.navigate('LightModeStory', { storyId })}
+                accessibilityLabel={t('stories:lightMode.buttonLabel')}
+              >
+                <Ionicons name="expand" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={styles.exportButton}
+              onPress={() => setExportModalVisible(true)}
+            >
+              <Entypo name="export" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
 
@@ -383,13 +399,24 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  lightModeButton: {
+    padding: spacing.sm,
+    borderRadius: spacing.xs,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
   exportButton: {
     padding: spacing.sm,
     borderRadius: spacing.xs,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    marginLeft: spacing.md,
   },
   title: {
     fontFamily: typography.fontFamily.bold,

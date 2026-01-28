@@ -275,5 +275,9 @@
     "goToPage": "Go to Page",
     "pageNumberPlaceholder": "Enter page number (1-{{total}})",
     "go": "Go"
+  },
+  "lightMode": {
+    "buttonLabel": "Full-screen reading mode",
+    "close": "Close"
   }
 }

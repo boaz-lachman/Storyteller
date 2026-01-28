@@ -275,5 +275,9 @@
     "goToPage": "עבור לעמוד",
     "pageNumberPlaceholder": "הכנס מספר עמוד (1-{{total}})",
     "go": "עבור"
+  },
+  "lightMode": {
+    "buttonLabel": "מצב קריאה במסך מלא",
+    "close": "סגור"
   }
 }

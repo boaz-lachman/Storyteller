@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { AppStackParamList } from './types';
 import StoriesListScreen from '../screens/stories/StoriesListScreen';
 import StoryDetailScreen from '../screens/stories/StoryDetailScreen';
+import LightModeStoryScreen from '../screens/stories/LightModeStoryScreen';
 import DrawerContent from '../components/navigation/DrawerContent';
 import { appStackHeaderOptions } from './theme';
 import { colors } from '../constants/colors';
@@ -47,6 +48,15 @@ function AppStack() {
           headerShown: true,
           headerBackVisible: false,
           gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen
+        name="LightModeStory"
+        component={LightModeStoryScreen}
+        options={{
+          headerShown: false,
+          gestureEnabled: true,
+          presentation: 'fullScreenModal',
         }}
       />
     </Stack.Navigator>

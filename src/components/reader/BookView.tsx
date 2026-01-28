@@ -67,6 +67,58 @@ interface Page {
 }
 
 /**
+ * Page Item Component
+ * Renders a single page with scrollable content
+ */
+const PageItem: React.FC<{
+  page: Page;
+  textDirection: 'ltr' | 'rtl';
+  isRTL: boolean;
+  totalPages: number;
+}> = ({ page, textDirection, isRTL, totalPages }) => {
+  const [contentHeight, setContentHeight] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const canScroll = contentHeight > containerHeight && containerHeight > 0;
+
+  return (
+    <View style={[styles.pageContainer, { direction: textDirection }]}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.pageContent}
+        contentContainerStyle={styles.pageContentContainer}
+        showsVerticalScrollIndicator={canScroll}
+        nestedScrollEnabled={true}
+        onLayout={(e) => {
+          setContainerHeight(e.nativeEvent.layout.height);
+        }}
+      >
+        <View
+          onLayout={(e) => {
+            setContentHeight(e.nativeEvent.layout.height);
+          }}
+        >
+          <Text
+            style={[
+              styles.pageText,
+              isRTL && styles.pageTextRTL,
+            ]}
+            selectable
+          >
+            {page.content}
+          </Text>
+        </View>
+      </ScrollView>
+      <View style={styles.pageFooter}>
+        <Text style={styles.pageNumber}>
+          {page.index + 1} / {totalPages}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+/**
  * BookView Component
  */
 export const BookView: React.FC<BookViewProps> = ({
@@ -164,24 +216,13 @@ export const BookView: React.FC<BookViewProps> = ({
   // Render page item
   const renderPage = useCallback((page: Page) => {
     return (
-      <View key={`page-${page.index}`} style={[styles.pageContainer, { direction: textDirection }]}>
-        <View style={styles.pageContent}>
-          <Text
-            style={[
-              styles.pageText,
-              isRTL && styles.pageTextRTL,
-            ]}
-            selectable
-          >
-            {page.content}
-          </Text>
-        </View>
-        <View style={styles.pageFooter}>
-          <Text style={styles.pageNumber}>
-            {page.index + 1} / {pages.length}
-          </Text>
-        </View>
-      </View>
+      <PageItem
+        key={`page-${page.index}`}
+        page={page}
+        textDirection={textDirection}
+        isRTL={isRTL}
+        totalPages={pages.length}
+      />
     );
   }, [pages.length, textDirection, isRTL]);
 
@@ -307,7 +348,9 @@ const styles = StyleSheet.create({
   },
   pageContent: {
     flex: 1,
-    justifyContent: 'flex-start',
+  },
+  pageContentContainer: {
+    flexGrow: 1,
   },
   pageText: {
     fontFamily: typography.fontFamily.regular,

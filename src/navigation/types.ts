@@ -18,6 +18,7 @@ export type AuthStackParamList = {
 export type AppStackParamList = {
   StoriesList: undefined;
   StoryDetail: { storyId: string };
+  LightModeStory: { storyId: string };
 };
 
 /**
