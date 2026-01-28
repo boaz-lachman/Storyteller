@@ -6,7 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { getCurrentTimestamp } from '../../utils/helpers';
 
 const DB_NAME = 'storyteller.db';
-const CURRENT_VERSION = 5;
+const CURRENT_VERSION = 8;
 
 let db: SQLite.SQLiteDatabase | null = null;
 let isInitializing = false;
@@ -172,6 +172,21 @@ async function applyMigration(
       return;
     }
 
+    // Special handling for migration 008 to avoid duplicate column error
+    if (version === 8) {
+      await database.withTransactionAsync(async () => {
+        await applyMigration008Safe(database);
+        
+        // Record migration
+        await database.runAsync(
+          'INSERT INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)',
+          [version, getCurrentTimestamp(), `Migration ${version}`]
+        );
+      });
+      console.log(`Migration ${version} applied successfully`);
+      return;
+    }
+
     // Import migration SQL
     const migrationSQL = await getMigrationSQL(version);
     
@@ -219,6 +234,15 @@ async function getMigrationSQL(version: number): Promise<string | null> {
     }
     if (version === 5) {
       return getMigration005SQL();
+    }
+    if (version === 6) {
+      return getMigration006SQL();
+    }
+    if (version === 7) {
+      return getMigration007SQL();
+    }
+    if (version === 8) {
+      return getMigration008SQL();
     }
     return null;
   } catch (error) {
@@ -395,7 +419,7 @@ function getInitialSchemaSQL(): string {
     -- Sync Queue Table
     CREATE TABLE IF NOT EXISTS SyncQueue (
       id TEXT PRIMARY KEY,
-      type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare')),
+      type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare', 'storyComment')),
       entityId TEXT NOT NULL,
       operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
       timestamp INTEGER NOT NULL,
@@ -606,6 +630,7 @@ export const clearDatabase = async (): Promise<void> => {
         DELETE FROM Blurbs;
         DELETE FROM Characters;
         DELETE FROM StoryShares;
+        DELETE FROM StoryComments;
         DELETE FROM Stories;
       `);
       
@@ -624,3 +649,120 @@ export const clearDatabase = async (): Promise<void> => {
 
 // Export database instance getter for use in CRUD operations
 export { getDatabase as getDb };
+
+/**
+ * Migration 006: Add StoryComments table for story commenting
+ */
+function getMigration006SQL(): string {
+  return `
+    -- Migration 006: Add StoryComments table for story commenting
+    PRAGMA foreign_keys = ON;
+
+    CREATE TABLE IF NOT EXISTS StoryComments (
+      id TEXT PRIMARY KEY,
+      storyId TEXT NOT NULL,
+      authorId TEXT NOT NULL,
+      authorEmail TEXT NOT NULL,
+      content TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      synced INTEGER NOT NULL DEFAULT 0,
+      deleted INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_storyComments_storyId ON StoryComments(storyId);
+    CREATE INDEX IF NOT EXISTS idx_storyComments_authorId ON StoryComments(authorId);
+    CREATE INDEX IF NOT EXISTS idx_storyComments_createdAt ON StoryComments(createdAt);
+    CREATE INDEX IF NOT EXISTS idx_storyComments_updatedAt ON StoryComments(updatedAt);
+    CREATE INDEX IF NOT EXISTS idx_storyComments_synced ON StoryComments(synced);
+    CREATE INDEX IF NOT EXISTS idx_storyComments_deleted ON StoryComments(deleted);
+    CREATE INDEX IF NOT EXISTS idx_storyComments_story_created ON StoryComments(storyId, createdAt);
+    CREATE INDEX IF NOT EXISTS idx_storyComments_story_deleted ON StoryComments(storyId, deleted);
+  `;
+}
+
+/**
+ * Migration 007: Update SyncQueue CHECK constraint for storyComment
+ *
+ * SQLite cannot alter CHECK constraints; recreate table.
+ */
+function getMigration007SQL(): string {
+  return `
+    -- Migration 007: Update SyncQueue CHECK constraint for storyComment
+    PRAGMA foreign_keys = OFF;
+
+    CREATE TABLE IF NOT EXISTS SyncQueue_new (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare', 'storyComment')),
+      entityId TEXT NOT NULL,
+      operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
+      timestamp INTEGER NOT NULL,
+      retryCount INTEGER NOT NULL DEFAULT 0,
+      lastError TEXT,
+      data TEXT,
+      createdAt INTEGER NOT NULL
+    );
+
+    INSERT INTO SyncQueue_new (id, type, entityId, operation, timestamp, retryCount, lastError, data, createdAt)
+    SELECT id, type, entityId, operation, timestamp, retryCount, lastError, data, createdAt
+    FROM SyncQueue;
+
+    DROP TABLE SyncQueue;
+    ALTER TABLE SyncQueue_new RENAME TO SyncQueue;
+
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_type ON SyncQueue(type);
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_entityId ON SyncQueue(entityId);
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_timestamp ON SyncQueue(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_syncQueue_retryCount ON SyncQueue(retryCount);
+
+    PRAGMA foreign_keys = ON;
+  `;
+}
+
+/**
+ * Migration 008: Add deleted column to StoryComments table
+ * Note: This migration is idempotent - it checks if the column exists before adding it
+ */
+function getMigration008SQL(): string {
+  return `
+    -- Migration 008: Add deleted column to StoryComments table
+    -- Check if column exists before adding (SQLite doesn't support IF NOT EXISTS for ADD COLUMN)
+    -- We'll catch the error if column already exists
+    ALTER TABLE StoryComments ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
+  `;
+}
+
+/**
+ * Safe migration 008: Checks if column exists before adding
+ */
+async function applyMigration008Safe(database: SQLite.SQLiteDatabase): Promise<void> {
+  try {
+    // Check if deleted column exists
+    const tableInfo = await database.getAllAsync<{ name: string; type: string }>(
+      'PRAGMA table_info(StoryComments)'
+    );
+    const hasDeleted = tableInfo.some(col => col.name === 'deleted');
+    
+    if (!hasDeleted) {
+      // Column doesn't exist, add it
+      await database.execAsync('ALTER TABLE StoryComments ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;');
+      console.log('Migration 008: Added deleted column to StoryComments table');
+      
+      // Create indexes for deleted column
+      await database.execAsync('CREATE INDEX IF NOT EXISTS idx_storyComments_deleted ON StoryComments(deleted);');
+      await database.execAsync('CREATE INDEX IF NOT EXISTS idx_storyComments_story_deleted ON StoryComments(storyId, deleted);');
+    } else {
+      console.log('Migration 008: deleted column already exists, skipping');
+    }
+  } catch (error: any) {
+    // If error is about duplicate column, ignore it (column already exists)
+    if (error?.message?.includes('duplicate column name') || 
+        error?.message?.includes('duplicate column')) {
+      console.log('Migration 008: deleted column already exists (caught duplicate error), skipping');
+      return;
+    }
+    // Re-throw other errors
+    throw error;
+  }
+}

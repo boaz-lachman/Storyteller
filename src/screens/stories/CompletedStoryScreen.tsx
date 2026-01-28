@@ -3,7 +3,7 @@
  * Displays the generated story content for completed stories
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, Card, Menu, Portal, Badge } from 'react-native-paper';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Feather, Entypo, Ionicons } from '@expo/vector-icons';
@@ -27,6 +27,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAppSelector } from '../../hooks/redux';
 import { selectLanguage } from '../../store/slices/languageSlice';
 import { BookView } from '../../components/reader/BookView';
+import { CommentsSection } from '../../components/comments/CommentsSection';
 
 type CompletedStoryScreenRouteProp = RouteProp<StoryTabParamList, 'CompletedStory'>;
 
@@ -138,9 +139,14 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
 
   return (
     <GradientBackground style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
       {/* Header */}
       <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.header}>
@@ -314,6 +320,11 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
         </Card>
       </Animated.View>
 
+      {/* Comments */}
+      <Animated.View entering={FadeInDown.delay(225).duration(400)}>
+        <CommentsSection storyId={storyId} />
+      </Animated.View>
+
       {/* Export Modal */}
       <Portal>
         {story && (
@@ -325,12 +336,12 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
               characters,
               blurbs,
               scenes,
-              chapters,
             }}
           />
         )}
       </Portal>
       </ScrollView>
+      </KeyboardAvoidingView>
     </GradientBackground>
   );
 }
@@ -340,9 +351,12 @@ const styles = StyleSheet.create({
     flex: 1,
     // backgroundColor removed - GradientBackground handles the background
   },
+  keyboardAvoid: {
+    flex: 1,
+  },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.xl * 3 + 320, // extra room for comment input + keyboard so input stays visible
   },
   loadingContainer: {
     flex: 1,
@@ -433,7 +447,7 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   bookViewContainer: {
-    height: 850,
+    height: 900,
     backgroundColor: colors.background,
     borderRadius: spacing.xs,
     overflow: 'hidden',

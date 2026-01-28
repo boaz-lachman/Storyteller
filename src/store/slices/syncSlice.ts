@@ -3,7 +3,7 @@ import type { RootState } from '../index';
 
 export interface SyncQueueItem {
   id: string;
-  type: 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'storyShare';
+  type: 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'storyShare' | 'storyComment';
   entityId: string;
   operation: 'create' | 'update' | 'delete';
   timestamp: number;

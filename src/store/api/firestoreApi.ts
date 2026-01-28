@@ -12,15 +12,18 @@ import {
   uploadScene,
   uploadChapter,
   uploadStoryShare,
+  uploadStoryComment,
   deleteStoryFromFirestore,
   deleteCharacterFromFirestore,
   deleteBlurbFromFirestore,
   deleteSceneFromFirestore,
   deleteChapterFromFirestore,
   deleteStoryShareFromFirestore,
+  deleteStoryCommentFromFirestore,
   downloadStories,
   downloadStoryShares,
   downloadEntitiesForStory,
+  downloadStoryComments,
   isFirebaseConfigured,
 } from '../../services/firestore/firestoreService';
 import type {
@@ -30,6 +33,7 @@ import type {
   Scene,
   Chapter,
   StoryShare,
+  StoryComment,
 } from '../../types';
 
 // ============================================================================
@@ -38,7 +42,7 @@ import type {
 
 interface FirestoreQueryArgs {
   type: 'upload' | 'download' | 'delete';
-  entityType?: 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'storyShare';
+  entityType?: 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'storyShare' | 'storyComment';
   operation?: string;
   data?: any;
   entityId?: string;
@@ -146,6 +150,18 @@ const firestoreBaseQuery = (): BaseQueryFn<
             const uploadedStoryShare = await uploadStoryShare(data as StoryShare);
             return { data: uploadedStoryShare };
 
+          case 'storyComment':
+            if (!data) {
+              return {
+                error: {
+                  error: 'StoryComment data is required',
+                  status: 400,
+                },
+              };
+            }
+            const uploadedStoryComment = await uploadStoryComment(data as StoryComment);
+            return { data: uploadedStoryComment };
+
           default:
             return {
               error: {
@@ -195,6 +211,18 @@ const firestoreBaseQuery = (): BaseQueryFn<
             const shares = await downloadStoryShares(userId);
             return { data: shares };
 
+          case 'downloadStoryComments':
+            if (!storyId) {
+              return {
+                error: {
+                  error: 'Story ID is required',
+                  status: 400,
+                },
+              };
+            }
+            const comments = await downloadStoryComments(storyId);
+            return { data: comments };
+
           default:
             return {
               error: {
@@ -241,6 +269,10 @@ const firestoreBaseQuery = (): BaseQueryFn<
             await deleteStoryShareFromFirestore(entityId);
             return { data: { id: entityId, deleted: true } };
 
+          case 'storyComment':
+            await deleteStoryCommentFromFirestore(entityId);
+            return { data: { id: entityId, deleted: true } };
+
           default:
             return {
               error: {
@@ -276,7 +308,7 @@ const firestoreBaseQuery = (): BaseQueryFn<
 export const firestoreApi = createApi({
   reducerPath: 'firestoreApi',
   baseQuery: firestoreBaseQuery(),
-  tagTypes: ['Story', 'Character', 'Blurb', 'Scene', 'Chapter', 'Sync'],
+  tagTypes: ['Story', 'Character', 'Blurb', 'Scene', 'Chapter', 'Sync', 'Comment'],
   endpoints: (builder) => ({
     // ============================================================================
     // Upload Mutations
@@ -342,6 +374,30 @@ export const firestoreApi = createApi({
       invalidatesTags: [{ type: 'Chapter', id: 'LIST' }, { type: 'Sync' }],
     }),
 
+    /**
+     * Upload a story share to Firestore
+     */
+    uploadStoryShare: builder.mutation<StoryShare, StoryShare>({
+      query: (share) => ({
+        type: 'upload',
+        entityType: 'storyShare',
+        data: share,
+      }),
+      invalidatesTags: [{ type: 'Sync', id: 'LIST' }],
+    }),
+
+    /**
+     * Upload a story comment to Firestore
+     */
+    uploadStoryComment: builder.mutation<StoryComment, StoryComment>({
+      query: (comment) => ({
+        type: 'upload',
+        entityType: 'storyComment',
+        data: comment,
+      }),
+      invalidatesTags: [{ type: 'Comment', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
     // ============================================================================
     // Delete Mutations
     // ============================================================================
@@ -404,6 +460,30 @@ export const firestoreApi = createApi({
         entityId: chapterId,
       }),
       invalidatesTags: [{ type: 'Chapter', id: 'LIST' }, { type: 'Sync' }],
+    }),
+
+    /**
+     * Delete a story share from Firestore (hard delete)
+     */
+    deleteStoryShare: builder.mutation<{ id: string; deleted: boolean }, string>({
+      query: (shareId) => ({
+        type: 'delete',
+        entityType: 'storyShare',
+        entityId: shareId,
+      }),
+      invalidatesTags: [{ type: 'Sync', id: 'LIST' }],
+    }),
+
+    /**
+     * Delete a story comment from Firestore (soft delete)
+     */
+    deleteStoryComment: builder.mutation<{ id: string; deleted: boolean }, string>({
+      query: (commentId) => ({
+        type: 'delete',
+        entityType: 'storyComment',
+        entityId: commentId,
+      }),
+      invalidatesTags: [{ type: 'Comment', id: 'LIST' }, { type: 'Sync' }],
     }),
 
     // ============================================================================
@@ -572,6 +652,18 @@ export const firestoreApi = createApi({
       }),
       providesTags: [{ type: 'Sync' , id: 'LIST' }],
     }),
+
+    /**
+     * Download story comments for a story
+     */
+    downloadStoryComments: builder.query<StoryComment[], string>({
+      query: (storyId) => ({
+        type: 'download',
+        operation: 'downloadStoryComments',
+        storyId,
+      }),
+      providesTags: [{ type: 'Comment', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -584,6 +676,7 @@ export const {
   useUploadSceneMutation,
   useUploadChapterMutation,
   useUploadStoryShareMutation,
+  useUploadStoryCommentMutation,
   // Delete mutations
   useDeleteStoryMutation,
   useDeleteCharacterMutation,
@@ -591,6 +684,7 @@ export const {
   useDeleteSceneMutation,
   useDeleteChapterMutation,
   useDeleteStoryShareMutation,
+  useDeleteStoryCommentMutation,
   // Download queries
   useDownloadStoriesQuery,
   useLazyDownloadStoriesQuery,
@@ -598,6 +692,8 @@ export const {
   useLazyDownloadEntitiesForStoryQuery,
   useDownloadStorySharesQuery,
   useLazyDownloadStorySharesQuery,
+  useDownloadStoryCommentsQuery,
+  useLazyDownloadStoryCommentsQuery,
   // Sync mutations
   useSyncStoryMutation,
   useSyncAllStoriesMutation,

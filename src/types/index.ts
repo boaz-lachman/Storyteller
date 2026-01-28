@@ -115,6 +115,22 @@ export interface StoryShare {
 }
 
 /**
+ * Story comment interface
+ * Represents a comment written on a story by a shared user
+ */
+export interface StoryComment {
+  id: string;
+  storyId: string;
+  authorId: string;
+  authorEmail: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+  synced: boolean;
+  deleted: boolean;
+}
+
+/**
  * Shared story metadata
  * Used for displaying shared story information in the UI
  */
@@ -238,6 +254,21 @@ export type StoryShareUpdateInput = Partial<
 >;
 
 /**
+ * Story Comment Creation/Update Types
+ */
+export type StoryCommentCreateInput = Omit<
+  StoryComment,
+  'id' | 'createdAt' | 'updatedAt' | 'synced' | 'deleted'
+>;
+
+export type StoryCommentUpdateInput = Partial<
+  Omit<
+    StoryComment,
+    'id' | 'storyId' | 'authorId' | 'authorEmail' | 'createdAt' | 'synced'
+  >
+>;
+
+/**
  * Story Generation Types
  */
 export interface StoryGenerationRequest {
@@ -258,7 +289,15 @@ export interface StoryGenerationResponse {
  */
 export interface SyncQueueItem {
   id: string;
-  type: 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'generatedStory';
+  type:
+    | 'story'
+    | 'character'
+    | 'blurb'
+    | 'scene'
+    | 'chapter'
+    | 'generatedStory'
+    | 'storyShare'
+    | 'storyComment';
   entityId: string;
   operation: 'create' | 'update' | 'delete';
   timestamp: number;

@@ -211,6 +211,16 @@ class SyncQueueManager {
                 firestoreApi.endpoints.deleteChapter.initiate(item.entityId)
               );
               break;
+            case 'storyShare':
+              deleteResult = await getStore().dispatch(
+                firestoreApi.endpoints.deleteStoryShare.initiate(item.entityId)
+              );
+              break;
+            case 'storyComment':
+              deleteResult = await getStore().dispatch(
+                firestoreApi.endpoints.deleteStoryComment.initiate(item.entityId)
+              );
+              break;
             default:
               throw new Error(`Unknown entity type: ${item.type}`);
           }

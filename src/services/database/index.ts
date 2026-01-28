@@ -9,3 +9,4 @@ export * from './scenes';
 export * from './chapters';
 export * from './syncQueue';
 export * from './syncMetadata';
+export * from './storyComments';

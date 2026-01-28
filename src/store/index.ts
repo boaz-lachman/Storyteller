@@ -23,6 +23,7 @@ import { charactersApi } from './api/charactersApi';
 import { blurbsApi } from './api/blurbsApi';
 import { scenesApi } from './api/scenesApi';
 import { chaptersApi } from './api/chaptersApi';
+import { commentsApi } from './api/commentsApi';
 
 // Redux slices
 import authReducer from './slices/authSlice';
@@ -51,6 +52,7 @@ const rootReducer = combineReducers({
   [blurbsApi.reducerPath]: blurbsApi.reducer,
   [scenesApi.reducerPath]: scenesApi.reducer,
   [chaptersApi.reducerPath]: chaptersApi.reducer,
+  [commentsApi.reducerPath]: commentsApi.reducer,
   // Redux slices
   auth: authReducer,
   stories: storiesReducer,
@@ -82,6 +84,7 @@ const persistConfig = {
     blurbsApi.reducerPath,
     scenesApi.reducerPath,
     chaptersApi.reducerPath,
+    commentsApi.reducerPath,
     'stories',
     'storyShares', // Story shares state (can be refetched from server)
     'characters',
@@ -124,7 +127,8 @@ export const store = configureStore({
       charactersApi.middleware,
       blurbsApi.middleware,
       scenesApi.middleware,
-      chaptersApi.middleware
+      chaptersApi.middleware,
+      commentsApi.middleware
     ),
 });
 

@@ -10,6 +10,7 @@ import type {
   Chapter,
   GeneratedStory,
   StoryShare,
+  StoryComment,
 } from '../../types';
 import { safeJsonParse, safeJsonStringify } from '../../utils/helpers';
 import { Timestamp } from 'firebase/firestore';
@@ -192,6 +193,18 @@ export interface FirestoreStoryShareData {
   createdAt: number;
   updatedAt: number;
   synced: boolean;
+}
+
+export interface FirestoreStoryCommentData {
+  id: string; // StoryComment ID (also used as document ID, but stored as field for reference)
+  storyId: string;
+  authorId: string;
+  authorEmail: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+  synced: boolean;
+  deleted: boolean;
 }
 
 /**
@@ -579,5 +592,47 @@ export function fromFirestoreStoryShare(
     createdAt: convertTimestamp(data.createdAt) || 0,
     updatedAt: convertTimestamp(data.updatedAt) || 0,
     synced: true,
+  };
+}
+
+// ============================================================================
+// StoryComment Conversion
+// ============================================================================
+
+/**
+ * Convert StoryComment (SQLite format) to Firestore format
+ */
+export function toFirestoreStoryComment(comment: StoryComment): FirestoreStoryCommentData {
+  return {
+    id: comment.id,
+    storyId: comment.storyId,
+    authorId: comment.authorId,
+    authorEmail: comment.authorEmail,
+    content: comment.content,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+    synced: true,
+    deleted: comment.deleted,
+  };
+}
+
+/**
+ * Convert Firestore document to StoryComment (SQLite format)
+ */
+export function fromFirestoreStoryComment(
+  docId: string,
+  data: FirestoreStoryCommentData | any // Allow any to handle Timestamp objects
+): StoryComment {
+  const commentId = data.id || docId;
+  return {
+    id: commentId,
+    storyId: data.storyId,
+    authorId: data.authorId,
+    authorEmail: data.authorEmail,
+    content: data.content,
+    createdAt: convertTimestamp(data.createdAt) || 0,
+    updatedAt: convertTimestamp(data.updatedAt) || 0,
+    synced: true,
+    deleted: data.deleted ?? false,
   };
 }

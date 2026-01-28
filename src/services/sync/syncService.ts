@@ -61,6 +61,15 @@ import {
   getSharesForUser,
   getSharesByOwner,
 } from '../database/storyShares';
+import {
+  getUnsyncedComments,
+  getCommentsForStory,
+  getAllCommentsForStory,
+  markStoryCommentSynced,
+  createStoryComment,
+  updateStoryComment,
+  deleteStoryComment,
+} from '../database/storyComments';
 
 // Firestore API imports
 import { firestoreApi } from '../../store/api/firestoreApi';
@@ -86,7 +95,7 @@ const getStoriesApi = () => {
 };
 
 // Type imports
-import type { Character, IdeaBlurb, Scene, Chapter, StoryShare } from '../../types';
+import type { Character, IdeaBlurb, Scene, Chapter, StoryShare, StoryComment } from '../../types';
 
 export interface SyncResult {
   success: boolean;
@@ -96,7 +105,15 @@ export interface SyncResult {
   duration: number;
 }
 
-type EntityType = 'story' | 'character' | 'blurb' | 'scene' | 'chapter' | 'generatedStory' | 'storyShare';
+type EntityType =
+  | 'story'
+  | 'character'
+  | 'blurb'
+  | 'scene'
+  | 'chapter'
+  | 'generatedStory'
+  | 'storyShare'
+  | 'storyComment';
 
 /**
  * Main sync function - orchestrates push and pull phases
@@ -156,6 +173,7 @@ export const pushUnsyncedChanges = async (
   const syncOrder: EntityType[] = [
     'story',
     'storyShare', // Share stories after stories are synced
+    'storyComment', // Comments after shares (permissions)
     'character',
     'blurb',
     'scene',
@@ -203,6 +221,9 @@ const syncEntityType = async (
       break;
     case 'storyShare':
       syncedCount = await syncStoryShares(userId);
+      break;
+    case 'storyComment':
+      syncedCount = await syncStoryComments(userId);
       break;
     case 'generatedStory':
       // Generated stories sync handled separately if needed
@@ -481,6 +502,48 @@ const syncStoryShares = async (userId: string): Promise<number> => {
 
     // YIELD TO UI THREAD: Allow UI to update between batches
     await new Promise(resolve => setTimeout(resolve, 0));
+  }
+
+  return syncedCount;
+};
+
+/**
+ * Sync StoryComments - batch upload (including deleted)
+ */
+const syncStoryComments = async (_userId: string): Promise<number> => {
+  const unsynced = await getUnsyncedComments();
+  if (unsynced.length === 0) return 0;
+
+  let syncedCount = 0;
+  const BATCH_SIZE = 20;
+
+  for (let i = 0; i < unsynced.length; i += BATCH_SIZE) {
+    const batch = unsynced.slice(i, i + BATCH_SIZE);
+
+    const results = await Promise.allSettled(
+      batch.map(async (comment) => {
+        try {
+          const uploadResult = await getStore().dispatch(
+            firestoreApi.endpoints.uploadStoryComment.initiate(comment)
+          );
+          if (!!uploadResult.error) {
+            throw new Error(
+              comment.deleted ? 'Failed to delete comment in Firestore' : 'Failed to sync comment in Firestore'
+            );
+          }
+          await markStoryCommentSynced(comment.id);
+          return { success: true };
+        } catch (error) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { syncQueueManager } = require('./queueManager');
+          syncQueueManager.add('storyComment', comment.id, comment.deleted ? 'delete' : 'update');
+          return { success: false, error };
+        }
+      })
+    );
+
+    syncedCount += results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   return syncedCount;
@@ -1074,6 +1137,76 @@ export const pullRemoteChanges = async (
               storyPulledCount++;
               console.log(`Deleted local chapter ${localChapter.id} - removed from Firestore`);
             }
+          }
+
+          // Download comments for this story (includes deleted for reconciliation)
+          try {
+            const commentsResult = await getStore().dispatch(
+              firestoreApi.endpoints.downloadStoryComments.initiate(storyId, {
+                forceRefetch: true,
+                subscribe: false,
+              } as any)
+            );
+
+            if (commentsResult.data) {
+              const localAllComments = await getAllCommentsForStory(storyId);
+              const localMap = new Map(localAllComments.map((c) => [c.id, c]));
+              const remoteIds = new Set<string>();
+
+              for (const remoteComment of commentsResult.data as StoryComment[]) {
+                remoteIds.add(remoteComment.id);
+
+                if (sinceTimestamp && remoteComment.updatedAt <= sinceTimestamp) {
+                  continue;
+                }
+
+                const localComment = localMap.get(remoteComment.id);
+
+                if (remoteComment.deleted) {
+                  // If remote deleted and local exists, remove locally (after marking deleted)
+                  if (localComment) {
+                    await updateStoryComment(
+                      remoteComment.id,
+                      { deleted: true } as any,
+                      { preserveSync: true, useRemoteUpdatedAt: remoteComment.updatedAt }
+                    );
+                    await markStoryCommentSynced(remoteComment.id); // will hard-delete locally
+                    storyPulledCount++;
+                  }
+                  continue;
+                }
+
+                if (!localComment) {
+                  await createStoryComment(remoteComment as any);
+                  await markStoryCommentSynced(remoteComment.id);
+                  storyPulledCount++;
+                } else {
+                  const shouldUseRemote = localComment.synced
+                    ? remoteComment.updatedAt > localComment.updatedAt
+                    : resolveConflict(localComment, remoteComment) === remoteComment || remoteComment.updatedAt > localComment.updatedAt;
+
+                  if (shouldUseRemote) {
+                    await updateStoryComment(
+                      remoteComment.id,
+                      remoteComment as any,
+                      { preserveSync: true, useRemoteUpdatedAt: remoteComment.updatedAt }
+                    );
+                    await markStoryCommentSynced(remoteComment.id);
+                    storyPulledCount++;
+                  }
+                }
+              }
+
+              // If a local synced comment is missing remotely, treat as deleted remotely.
+              for (const localComment of localAllComments) {
+                if (!localComment.deleted && localComment.synced && !remoteIds.has(localComment.id)) {
+                  await deleteStoryComment(localComment.id);
+                  storyPulledCount++;
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`Error downloading comments for story ${storyId}:`, error);
           }
 
           return { count: storyPulledCount };

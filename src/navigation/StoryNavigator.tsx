@@ -15,6 +15,7 @@ import GenerateStoryScreen from '../screens/generation/GenerateStoryScreen';
 import { materialTopTabOptions } from './theme';
 import { useTranslation } from '../hooks/useTranslation';
 import { useGetStoryQuery, storiesApi } from '../store/api/storiesApi';
+import { commentsApi } from '../store/api/commentsApi';
 import { useAuth } from '../hooks/useAuth';
 import { canEditStory, getStoryUserPermission } from '../utils/permissions';
 import { useState, useEffect, useRef } from 'react';
@@ -86,6 +87,8 @@ const StoryNavigator = ({
       // Invalidate the specific story query to ensure fresh data after sync
       // RTK Query will automatically refetch, and the effect below will detect if story is removed
       dispatch(storiesApi.util.invalidateTags([{ type: 'Story', id: storyId }]));
+      // Invalidate comments so CompletedStoryScreen shows updated comments after sync
+      dispatch(commentsApi.util.invalidateTags([{ type: 'Comment', id: `story-${storyId}` }]));
       checkUserPermission();
     }
   }, [lastSyncTime, dispatch, storyId]);

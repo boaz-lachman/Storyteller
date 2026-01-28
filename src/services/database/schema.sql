@@ -135,6 +135,21 @@ CREATE TABLE IF NOT EXISTS StoryShares (
   FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE
 );
 
+-- StoryComments Table
+-- Stores comments made by users who have access to a story
+CREATE TABLE IF NOT EXISTS StoryComments (
+  id TEXT PRIMARY KEY,
+  storyId TEXT NOT NULL,
+  authorId TEXT NOT NULL,
+  authorEmail TEXT NOT NULL,
+  content TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  synced INTEGER NOT NULL DEFAULT 0,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (storyId) REFERENCES Stories(id) ON DELETE CASCADE
+);
+
 -- Indexes for Stories
 CREATE INDEX IF NOT EXISTS idx_stories_userId ON Stories(userId);
 CREATE INDEX IF NOT EXISTS idx_stories_userId_status ON Stories(userId, status);
@@ -195,11 +210,21 @@ CREATE INDEX IF NOT EXISTS idx_storyShares_synced ON StoryShares(synced);
 CREATE INDEX IF NOT EXISTS idx_storyShares_ownerId ON StoryShares(ownerId);
 CREATE INDEX IF NOT EXISTS idx_storyShares_story_user ON StoryShares(storyId, sharedWithUserId);
 
+-- Indexes for StoryComments
+CREATE INDEX IF NOT EXISTS idx_storyComments_storyId ON StoryComments(storyId);
+CREATE INDEX IF NOT EXISTS idx_storyComments_authorId ON StoryComments(authorId);
+CREATE INDEX IF NOT EXISTS idx_storyComments_createdAt ON StoryComments(createdAt);
+CREATE INDEX IF NOT EXISTS idx_storyComments_updatedAt ON StoryComments(updatedAt);
+CREATE INDEX IF NOT EXISTS idx_storyComments_synced ON StoryComments(synced);
+CREATE INDEX IF NOT EXISTS idx_storyComments_deleted ON StoryComments(deleted);
+CREATE INDEX IF NOT EXISTS idx_storyComments_story_created ON StoryComments(storyId, createdAt);
+CREATE INDEX IF NOT EXISTS idx_storyComments_story_deleted ON StoryComments(storyId, deleted);
+
 -- Sync Queue Table
 -- Stores operations that need to be synced to Firestore
 CREATE TABLE IF NOT EXISTS SyncQueue (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare')),
+  type TEXT NOT NULL CHECK(type IN ('story', 'character', 'blurb', 'scene', 'chapter', 'generatedStory', 'storyShare', 'storyComment')),
   entityId TEXT NOT NULL,
   operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
   timestamp INTEGER NOT NULL,

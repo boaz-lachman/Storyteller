@@ -24,6 +24,7 @@ import type {
   Scene,
   Chapter,
   StoryShare,
+  StoryComment,
 } from '../../types';
 import {
   toFirestoreStory,
@@ -38,12 +39,15 @@ import {
   fromFirestoreChapter,
   toFirestoreStoryShare,
   fromFirestoreStoryShare,
+  toFirestoreStoryComment,
+  fromFirestoreStoryComment,
   type FirestoreStoryData,
   type FirestoreCharacterData,
   type FirestoreBlurbData,
   type FirestoreSceneData,
   type FirestoreChapterData,
   type FirestoreStoryShareData,
+  type FirestoreStoryCommentData,
 } from './conversion';
 
 /**
@@ -173,6 +177,22 @@ export function getStorySharesCollection() {
 export function getStoryShareDoc(shareId: string) {
   const db = getFirestoreInstance();
   return doc(db, 'storyShares', shareId);
+}
+
+/**
+ * Get storyComments collection reference
+ */
+export function getStoryCommentsCollection() {
+  const db = getFirestoreInstance();
+  return collection(db, 'storyComments');
+}
+
+/**
+ * Get a specific story comment document reference
+ */
+export function getStoryCommentDoc(commentId: string) {
+  const db = getFirestoreInstance();
+  return doc(db, 'storyComments', commentId);
 }
 
 // ============================================================================
@@ -448,6 +468,42 @@ export async function uploadStoryShare(share: StoryShare): Promise<StoryShare> {
 }
 
 /**
+ * Upload a story comment to Firestore
+ * Converts SQLite format to Firestore format and uploads
+ */
+export async function uploadStoryComment(comment: StoryComment): Promise<StoryComment> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getStoryCommentDoc(comment.id);
+  const firestoreData = toFirestoreStoryComment(comment);
+
+  await setDoc(
+    docRef,
+    {
+      ...firestoreData,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return { ...comment, synced: true };
+}
+
+/**
+ * Delete a story comment from Firestore (soft delete)
+ */
+export async function deleteStoryCommentFromFirestore(commentId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const docRef = getStoryCommentDoc(commentId);
+  await updateDoc(docRef, { deleted: true, updatedAt: serverTimestamp() });
+}
+
+/**
  * Delete a story share from Firestore
  */
 export async function deleteStoryShareFromFirestore(shareId: string): Promise<void> {
@@ -550,6 +606,35 @@ export async function downloadStoryShares(userId: string): Promise<StoryShare[]>
   });
 
   return Array.from(sharesMap.values());
+}
+
+/**
+ * Download all comments for a story from Firestore
+ * Includes deleted comments so clients can reconcile deletions.
+ */
+export async function downloadStoryComments(storyId: string): Promise<StoryComment[]> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const commentsCollection = getStoryCommentsCollection();
+  const q = query(commentsCollection, where('storyId', '==', storyId));
+  const snapshot = await getDocs(q);
+
+  const comments: StoryComment[] = [];
+  snapshot.forEach((docSnap) => {
+    try {
+      const data = docSnap.data() as FirestoreStoryCommentData;
+      const comment = fromFirestoreStoryComment(docSnap.id, data);
+      comments.push(comment);
+    } catch (error) {
+      console.error(`Error converting comment ${docSnap.id}:`, error);
+    }
+  });
+
+  // newest first for UI usage
+  comments.sort((a, b) => b.createdAt - a.createdAt);
+  return comments;
 }
 
 /**
