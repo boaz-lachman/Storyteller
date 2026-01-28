@@ -177,7 +177,9 @@
       "word": "מילה",
       "words": "מילים"
     },
-    "tokens": "טוקנים"
+    "tokens": "טוקנים",
+    "editPlaceholder": "ערוך את תוכן הסיפור...",
+    "saving": "שומר..."
   },
   "comments": {
     "title": "תגובות",

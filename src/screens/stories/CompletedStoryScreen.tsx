@@ -3,7 +3,7 @@
  * Displays the generated story content for completed stories
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { Text, Card, Menu, Portal, Badge } from 'react-native-paper';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Feather, Entypo, Ionicons } from '@expo/vector-icons';
@@ -12,7 +12,7 @@ import type { RouteProp } from '@react-navigation/native';
 import type { StoryTabParamList } from '../../navigation/types';
 import type { AppStackParamList } from '../../navigation/types';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useGetStoryQuery } from '../../store/api/storiesApi';
+import { useGetStoryQuery, useUpdateStoryMutation } from '../../store/api/storiesApi';
 import { useGetCharactersQuery } from '../../store/api/charactersApi';
 import { useGetBlurbsQuery } from '../../store/api/blurbsApi';
 import { useGetScenesQuery } from '../../store/api/scenesApi';
@@ -26,9 +26,13 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatWordCount } from '../../utils/formatting';
+import { countWords } from '../../utils/helpers';
 import { isRTL } from '../../utils/languageDetection';
+import { getStoryUserPermission } from '../../utils/permissions';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useAppSelector } from '../../hooks/redux';
+import { useAppSelector, useAppDispatch } from '../../hooks/redux';
+import { useAuth } from '../../hooks/useAuth';
+import { showSnackbar } from '../../store/slices/uiSlice';
 import { selectLanguage } from '../../store/slices/languageSlice';
 import { BookView } from '../../components/reader/BookView';
 import { CommentsSection } from '../../components/comments/CommentsSection';
@@ -47,14 +51,62 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
   const { storyId } = route.params;
   const language = useAppSelector(selectLanguage);
   const navigation = useNavigation();
+  const dispatch = useAppDispatch();
+  const { user } = useAuth();
   const stackNav = navigation.getParent() as NativeStackNavigationProp<AppStackParamList> | undefined;
   const [formatOption, setFormatOption] = useState<'formatted' | 'raw'>('formatted');
   const [formatMenuVisible, setFormatMenuVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [useBookView, setUseBookView] = useState(true);
+  const [canEditStoryContent, setCanEditStoryContent] = useState(false);
+  const [isEditingStory, setIsEditingStory] = useState(false);
+  const [editedContent, setEditedContent] = useState('');
 
   const { data: story, isLoading } = useGetStoryQuery(storyId);
+  const [updateStory, { isLoading: isSaving }] = useUpdateStoryMutation();
   const isStoryRTL = story?.generatedContent ? isRTL(story.generatedContent) : false;
+
+  // Permission: only owner or read-write can edit generated content
+  useEffect(() => {
+    const check = async () => {
+      if (!user?.uid || !story) {
+        setCanEditStoryContent(false);
+        return;
+      }
+      const permission = await getStoryUserPermission(user.uid, story);
+      setCanEditStoryContent(permission === 'owner' || permission === 'read-write');
+    };
+    check();
+  }, [user?.uid, story]);
+
+  const handleSaveEditedContent = async () => {
+    if (!storyId) return;
+    try {
+      await updateStory({
+        id: storyId,
+        data: {
+          generatedContent: editedContent,
+          wordCount: countWords(editedContent),
+          cutOffChunks: [],
+        },
+      }).unwrap();
+      setIsEditingStory(false);
+      setEditedContent('');
+      dispatch(
+        showSnackbar({
+          message: t('stories:overview.messages.updated'),
+          type: 'success',
+        })
+      );
+    } catch (err: any) {
+      dispatch(
+        showSnackbar({
+          message: err?.error || err?.data?.error || t('stories:overview.messages.updateFailed'),
+          type: 'error',
+        })
+      );
+    }
+  };
 
   // Fetch entities for export
   const { data: characters = [] } = useGetCharactersQuery({ storyId });
@@ -225,17 +277,29 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
             <View style={styles.resultHeader}>
               <Text style={styles.sectionTitle}>{t('stories:completed.storyTitle')}</Text>
               <View style={styles.headerButtons}>
+                {canEditStoryContent && story.generatedContent && !isEditingStory && (
+                  <TouchableOpacity
+                    style={styles.editContentButton}
+                    onPress={() => {
+                      setIsEditingStory(true);
+                      setEditedContent(story.generatedContent ?? '');
+                    }}
+                  >
+                    <Feather name="edit-2" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={styles.viewToggle}
                   onPress={() => setUseBookView(!useBookView)}
+                  disabled={isEditingStory}
                 >
                   <Ionicons
                     name={useBookView ? "list" : "book"}
                     size={20}
-                    color={colors.primary}
+                    color={isEditingStory ? colors.textTertiary : colors.primary}
                   />
                 </TouchableOpacity>
-                {!useBookView && (
+                {!useBookView && !isEditingStory && (
                   <Menu
                     key={String(formatMenuVisible)+"3"}
                     visible={formatMenuVisible}
@@ -268,7 +332,50 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
               </View>
             </View>
 
-            {useBookView ? (
+            {isEditingStory ? (
+              <>
+                <ScrollView
+                  style={styles.storyContentContainer}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={true}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <TextInput
+                    style={[
+                      styles.editTextInput,
+                      isRTL(editedContent) && styles.editTextInputRTL,
+                    ]}
+                    value={editedContent}
+                    onChangeText={setEditedContent}
+                    multiline
+                    textAlignVertical="top"
+                    placeholder={t('stories:completed.editPlaceholder')}
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                </ScrollView>
+                <View style={styles.editActionsRow}>
+                  <TouchableOpacity
+                    style={styles.cancelEditButton}
+                    onPress={() => {
+                      setIsEditingStory(false);
+                      setEditedContent('');
+                    }}
+                    disabled={isSaving}
+                  >
+                    <Text style={styles.cancelEditButtonText}>{t('stories:edit.buttons.cancel')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveEditButton, isSaving && styles.saveEditButtonDisabled]}
+                    onPress={handleSaveEditedContent}
+                    disabled={isSaving}
+                  >
+                    <Text style={styles.saveEditButtonText}>
+                      {isSaving ? t('stories:completed.saving') : t('stories:edit.buttons.save')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : useBookView ? (
               <View style={styles.bookViewContainer}>
                 <BookView
                   content={story.generatedContent}
@@ -472,11 +579,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  editContentButton: {
+    padding: spacing.xs,
+  },
   viewToggle: {
     padding: spacing.xs,
   },
   formatSelector: {
     padding: spacing.xs,
+  },
+  editTextInput: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.md,
+    color: colors.text,
+    lineHeight: 24,
+    minHeight: 400,
+    padding: spacing.sm,
+    textAlign: 'left',
+  },
+  editTextInputRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  editActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  cancelEditButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  cancelEditButtonText: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.md,
+    color: colors.textSecondary,
+  },
+  saveEditButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: spacing.xs,
+  },
+  saveEditButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveEditButtonText: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: typography.fontSize.md,
+    color: colors.background,
   },
   bookViewContainer: {
     height: 900,

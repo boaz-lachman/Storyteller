@@ -177,7 +177,9 @@
       "word": "word",
       "words": "words"
     },
-    "tokens": "tokens"
+    "tokens": "tokens",
+    "editPlaceholder": "Edit your story content...",
+    "saving": "Saving..."
   },
   "comments": {
     "title": "Comments",

@@ -4,7 +4,7 @@
  * Includes preview of elements, generation options, and result display
  */
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Text, Card, Menu, Divider, Checkbox } from 'react-native-paper';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import type { RouteProp } from '@react-navigation/native';
@@ -633,6 +633,13 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
           >
             {isGenerating ? t('entities:generation.generating') : t('entities:generation.generateButton')}
           </PaperButton>
+          <TouchableOpacity
+            style={styles.poweredByContainer}
+            onPress={() => Linking.openURL('https://www.anthropic.com')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.poweredByText}>{t('entities:generation.poweredByClaude')}</Text>
+          </TouchableOpacity>
         </Animated.View>
       )}
 
@@ -764,6 +771,14 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
               {t('entities:generation.save')}
             </PaperButton>
           </View>
+
+          <TouchableOpacity
+            style={styles.poweredByContainer}
+            onPress={() => Linking.openURL('https://www.anthropic.com')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.poweredByText}>{t('entities:generation.poweredByClaude')}</Text>
+          </TouchableOpacity>
         </Animated.View>
       )}
       </ScrollView>
@@ -920,6 +935,16 @@ const styles = StyleSheet.create({
   },
   generateButton: {
     width: '100%',
+  },
+  poweredByContainer: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  poweredByText: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.fontSize.sm,
+    color: colors.textTertiary,
   },
   loadingOverlay: {
     position: 'absolute',
