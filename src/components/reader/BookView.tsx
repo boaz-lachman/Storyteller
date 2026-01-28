@@ -23,6 +23,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useTranslation } from '../../hooks/useTranslation';
+import { isRTL as isRTLText } from '../../utils/languageDetection';
 
 // Calculate characters per page based on screen dimensions
 const getCharsPerPage = () => {
@@ -101,7 +102,6 @@ const PageItem: React.FC<{
           <Text
             style={[
               styles.pageText,
-              isRTL && styles.pageTextRTL,
             ]}
             selectable
           >
@@ -134,7 +134,7 @@ export const BookView: React.FC<BookViewProps> = ({
   const [pageInputValue, setPageInputValue] = useState('');
 
   // Determine text direction
-  const isRTL = language === 'he';
+  const isRTL = language === 'he' || (content ? isRTLText(content) : false);
   const textDirection = isRTL ? 'rtl' : 'ltr';
 
   // Split content into pages based on screen size
@@ -360,10 +360,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     textAlign: 'left',
   },
-  pageTextRTL: {
-    textAlign: 'right',
-    writingDirection: 'rtl',
-  },
+ 
   pageFooter: {
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,

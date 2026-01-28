@@ -26,6 +26,7 @@ import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatWordCount } from '../../utils/formatting';
+import { isRTL } from '../../utils/languageDetection';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAppSelector } from '../../hooks/redux';
 import { selectLanguage } from '../../store/slices/languageSlice';
@@ -53,7 +54,8 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
   const [useBookView, setUseBookView] = useState(true);
 
   const { data: story, isLoading } = useGetStoryQuery(storyId);
-  
+  const isStoryRTL = story?.generatedContent ? isRTL(story.generatedContent) : false;
+
   // Fetch entities for export
   const { data: characters = [] } = useGetCharactersQuery({ storyId });
   const { data: blurbs = [] } = useGetBlurbsQuery({ storyId });
@@ -275,13 +277,14 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
               </View>
             ) : (
               <ScrollView
-                style={styles.storyContentContainer}
+                style={[styles.storyContentContainer]}
+                contentContainerStyle={isStoryRTL ? styles.storyContentContainerRTLContent : undefined}
                 nestedScrollEnabled
                 showsVerticalScrollIndicator={true}
               >
                 {formatOption === 'raw' ? (
                   <Text
-                    style={styles.storyContentRaw}
+                    style={[styles.storyContentRaw, isStoryRTL && styles.storyContentRTL]}
                     selectable
                   >
                     {story.generatedContent}
@@ -296,6 +299,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
                               style={[
                                 styles.sectionHeader,
                                 section.isCutOff && styles.sectionHeaderCutOff,
+                                isStoryRTL && styles.storyContentRTL,
                               ]}
                               selectable
                             >
@@ -313,6 +317,7 @@ export default function CompletedStoryScreen({ route }: CompletedStoryScreenProp
                           style={[
                             styles.storyContent,
                             section.isCutOff && styles.storyContentCutOff,
+                            isStoryRTL && styles.storyContentRTL,
                           ]}
                           selectable
                         >
@@ -488,6 +493,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
+  },
+  storyContentContainerRTL: {
+    direction: 'rtl',
+  },
+  storyContentContainerRTLContent: {
+    alignItems: 'flex-end',
+  },
+  storyContentRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   storyContent: {
     fontFamily: typography.fontFamily.regular,

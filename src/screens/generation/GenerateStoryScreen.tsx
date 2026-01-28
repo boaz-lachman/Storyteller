@@ -45,6 +45,7 @@ import { showSnackbar } from '../../store/slices/uiSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { formatWordCount } from '../../utils/formatting';
 import { countWords } from '../../utils/helpers';
+import { isRTL } from '../../utils/languageDetection';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAppSelector } from '../../hooks/redux';
 import { selectLanguage } from '../../store/slices/languageSlice';
@@ -721,7 +722,12 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                 </View>
               ) : (
                 <ScrollView
-                  style={styles.storyContentContainer}
+                  style={[
+                    styles.storyContentContainer,
+                  ]}
+                  contentContainerStyle={
+                    isRTL(generatedStory.content) ? styles.storyContentContainerRTLContent : undefined
+                  }
                   nestedScrollEnabled
                   showsVerticalScrollIndicator={true}
                 >
@@ -729,6 +735,7 @@ export default function GenerateStoryScreen({ route }: GenerateStoryScreenProps)
                     style={[
                       styles.storyContent,
                       formatOption === 'raw' && styles.storyContentRaw,
+                      isRTL(generatedStory.content) && styles.storyContentRTL,
                     ]}
                     selectable
                   >
@@ -1006,6 +1013,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
+  },
+  storyContentContainerRTL: {
+    direction: 'rtl',
+  },
+  storyContentContainerRTLContent: {
+    alignItems: 'flex-end',
+  },
+  storyContentRTL: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   storyContent: {
     fontFamily: typography.fontFamily.regular,
