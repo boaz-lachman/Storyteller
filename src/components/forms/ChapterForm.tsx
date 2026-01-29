@@ -11,7 +11,7 @@ import { PaperButton } from './PaperButton';
 import { useChapterForm, type ChapterFormData } from '../../hooks/useChapterForm';
 import { useGetChaptersQuery } from '../../store/api/chaptersApi';
 import { colors } from '../../constants/colors';
-import { spacing } from '../../constants/spacing';
+import { spacing, KEYBOARD_BOTTOM_PADDING } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Chapter } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxl + KEYBOARD_BOTTOM_PADDING,
   },
   sectionTitle: {
     fontFamily: typography.fontFamily.bold,

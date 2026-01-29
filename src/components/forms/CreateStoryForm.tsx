@@ -10,7 +10,7 @@ import { Input } from './Input';
 import { PaperButton } from './PaperButton';
 import { useCreateStoryForm, FORM_OPTIONS, type CreateStoryFormData } from '../../hooks/useCreateStoryForm';
 import { colors } from '../../constants/colors';
-import { spacing } from '../../constants/spacing';
+import { spacing, KEYBOARD_BOTTOM_PADDING } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMemo } from 'react';
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxl + KEYBOARD_BOTTOM_PADDING,
   },
   sectionTitle: {
     fontFamily: typography.fontFamily.bold,

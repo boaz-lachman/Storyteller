@@ -10,7 +10,7 @@ import { Input } from './Input';
 import { PaperButton } from './PaperButton';
 import { useEditStoryForm, EDIT_FORM_OPTIONS, type EditStoryFormData } from '../../hooks/useEditStoryForm';
 import { colors } from '../../constants/colors';
-import { spacing } from '../../constants/spacing';
+import { spacing, KEYBOARD_BOTTOM_PADDING } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import type { Story } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxl + KEYBOARD_BOTTOM_PADDING,
   },
   sectionTitle: {
     fontFamily: typography.fontFamily.bold,
